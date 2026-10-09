@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FitPulse | אימונים, תזונה ומאגר מאמן</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <canvas id="confettiCanvas"></canvas>
+
+  <!-- Header & Navigation -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-wrapper" id="brandHomeBtn" role="button" tabindex="0">
+        <div class="logo-badge">
+          <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+        </div>
+        <div class="brand-text">
+          <h1>FitPulse</h1>
+          <span>פיטפולס • כושר ותזונה מתקדמת</span>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs (Renamed Icons/Tabs as requested) -->
+      <nav class="nav-tab-container" aria-label="ניווט ראשי">
+        <button class="nav-tab-btn active" data-tab="tab-dashboard" id="navTabDashboard">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+          לוח בקרה
+        </button>
+        <button class="nav-tab-btn" data-tab="tab-workouts" id="navTabWorkouts">
+          <svg viewBox="0 0 24 24"><path d="M6 5v14M18 5v14M2 9v6M22 9v6M6 12h12"></path></svg>
+          אימונים
+        </button>
+        <button class="nav-tab-btn trainer-vip-tab" data-tab="tab-equivalents" id="navTabEquivalents" hidden>
+          תרגילים שקולים
+        </button>
+        <button class="nav-tab-btn" data-tab="tab-nutrition" id="navTabNutrition">
+          <svg viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path></svg>
+          תזונה
+        </button>
+        <button class="nav-tab-btn" data-tab="tab-progress" id="navTabProgress">
+          <svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline></svg>
+          התקדמות ומחשבון
+        </button>
+        <button class="nav-tab-btn coach-vip-tab" data-tab="tab-coach" id="navTabCoach">
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
+          מאמן 👑
+        </button>
+      </nav>
+
+      <div class="header-actions">
+        <button class="btn-action-secondary" id="demoRoleToggleBtn" type="button" title="הדגמה מקומית בלבד, ללא אימות משתמש">הצגת מצב מאמן (הדגמה)</button>
+        <button class="btn-action-primary" id="headerStartWorkoutBtn">
+        <span>להתחל</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="app-main">
+
+    <!-- TAB 1: DASHBOARD -->
+    <section class="tab-pane active" id="tab-dashboard">
+      <div class="dashboard-heading">
+        <div>
+          <span class="eyebrow">התוכנית שלך, במבט אחד</span>
+          <h2 id="dashboardGreeting">שלום, מתאמן 👋</h2>
+          <p id="dashboardDate"></p>
+        </div>
+        <button class="btn-action-primary" id="dashboardAddMealBtn" type="button">＋ הוספת ארוחה</button>
+      </div>
+      <div class="hero-dashboard-grid">
+        <div class="glass-card energy-overview-card">
+          <div class="card-header-flex">
+            <div>
+              <span class="eyebrow">התקדמות יומית</span>
+              <h2>מאזן קלוריות</h2>
+            </div>
+            <span class="dashboard-icon">◉</span>
+          </div>
+          <div class="calorie-overview">
+            <div class="apple-rings-svg-container">
+              <svg viewBox="0 0 160 160">
+                <circle class="ring-bg" cx="80" cy="80" r="65"></circle>
+                <circle class="ring-bar calories" id="ringCalories" cx="80" cy="80" r="65" stroke-dasharray="408.4" stroke-dashoffset="408.4"></circle>
+              </svg>
+              <div class="rings-center-text">
+                <div class="rings-center-val" id="ringConsumedCals">0</div>
+                <div class="rings-center-sub">קלוריות נאכלו</div>
+              </div>
+            </div>
+            <div class="calorie-details">
+              <div><span class="calorie-dot"></span><span>יעד יומי</span><strong><span id="calorieTarget">0</span> קל׳</strong></div>
+              <div><span class="calorie-dot consumed"></span><span>נצרכו</span><strong><span id="calorieConsumed">0</span> קל׳</strong></div>
+              <div><span class="calorie-dot remaining"></span><span>נותרו</span><strong><span id="ringRemainingCals">0</span> קל׳</strong></div>
+            </div>
+          </div>
+          <p id="calorieBalanceNotice" class="calorie-balance-notice" role="status" aria-live="polite" hidden></p>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-header-flex macro-heading">
+            <div>
+              <span class="eyebrow">היעדים שלך להיום</span>
+              <h2>מאקרו־נוטריאנטים</h2>
+            </div>
+            <span class="dashboard-icon">◈</span>
+          </div>
+          <div class="macro-progress-list">
+            <div class="macro-progress-item protein">
+              <div class="macro-progress-label"><span class="macro-symbol">✦</span><strong>חלבון</strong><span class="macro-amounts" dir="ltr"><b id="dashProteinCurrent">0</b> / <span id="dashProteinTarget">0</span> גרם</span></div>
+              <div class="macro-track"><span id="proteinProgress"></span></div>
+            </div>
+            <div class="macro-progress-item carbs">
+              <div class="macro-progress-label"><span class="macro-symbol">◆</span><strong>פחמימות</strong><span class="macro-amounts" dir="ltr"><b id="dashCarbsCurrent">0</b> / <span id="dashCarbsTarget">0</span> גרם</span></div>
+              <div class="macro-track"><span id="carbsProgress"></span></div>
+            </div>
+            <div class="macro-progress-item fat">
+              <div class="macro-progress-label"><span class="macro-symbol">●</span><strong>שומנים</strong><span class="macro-amounts" dir="ltr"><b id="dashFatCurrent">0</b> / <span id="dashFatTarget">0</span> גרם</span></div>
+              <div class="macro-track"><span id="fatProgress"></span></div>
+            </div>
+          </div>
+          <form id="dailyTargetsForm" class="daily-targets-form" aria-label="עריכת יעדי הצריכה היומיים">
+            <label>קלוריות <input name="targetCalories" type="number" min="500" max="10000" step="50" required></label>
+            <label>חלבון (גרם) <input name="targetProtein" type="number" min="0" max="1000" step="1" required></label>
+            <label>פחמימות (גרם) <input name="targetCarbs" type="number" min="0" max="1500" step="1" required></label>
+            <label>שומן (גרם) <input name="targetFat" type="number" min="0" max="1000" step="1" required></label>
+            <button class="btn-action-secondary" type="submit">שמירת יעדי צריכה</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="dashboard-section-heading">
+        <div>
+          <span class="eyebrow">עקביות היא המפתח</span>
+          <h2>היום שלך</h2>
+        </div>
+        <span class="dashboard-date-chip" id="todayDateChip"></span>
+      </div>
+      <div class="daily-cards-grid">
+        <article class="daily-card workout-daily-card">
+          <div class="daily-card-heading"><span class="daily-card-icon">⌁</span><span>אימוני השבוע</span></div>
+          <div class="daily-card-main"><div class="mini-ring workout-mini-ring"><span id="weeklyWorkoutCount">0/5</span></div><div><strong id="weeklyWorkoutHeadline">0 מתוך 5 אימונים</strong><span>ממשיכים בקצב שלך</span></div></div>
+          <button class="text-action" type="button" data-open-tab="tab-workouts">צפייה באימונים <span aria-hidden="true">←</span></button>
+        </article>
+        <article class="daily-card meals-daily-card">
+          <div class="daily-card-heading"><span class="daily-card-icon">☕</span><span>ארוחות היום</span></div>
+          <div class="daily-card-main"><div class="mini-ring meals-mini-ring"><span id="todayMealCount">0/4</span></div><div><strong id="mealProgressHeadline">0 מתוך 4 ארוחות</strong><span>תכנון תזונתי יומי</span></div></div>
+          <button class="text-action" type="button" data-open-tab="tab-nutrition">צפייה בתזונה <span aria-hidden="true">←</span></button>
+        </article>
+        <article class="daily-card water-daily-card">
+          <div class="daily-card-heading"><span class="daily-card-icon">◉</span><span>מאזן מים יומי</span></div>
+          <div class="daily-card-main water-main"><div><strong><span id="waterProgressText" dir="ltr">0 / 2,800</span> מ״ל</strong><span>יעד השתייה היומי</span></div><span class="water-drop" aria-hidden="true">💧</span></div>
+          <div class="daily-progress-track"><span id="waterProgressBar"></span></div>
+          <button class="text-action" id="addWaterBtn" type="button">＋ כוס מים (250 מ״ל)</button>
+        </article>
+        <article class="daily-card sleep-daily-card">
+          <div class="daily-card-heading"><span class="daily-card-icon">☾</span><span>מעקב שינה</span></div>
+          <div class="daily-card-main sleep-main"><div><strong><span id="sleepHoursValue">7.5</span> שעות</strong><span id="sleepGoalText">יעד 8 שעות</span></div><span class="sleep-icon" aria-hidden="true">✦</span></div>
+          <form id="sleepForm" class="sleep-form">
+            <label for="sleepHoursInput">עדכון שעות שינה</label>
+            <input id="sleepHoursInput" type="number" name="hours" min="0" max="24" step="0.5" value="7.5" required>
+            <button type="submit" aria-label="שמירת שעות שינה">שמירה</button>
+          </form>
+        </article>
+      </div>
+
+      <!-- Omega 3 to Omega 6 Ratio Tracking Component -->
+      <div class="glass-card" style="margin-bottom: 24px;">
+        <div class="card-header-flex">
+          <h2>יחס אומגה 6:אומגה 3 (Omega-6 to Omega-3)</h2>
+          <span id="omegaRatioBadge" class="micro-status-pill good">יחס אופטימלי ✓</span>
+        </div>
+        <div style="display: flex; gap: 20px; align-items: center; justify-content: space-around;">
+          <div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">אומגה 3 (Omega-3)</div>
+            <div style="font-size: 1.4rem; font-weight: 800; color: #38bdf8;" id="omega3Val">1.2g</div>
+          </div>
+          <div style="font-size: 1.5rem; font-weight: 800; color: var(--text-dim);">:</div>
+          <div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">אומגה 6 (Omega-6)</div>
+            <div style="font-size: 1.4rem; font-weight: 800; color: #f43f5e;" id="omega6Val">4.8g</div>
+          </div>
+          <div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">יחס נוכחי</div>
+            <div style="font-size: 1.4rem; font-weight: 800; color: var(--accent-primary);" id="calculatedOmegaRatio">1 : 4.0</div>
+          </div>
+        </div>
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 10px;" id="omegaAdviceNote">
+          אומדן יחסי חומצות השומן במזונות שנרשמו. יחס אומגה 3:6 אינו ערך ייחוס רפואי או מדד להתאוששות.
+        </p>
+        <p class="today-summary" id="todaySummary"></p>
+      </div>
+      <section class="micronutrient-card" aria-labelledby="micronutrientHeading">
+        <div class="card-header-flex">
+          <div><span class="eyebrow">מעקב תזונתי יומי</span><h2 id="micronutrientHeading">מיקרו־נוטריאנטים ותובנות</h2></div>
+          <span class="dashboard-icon">✦</span>
+        </div>
+        <div class="micro-grid">
+          <article class="micro-item"><span>נתרן</span><strong><span id="sodiumValue">0</span> <small>מ״ג</small></strong><div class="micro-track"><span id="sodiumProgress"></span></div><small>עד 2,300 מ״ג</small></article>
+          <article class="micro-item"><span>סוכר כולל</span><strong><span id="sugarValue">0</span> <small>גרם</small></strong><div class="micro-track"><span id="sugarProgress"></span></div><small id="sugarReferenceLabel">יעד סוכר מוסף: 50 גרם</small></article>
+          <article class="micro-item"><span>אשלגן</span><strong><span id="potassiumValue">0</span> <small>מ״ג</small></strong><div class="micro-track"><span id="potassiumProgress"></span></div><small>ערך יומי: 4,700 מ״ג</small></article>
+          <article class="micro-item"><span>סיבים תזונתיים</span><strong><span id="fiberValue">0</span> <small>גרם</small></strong><div class="micro-track"><span id="fiberProgress"></span></div><small>ערך יומי: 28 גרם</small></article>
+        </div>
+        <p id="nutritionInsight" class="nutrition-insight" role="status"></p>
+        <p class="nutrition-disclaimer">ערכי ייחוס כלליים למבוגרים, לא המלצה רפואית אישית. סוכר כולל אינו זהה לסוכר מוסף; יחסי אומגה הם אומדן מהמזונות שדווחו ואינם יעד רפואי.</p>
+      </section>
+    </section>
+
+    <!-- TAB 2: WORKOUTS (עם הפרדה ומצב "קצר בזמן") -->
+    <section class="tab-pane" id="tab-workouts">
+      <div class="card-header-flex">
+        <h2>אימונים ותוכניות</h2>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn-action-secondary" id="importRoutineCodeBtn">📥 ייבוא תוכנית (קוד/קישור)</button>
+          <button class="btn-action-secondary trainer-equivalents-link" id="manageEquivalentExercisesBtn" type="button" hidden>ניהול תרגילים שקולים</button>
+          <button class="btn-action-primary" id="openCreateWorkoutModalBtn">+ בנה אימון חדש</button>
+        </div>
+      </div>
+      <div class="workout-template-toolbar" aria-label="חיפוש וסינון תוכניות אימון">
+        <label class="workout-template-search"><span aria-hidden="true">⌕</span><input id="workoutTemplateSearch" type="search" placeholder="חיפוש תוכנית או תרגיל..." autocomplete="off" aria-label="חיפוש תוכניות ותרגילים"></label>
+        <div class="workout-template-filters" id="workoutTemplateFilters" role="group" aria-label="סינון לפי קבוצת שרירים"></div>
+        <p id="workoutTemplateStatus" class="food-search-status" aria-live="polite"></p>
+      </div>
+
+      <section class="recent-workouts-section" id="recentWorkoutsSection" aria-labelledby="recentWorkoutsTitle" hidden>
+        <h3 id="recentWorkoutsTitle">האימונים האחרונים שלך</h3>
+        <div class="recent-workout-grid" id="recentWorkoutGrid"></div>
+      </section>
+      <section class="workout-volume-section" aria-labelledby="weeklyMuscleVolumeTitle">
+        <div class="volume-section-heading">
+          <div><span class="eyebrow">סטים שהושלמו · 7 ימים אחרונים</span><h3 id="weeklyMuscleVolumeTitle">נפח שבועי לפי שריר ראשי</h3></div>
+          <span>כל סט נספר פעם אחת בלבד לפי השריר הראשי בתוכנית.</span>
+        </div>
+        <div class="weekly-muscle-volume-grid" id="weeklyMuscleVolumeGrid"></div>
+      </section>
+
+      <!-- SECTION A: WEEKLY PROGRAM SPLITS -->
+      <div class="workouts-section">
+        <h3 style="font-size: 1.2rem; color: var(--accent-primary); margin-bottom: 12px;">תוכניות אימון שבועיות (Weekly Program Splits)</h3>
+        <div class="preset-workouts-grid" id="weeklySplitsGrid"></div>
+      </div>
+
+      <!-- SECTION B: INDIVIDUAL WORKOUT SESSIONS -->
+      <div class="workouts-section sessions">
+        <h3 style="font-size: 1.2rem; color: var(--accent-blue); margin-bottom: 12px;">אימונים בודדים (Individual Workout Sessions)</h3>
+        <div class="preset-workouts-grid" id="individualSessionsGrid"></div>
+      </div>
+    </section>
+
+    <section class="tab-pane" id="tab-equivalents">
+      <div class="card-header-flex equivalent-page-heading">
+        <div><span class="eyebrow">כלי מאמן · נשמר בדפדפן זה</span><h2>ניהול תרגילים שקולים</h2></div>
+        <button class="btn-action-secondary" id="equivalentsBackBtn" type="button">חזרה לאימונים</button>
+      </div>
+      <p class="equivalent-page-note">סמנו אילו תרגילים יכולים להחליף תרגיל מועדף עבור אותה קבוצת שריר ותת־קבוצה. באימון יוצגו רק התרגיל המועדף והשקולים שסומנו, שמתאימים לציוד שנבחר.</p>
+      <form id="equivalentExerciseForm" class="equivalent-exercise-form">
+        <label>קבוצת שריר ראשית<select id="equivalentMuscleSelect" required></select></label>
+        <label>תת־קבוצה<select id="equivalentSubgroupSelect" required></select></label>
+        <label>תרגיל מועדף<select id="equivalentPreferredSelect" required></select></label>
+        <label>תרגילים שקולים<select id="equivalentAlternativesSelect" multiple size="6" aria-describedby="equivalentAlternativesHelp"></select><small id="equivalentAlternativesHelp">אפשר לבחור כמה חלופות מאותה קבוצת שריר ותת־קבוצה; Ctrl/⌘ מאפשר בחירה מרובה.</small></label>
+        <div class="equivalent-form-actions">
+          <button class="btn-action-primary" id="saveEquivalentGroupBtn" type="submit">שמירת שקילות</button>
+          <button class="btn-action-secondary" id="cancelEquivalentEditBtn" type="button" hidden>ביטול עריכה</button>
+        </div>
+      </form>
+      <div class="equivalent-groups-list" id="equivalentGroupsList"></div>
+    </section>
+
+    <!-- TAB 3: NUTRITION -->
+    <section class="tab-pane" id="tab-nutrition">
+      <h2>יומן תזונה ומאגר מאכלים מורחב</h2>
+      <div class="nutrition-search-sticky">
+        <div class="nutrition-search-row">
+          <label class="food-search-field"><span aria-hidden="true">⌕</span><input id="foodSearchInput" type="search" placeholder="חיפוש מאכל, קטגוריה או רכיב..." autocomplete="off" aria-label="חיפוש מאכלים"></label>
+          <button class="btn-action-secondary barcode-open-btn" id="openBarcodeScannerBtn" type="button">📷 סרוק ברקוד</button>
+        </div>
+        <div class="food-category-filters" id="foodCategoryFilters" role="group" aria-label="סינון לפי קטגוריה"></div>
+        <p id="foodSearchStatus" class="food-search-status" aria-live="polite"></p>
+      </div>
+      <div class="meals-list" id="mealsContainer"></div>
+    </section>
+
+    <!-- TAB 4: PROGRESS & CALCULATOR -->
+    <section class="tab-pane" id="tab-progress">
+      <h2>מחשבון TDEE ומעקב משקל</h2>
+      <canvas id="weightChart"></canvas>
+    </section>
+
+    <!-- TAB 5: COACH DASHBOARD (עמודת המאמן הבלעדית) -->
+    <section class="tab-pane" id="tab-coach">
+      <div class="coach-header-banner">
+        <h2>לוח מאמן · מצב הדגמה מקומי 👑</h2>
+        <p>נתוני דוגמה ונתונים בדפדפן זה בלבד. אין כאן אימות זהות, חשבונות trainees או סנכרון חי.</p>
+      </div>
+      <div id="coachAccessNotice" class="coach-access-notice" role="status" hidden>לוח המאמן זמין רק בתצוגת trainer_admin המקומית. הגדרת תפקיד בדפדפן אינה RBAC מאובטח.</div>
+      <div id="coachAdminContent" hidden>
+        <div class="coach-tools-row">
+          <label>חיפוש מתאמנים <input id="coachTraineeSearch" type="search" placeholder="שם מתאמן"></label>
+          <label>סינון פעילות <select id="coachTraineeFilter"><option value="all">כולם</option><option value="active">התאמנו היום</option><option value="inactive">טרם התאמנו היום</option></select></label>
+          <label>בחירת מתאמן <select id="coachTraineeSelect"></select></label>
+          <button class="btn-action-primary" id="coachBuildProgramBtn" type="button">＋ בניית תוכנית</button>
+        </div>
+        <p class="coach-compliance-score" id="coachComplianceScore"></p>
+        <section class="coach-table-section">
+          <h3>תזונה ושתייה · היום</h3>
+          <div class="coach-table-scroll"><table class="coach-nutrition-table"><thead><tr><th>מתאמן</th><th>קלוריות יעד / בפועל</th><th>חלבון</th><th>פחמימות</th><th>שומן</th><th>מים</th></tr></thead><tbody id="coachNutritionRows"></tbody></table></div>
+        </section>
+        <section class="coach-table-section"><h3>יומן אימונים · נתונים מקומיים</h3><div id="coachLiveFeed" class="coach-live-feed"></div></section>
+      </div>
+      <div class="coach-trainees-grid" id="coachTraineesGrid"></div>
+    </section>
+
+  </main>
+
+  <!-- ACTIVE WORKOUT MODAL WITH TIME-CRUNCH MODE TOGGLE -->
+  <div class="active-workout-modal" id="activeWorkoutModal">
+    <div class="workout-hud-bar">
+      <div>
+        <h2 id="activeWorkoutTitle">Push Session</h2>
+        <span class="workout-time" id="workoutElapsed">00:00</span>
+        <label class="session-rest-setting">מנוחה בין סטים (שניות)
+          <input id="sessionRestSeconds" type="number" min="0" max="900" step="15" value="90">
+        </label>
+        <!-- Time-Crunch Mode Toggle Button -->
+        <button id="timeCrunchToggleBtn" class="time-crunch-btn">
+          ⏱️ מצב קצר בזמן: כבוי
+        </button>
+      </div>
+      <div class="workout-actions-hud">
+        <button class="btn-action-secondary" id="activeExerciseLibraryBtn" type="button">＋ הוספת תרגיל מהמאגר</button>
+        <button class="btn-finish-workout" id="finishWorkoutBtn">סיים אימון ✓</button>
+      </div>
+    </div>
+
+    <!-- Time Crunch Instructions Banner -->
+    <div id="timeCrunchBanner" class="time-crunch-banner" style="display: none;">
+      ⚡ <strong>הנחיות "קצר בזמן" (Rotation Protocol):</strong> בצע סט 1 לכל קבוצת שריר בסבב מתחלף (חזה -> כתפיים -> יד אחורית) לקבלת מקסימום סטים ראשונים איכותיים במינימום מנוחה!
+    </div>
+
+    <div class="active-workout-content" id="activeExercisesList"></div>
+  </div>
+
+  <div class="dialog-backdrop" id="barcodeScannerDialog" hidden>
+    <section class="dialog-card scanner-dialog" role="dialog" aria-modal="true" aria-labelledby="barcodeScannerTitle">
+      <div class="dialog-header"><div><span class="eyebrow">סריקה באמצעות מצלמה</span><h2 id="barcodeScannerTitle">סריקת ברקוד מזון</h2></div><button class="icon-button" id="closeBarcodeScannerBtn" type="button">סגירה</button></div>
+      <p class="scanner-hint">הצביעו על ברקוד EAN-13 או UPC. הנתונים ייבדקו מול Open Food Facts ויתווספו ליומן לפי 100 גרם.</p>
+      <video id="barcodeVideo" class="barcode-video" muted playsinline></video>
+      <p id="barcodeScannerStatus" class="scanner-status" role="status">המצלמה עדיין לא הופעלה.</p>
+      <button class="btn-action-primary" id="startBarcodeScannerBtn" type="button">הפעלת מצלמה</button>
+    </section>
+  </div>
+
+  <div class="dialog-backdrop" id="exerciseLibraryDialog" hidden>
+    <section class="dialog-card exercise-library-dialog" role="dialog" aria-modal="true" aria-labelledby="exerciseLibraryTitle">
+      <div class="dialog-header"><div><span class="eyebrow">Exercise Library · Local</span><h2 id="exerciseLibraryTitle">מאגר תרגילים לבחירה</h2></div><button class="icon-button" id="closeExerciseLibraryBtn" type="button">סגירה</button></div>
+      <p class="scanner-hint">חפשו תרגיל וסננו לפי קבוצת שרירים וציוד במאגר המקומי. הוסיפו או הסירו אותו מתוכנית האימון.</p>
+      <label class="food-search-field exercise-search-field"><span aria-hidden="true">⌕</span><input id="exerciseLibrarySearch" type="search" placeholder="חיפוש תרגילים באנגלית..." autocomplete="off" aria-label="חיפוש תרגילים"></label>
+      <div class="food-category-filters" id="exerciseMuscleFilters" role="group" aria-label="סינון לפי קבוצת שרירים"></div>
+      <label class="exercise-equipment-filter">ציוד <select id="exerciseEquipmentFilter"><option value="all">כל סוגי הציוד</option><option>Barbell</option><option>Dumbbell</option><option>Cable</option><option>Machine</option><option>Bodyweight</option><option>Smith Machine</option><option>Resistance Band</option></select></label>
+      <p id="exerciseLibraryStatus" class="food-search-status" aria-live="polite"></p>
+      <div class="exercise-library-list" id="exerciseLibraryList"></div>
+      <button class="btn-action-primary library-done-btn" id="exerciseLibraryDoneBtn" type="button">סיום בחירה</button>
+    </section>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js" defer></script>
+  <script src="app.js"></script>
+</body>
+</html>

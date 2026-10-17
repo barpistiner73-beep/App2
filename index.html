@@ -43,13 +43,17 @@
           <svg viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path></svg>
           תזונה
         </button>
+        <button class="nav-tab-btn" data-tab="tab-daily-report" id="navTabDailyReport">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          דוח יומי
+        </button>
         <button class="nav-tab-btn" data-tab="tab-progress" id="navTabProgress">
           <svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline></svg>
           התקדמות ומחשבון
         </button>
         <button class="nav-tab-btn coach-vip-tab" data-tab="tab-coach" id="navTabCoach">
           <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
-          מאמן 👑
+          מאמן
         </button>
       </nav>
 
@@ -70,7 +74,7 @@
       <div class="dashboard-heading">
         <div>
           <span class="eyebrow">התוכנית שלך, במבט אחד</span>
-          <h2 id="dashboardGreeting">שלום, מתאמן 👋</h2>
+          <h2 id="dashboardGreeting">שלום, מתאמן</h2>
           <p id="dashboardDate"></p>
         </div>
         <button class="btn-action-primary" id="dashboardAddMealBtn" type="button">＋ הוספת ארוחה</button>
@@ -218,7 +222,7 @@
       <div class="card-header-flex">
         <h2>אימונים ותוכניות</h2>
         <div style="display: flex; gap: 10px;">
-          <button class="btn-action-secondary" id="importRoutineCodeBtn">📥 ייבוא תוכנית (קוד/קישור)</button>
+          <button class="btn-action-secondary" id="importRoutineCodeBtn">ייבוא תוכנית (קוד/קישור)</button>
           <button class="btn-action-secondary trainer-equivalents-link" id="manageEquivalentExercisesBtn" type="button" hidden>ניהול תרגילים שקולים</button>
           <button class="btn-action-primary" id="openCreateWorkoutModalBtn">+ בנה אימון חדש</button>
         </div>
@@ -291,6 +295,147 @@
       <div class="meals-list" id="mealsContainer"></div>
     </section>
 
+    <!-- TAB: DAILY TRAINEE REPORT (דוח יומי למתאמן) -->
+    <section class="tab-pane" id="tab-daily-report">
+      <div class="daily-report-header">
+        <div class="daily-report-title-row">
+          <div>
+            <span class="eyebrow">דיווח יומי אישי ומעקב מדדים</span>
+            <h2>דוח פעילות יומי למאמן</h2>
+          </div>
+          <div class="daily-report-date-selector">
+            <button class="btn-icon-day" id="dailyReportPrevDayBtn" type="button" title="יום קודם">◀</button>
+            <span class="daily-report-current-date" id="dailyReportDateLabel">היום</span>
+            <input type="date" id="dailyReportDatePicker" class="daily-report-date-input">
+            <button class="btn-icon-day" id="dailyReportNextDayBtn" type="button" title="יום הבא">▶</button>
+          </div>
+        </div>
+
+        <div class="daily-report-status-bar">
+          <div class="status-info">
+            <span class="status-pill status-draft" id="dailyReportStatusBadge">טיוטה פעילה · מסתנכרן אוטומטית</span>
+            <span class="sync-time" id="dailyReportSyncTime">סונכרן למסד הנתונים</span>
+          </div>
+          <div class="report-actions">
+            <button class="btn-action-primary finalize-report-btn" id="dailyReportFinalizeBtn" type="button">
+              נעילה ושליחת דוח יומי למאמן
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Overview -->
+      <div class="daily-report-summary-grid">
+        <div class="summary-card">
+          <div class="card-caption">תזונה יומית</div>
+          <div class="card-metric-val" id="reportCaloriesSummary">0 / 0 קק"ל</div>
+          <div class="card-metric-sub" id="reportMacrosSummary">חלבון: 0g · פחמימות: 0g · שומן: 0g</div>
+          <div class="progress-bar-wrap"><div class="progress-bar-fill" id="reportCalorieProgress" style="width: 0%;"></div></div>
+        </div>
+        <div class="summary-card">
+          <div class="card-caption">אימונים שבוצעו היום</div>
+          <div class="card-metric-val" id="reportWorkoutSummary">טרם בוצע אימון</div>
+          <div class="card-metric-sub" id="reportWorkoutVolume">נפח כולל: 0 ק"ג</div>
+        </div>
+        <div class="summary-card">
+          <div class="card-caption">משקל ומים</div>
+          <div class="card-metric-val" id="reportWeightWaterSummary">-- ק"ג · 0 מ"ל</div>
+          <div class="card-metric-sub" id="reportSleepSummary">שינה: -- שעות</div>
+        </div>
+      </div>
+
+      <!-- Trainee Daily Check-in Form -->
+      <div class="checkin-form-container">
+        <div class="checkin-header">
+          <h3>שאלון מדדים וסגנון חיים</h3>
+          <p>השדות נשמרים אוטומטית ומצורפים ישירות לדוח היומי של המאמן.</p>
+        </div>
+
+        <form id="dailyCheckinForm" class="checkin-grid">
+          <div class="checkin-field">
+            <label for="checkinWeight">משקל בוקר בצום (ק"ג)</label>
+            <input type="number" id="checkinWeight" step="0.1" min="30" max="250" placeholder="למשל: 82.4">
+          </div>
+          <div class="checkin-field">
+            <label for="checkinWater">כמות שתיית מים (מ"ל)</label>
+            <input type="number" id="checkinWater" step="50" min="0" max="10000" placeholder="למשל: 3000">
+          </div>
+          <div class="checkin-field">
+            <label for="checkinSleepHours">שעות שינה בלילה החולף</label>
+            <input type="number" id="checkinSleepHours" step="0.5" min="0" max="24" placeholder="למשל: 7.5">
+          </div>
+          <div class="checkin-field">
+            <label for="checkinSleepQuality">איכות שינה (1-10)</label>
+            <div class="slider-row">
+              <input type="range" id="checkinSleepQuality" min="1" max="10" value="8" class="checkin-slider">
+              <span class="range-display" id="checkinSleepQualityVal">8/10</span>
+            </div>
+          </div>
+          <div class="checkin-field">
+            <label for="checkinSteps">צעדים / פעילות יומית</label>
+            <input type="number" id="checkinSteps" step="100" min="0" max="100000" placeholder="למשל: 10000">
+          </div>
+          <div class="checkin-field">
+            <label for="checkinDigestion">מצב מערכת עיכול ונפיחות</label>
+            <select id="checkinDigestion">
+              <option value="good">תקין ונוח (ללא נפיחות)</option>
+              <option value="bloated">נפיחות קלה / כבדות</option>
+              <option value="irregular">חוסר סדירות / אי-נוחות</option>
+              <option value="neutral">רגיל / סביר</option>
+            </select>
+          </div>
+
+          <!-- Subjective Rating Pills -->
+          <div class="checkin-field full-width">
+            <label>רמת אנרגיה וחיוניות לאורך היום (1-5)</label>
+            <div class="rating-pills" id="energyRatingPills" data-rating="energy">
+              <button type="button" class="rating-pill" data-val="1">1 - ירודה מאוד</button>
+              <button type="button" class="rating-pill" data-val="2">2 - נמוכה</button>
+              <button type="button" class="rating-pill" data-val="3">3 - ממוצעת</button>
+              <button type="button" class="rating-pill active" data-val="4">4 - טובה</button>
+              <button type="button" class="rating-pill" data-val="5">5 - שיא</button>
+            </div>
+          </div>
+
+          <div class="checkin-field full-width">
+            <label>רמת רעב / חשקים למתוק (1-5)</label>
+            <div class="rating-pills" id="hungerRatingPills" data-rating="hunger">
+              <button type="button" class="rating-pill" data-val="1">1 - שבע מאוד</button>
+              <button type="button" class="rating-pill active" data-val="2">2 - רעב נשלט ומותאם</button>
+              <button type="button" class="rating-pill" data-val="3">3 - בינוני</button>
+              <button type="button" class="rating-pill" data-val="4">4 - רעב מוגבר</button>
+              <button type="button" class="rating-pill" data-val="5">5 - התקפי רעב קשים</button>
+            </div>
+          </div>
+
+          <div class="checkin-field full-width">
+            <label>רמת עומס נפשי וסטרס (1-5)</label>
+            <div class="rating-pills" id="stressRatingPills" data-rating="stress">
+              <button type="button" class="rating-pill active" data-val="1">1 - רגוע ונינוח</button>
+              <button type="button" class="rating-pill" data-val="2">2 - סטרס קל</button>
+              <button type="button" class="rating-pill" data-val="3">3 - עומס בינוני</button>
+              <button type="button" class="rating-pill" data-val="4">4 - לחץ גבוה</button>
+              <button type="button" class="rating-pill" data-val="5">5 - שחיקה וסטרס קיצוני</button>
+            </div>
+          </div>
+
+          <div class="checkin-field full-width">
+            <label for="checkinNotes">הערות, שאלות ופירוט תחושות למאמן</label>
+            <textarea id="checkinNotes" rows="3" placeholder="כתבו כאן כל תחושה, כאב, קושי באימון או שאלה שתרצו שהמאמן יראה בדוח שלכם..."></textarea>
+          </div>
+        </form>
+      </div>
+
+      <!-- Time-stamped Activity Stream (ציר זמן פעילות היום) -->
+      <div class="daily-timeline-section">
+        <div class="timeline-header">
+          <h3>ציר זמן ארוחות ואימונים · חותמת שעה מדויקת</h3>
+          <p>כל פריט שנרשם היום מופיע עם השעה המדויקת של התיעוד.</p>
+        </div>
+        <div class="daily-activity-stream" id="dailyReportTimeline"></div>
+      </div>
+    </section>
+
     <!-- TAB 4: PROGRESS & CALCULATOR -->
     <section class="tab-pane" id="tab-progress">
       <h2>מחשבון TDEE ומעקב משקל</h2>
@@ -300,25 +445,68 @@
     <!-- TAB 5: COACH DASHBOARD (עמודת המאמן הבלעדית) -->
     <section class="tab-pane" id="tab-coach">
       <div class="coach-header-banner">
-        <h2>לוח מאמן · מצב הדגמה מקומי 👑</h2>
-        <p>נתוני דוגמה ונתונים בדפדפן זה בלבד. אין כאן אימות זהות, חשבונות trainees או סנכרון חי.</p>
+        <h2>לוח בקרה מרכזי למאמן · מעקב דוחות יומיים</h2>
+        <p>סקירה מקיפה של נתוני המתאמנים, היסטוריית דיווחים, ועמידה ביעדי תזונה ואימונים.</p>
       </div>
       <div id="coachAccessNotice" class="coach-access-notice" role="status" hidden>לוח המאמן זמין רק בתצוגת trainer_admin המקומית. הגדרת תפקיד בדפדפן אינה RBAC מאובטח.</div>
       <div id="coachAdminContent" hidden>
         <div class="coach-tools-row">
-          <label>חיפוש מתאמנים <input id="coachTraineeSearch" type="search" placeholder="שם מתאמן"></label>
+          <label>חיפוש מתאמנים <input id="coachTraineeSearch" type="search" placeholder="שם מתאמן..."></label>
           <label>סינון פעילות <select id="coachTraineeFilter"><option value="all">כולם</option><option value="active">התאמנו היום</option><option value="inactive">טרם התאמנו היום</option></select></label>
           <label>בחירת מתאמן <select id="coachTraineeSelect"></select></label>
           <button class="btn-action-primary" id="coachBuildProgramBtn" type="button">＋ בניית תוכנית</button>
         </div>
-        <p class="coach-compliance-score" id="coachComplianceScore"></p>
+
+        <!-- Trainee Quick Overview Bar -->
+        <div class="coach-trainee-profile-bar" id="coachTraineeProfileBar"></div>
+
+        <!-- Historical Daily Reports Section -->
         <section class="coach-table-section">
-          <h3>תזונה ושתייה · היום</h3>
-          <div class="coach-table-scroll"><table class="coach-nutrition-table"><thead><tr><th>מתאמן</th><th>קלוריות יעד / בפועל</th><th>חלבון</th><th>פחמימות</th><th>שומן</th><th>מים</th></tr></thead><tbody id="coachNutritionRows"></tbody></table></div>
+          <div class="coach-section-header-flex">
+            <div>
+              <h3>היסטוריית דוחות יומיים · מסד נתונים מרכזי</h3>
+              <p>תצוגה מסוכמת כברירת מחדל של 14 הימים האחרונים (שבועיים), עם אפשרות להרחבת טווח וצפייה מעמיקה בכל יום.</p>
+            </div>
+            <div class="coach-range-selector-wrap">
+              <label for="coachRangeFilter">טווח היסטוריה:</label>
+              <select id="coachRangeFilter">
+                <option value="14" selected>14 ימים אחרונים (שבועיים)</option>
+                <option value="30">30 ימים אחרונים (חודש)</option>
+                <option value="60">60 ימים אחרונים (חודשיים)</option>
+                <option value="all">כל ההיסטוריה</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="coach-table-scroll">
+            <table class="coach-reports-history-table">
+              <thead>
+                <tr>
+                  <th>תאריך</th>
+                  <th>סטטוס דוח</th>
+                  <th>שעת הגשה</th>
+                  <th>קלוריות (בפועל / יעד)</th>
+                  <th>חלבון</th>
+                  <th>אימון</th>
+                  <th>מים</th>
+                  <th>שינה</th>
+                  <th>משקל בוקר</th>
+                  <th>אנרגיה / סטרס</th>
+                  <th>פירוט מעמיק</th>
+                </tr>
+              </thead>
+              <tbody id="coachReportsHistoryRows"></tbody>
+            </table>
+          </div>
+          <div id="coachReportsEmptyState" class="empty-state" hidden>לא נמצאו דוחות יומיים עבור טווח זה.</div>
         </section>
-        <section class="coach-table-section"><h3>יומן אימונים · נתונים מקומיים</h3><div id="coachLiveFeed" class="coach-live-feed"></div></section>
+
+        <!-- General Roster Grid -->
+        <section class="coach-table-section">
+          <h3>סטטוס כללי של כל המתאמנים</h3>
+          <div class="coach-trainees-grid" id="coachTraineesGrid"></div>
+        </section>
       </div>
-      <div class="coach-trainees-grid" id="coachTraineesGrid"></div>
     </section>
 
   </main>
@@ -334,7 +522,7 @@
         </label>
         <!-- Time-Crunch Mode Toggle Button -->
         <button id="timeCrunchToggleBtn" class="time-crunch-btn">
-          ⏱️ מצב קצר בזמן: כבוי
+          מצב קצר בזמן: כבוי
         </button>
       </div>
       <div class="workout-actions-hud">
@@ -346,7 +534,7 @@
     <!-- HEVY-STYLE FLOATING REST TIMER HUD -->
     <div id="activeWorkoutRestBanner" class="active-workout-rest-hud" style="display: none;">
       <div class="rest-hud-info">
-        <span class="rest-hud-icon">⏱️</span>
+        <span class="rest-hud-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
         <span class="rest-hud-label">זמן מנוחה:</span>
         <strong id="activeRestCountdown" class="rest-hud-time">01:30</strong>
       </div>
@@ -359,7 +547,7 @@
 
     <!-- Time Crunch Instructions Banner -->
     <div id="timeCrunchBanner" class="time-crunch-banner" style="display: none;">
-      ⚡ <strong>הנחיות "קצר בזמן" (Rotation Protocol):</strong> בצע סט 1 לכל קבוצת שריר בסבב מתחלף (חזה -> כתפיים -> יד אחורית) לקבלת מקסימום סטים ראשונים איכותיים במינימום מנוחה!
+      <strong>הנחיות "קצר בזמן" (Rotation Protocol):</strong> בצע סט 1 לכל קבוצת שריר בסבב מתחלף (חזה -> כתפיים -> יד אחורית) לקבלת מקסימום סטים ראשונים איכותיים במינימום מנוחה!
     </div>
 
     <div class="active-workout-content" id="activeExercisesList"></div>
@@ -411,9 +599,9 @@
         <input id="exerciseSwapSearch" type="search" placeholder="חיפוש מהיר לפי שם תרגיל (אנגלית/עברית)..." autocomplete="off" aria-label="חיפוש תרגיל חלופי" dir="ltr">
       </label>
       <div class="exercise-swap-tabs" role="tablist">
-        <button id="swapTabEquiv" class="category-chip active" type="button" role="tab" aria-selected="true">🔥 שקולים מומלצים</button>
-        <button id="swapTabMuscle" class="category-chip" type="button" role="tab" aria-selected="false">🎯 אותה קבוצת שריר</button>
-        <button id="swapTabAll" class="category-chip" type="button" role="tab" aria-selected="false">📚 כל המאגר</button>
+        <button id="swapTabEquiv" class="category-chip active" type="button" role="tab" aria-selected="true">שקולים מומלצים</button>
+        <button id="swapTabMuscle" class="category-chip" type="button" role="tab" aria-selected="false">אותה קבוצת שריר</button>
+        <button id="swapTabAll" class="category-chip" type="button" role="tab" aria-selected="false">כל המאגר</button>
       </div>
       <div class="exercise-swap-equipment-bar">
         <label class="exercise-equipment-filter">סינון לפי ציוד:
@@ -433,8 +621,25 @@
       <div class="exercise-swap-list" id="exerciseSwapList"></div>
       </div>
     </section>
+  <!-- COACH REPORT DETAIL MODAL (DEEP DIVE DRILL-DOWN) -->
+  <div class="dialog-backdrop" id="coachReportDetailModal" hidden>
+    <section class="dialog-card coach-report-drilldown-dialog" role="dialog" aria-modal="true" aria-labelledby="drilldownTitle">
+      <div class="dialog-header">
+        <div>
+          <span class="eyebrow" id="drilldownTraineeBadge">דוח יומי מעמיק · מתאמן</span>
+          <h2 id="drilldownTitle">פירוט דוח יומי</h2>
+        </div>
+        <button class="icon-button icon-button-ghost" id="closeDrilldownModalBtn" type="button" aria-label="סגירה">✕</button>
+      </div>
+      <div class="dialog-scroll" id="drilldownModalContent"></div>
+    </section>
   </div>
 
+  <!-- Firebase Cloud Database (Firestore) -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
   <script src="data.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js" defer></script>
   <script src="app.js"></script>

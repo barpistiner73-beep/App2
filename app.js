@@ -11,7 +11,8 @@
     equivalentExercises: 'fitpulse_equivalent_exercises',
     water: 'fitpulse_daily_water',
     sleep: 'fitpulse_daily_sleep',
-    scannedFoods: 'fitpulse_scanned_foods'
+    scannedFoods: 'fitpulse_scanned_foods',
+    dailyReports: 'fitpulse_daily_reports'
   };
 
   function readStorage(key, fallback) {
@@ -76,8 +77,12 @@
     exerciseLibraryOnDone: null,
     exerciseLibraryMode: 'multi',
     exerciseLibraryOnPick: null,
-    selectedTraineeId: FIT_DATA.coachTrainees[0]?.id || '',
-    coachActivityFilter: 'all'
+    selectedTraineeId: FIT_DATA.coachTrainees[0]?.id || 'client_1',
+    coachActivityFilter: 'all',
+    dailyReportDate: localDateKey(new Date()),
+    dailyReports: readStorage(STORAGE_KEYS.dailyReports, {}),
+    coachHistoryRange: 14,
+    coachHistoricalReports: []
   };
   state.equivalentExerciseGroups = Array.isArray(state.equivalentExerciseGroups)
     ? state.equivalentExerciseGroups.filter(group =>
@@ -279,6 +284,8 @@
     });
     if (tabId === 'tab-progress') drawWeightChart();
     if (tabId === 'tab-equivalents') renderEquivalentExerciseManager();
+    if (tabId === 'tab-daily-report') renderDailyReportTab();
+    if (tabId === 'tab-coach') renderCoach();
   }
 
   function getDailyNutrition() {
@@ -305,6 +312,8 @@
       return false;
     }
     const multiplier = food.nutritionBasis === 'serving' ? grams : grams / 100;
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', hour12: false });
     const meal = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       foodId: food.id,
@@ -315,7 +324,9 @@
       nutritionBasis: food.nutritionBasis || '100g',
       icon: food.icon || '🍽️',
       source: food.source || options.source || 'FoodData Central reference data per 100 g.',
-      addedSugarKnown: typeof food.addedSugar === 'number' && Number.isFinite(food.addedSugar)
+      addedSugarKnown: typeof food.addedSugar === 'number' && Number.isFinite(food.addedSugar),
+      loggedAt: now.toISOString(),
+      time: timeStr
     };
     meal.unknownNutrients = Array.isArray(food.unknownNutrients)
       ? [...food.unknownNutrients]
@@ -328,6 +339,7 @@
     if (!writeStorage(STORAGE_KEYS.nutrition, state.nutritionLogs)) return false;
     renderNutrition();
     renderDashboard();
+    syncDailyReportDraft();
     return true;
   }
 
@@ -384,7 +396,7 @@
 
     const now = new Date();
     const dateText = new Intl.DateTimeFormat('he-IL', { weekday: 'long', day: 'numeric', month: 'long' }).format(now);
-    if (byId('dashboardGreeting')) byId('dashboardGreeting').textContent = `שלום, ${state.profile.name || 'מתאמן'} 👋`;
+    if (byId('dashboardGreeting')) byId('dashboardGreeting').textContent = `שלום, ${state.profile.name || 'מתאמן'}`;
     if (byId('dashboardDate')) byId('dashboardDate').textContent = 'זה הסיכום שלך להיום. התקדמות קטנה בכל יום מצטברת לתוצאות גדולות.';
     if (byId('todayDateChip')) byId('todayDateChip').textContent = dateText;
 
@@ -549,7 +561,7 @@
     if (plan.badge) {
       badgeRow.append(createElement('span', 'plan-badge', plan.badge));
     }
-    badgeRow.append(createElement('span', 'plan-duration', `⏱️ ${plan.durationMinutes || 0} דק׳`));
+    badgeRow.append(createElement('span', 'plan-duration', `${plan.durationMinutes || 0} דק׳`));
     card.append(badgeRow, createElement('h3', 'plan-title', WORKOUT_CARD_LABELS[plan.id] || plan.hebrewName || plan.name));
     if (plan.subtitle) card.append(createElement('p', 'plan-sub', plan.subtitle));
 
@@ -559,7 +571,10 @@
       const previewExercise = getExercise(plan.exercises[0].exerciseId);
       if (previewExercise) {
         const preview = createElement('div', 'plan-exercise-preview');
-        preview.append(createExerciseAnimation(previewExercise), createElement('span', '', previewExercise.name));
+        const textSpan = createElement('strong', 'exercise-name-en', previewExercise.name);
+        textSpan.dir = 'ltr';
+        const pill = createElement('span', 'exercise-badge-pill', previewExercise.equipment || muscleLabel(previewExercise.muscle));
+        preview.append(textSpan, pill);
         card.append(preview);
       }
     }
@@ -573,7 +588,7 @@
     moreOptions.className = 'plan-more-options';
     const moreSummary = createElement('summary', 'plan-more-summary', 'עוד פעולות');
     const moreMenu = createElement('div', 'plan-more-menu');
-    const crunchStartButton = createElement('button', 'btn-action-secondary crunch-start-btn', 'להתחל קצר בזמן ⏱️');
+    const crunchStartButton = createElement('button', 'btn-action-secondary crunch-start-btn', 'להתחל קצר בזמן');
     crunchStartButton.type = 'button';
     crunchStartButton.addEventListener('click', () => {
       startWorkout(plan);
@@ -604,38 +619,8 @@
     return card;
   }
 
-  function createExerciseAnimation(exercise, compact = false) {
-    const trajectory = {
-      squat: 'M38 15 C24 26 23 35 38 44',
-      lunges: 'M38 14 C29 26 27 36 39 46',
-      bicep_curl: 'M33 42 C20 35 19 22 31 15',
-      tricep_pushdown: 'M34 13 C45 24 45 34 35 45',
-      shoulder_press: 'M31 43 C19 30 21 18 37 10',
-      lateral_raise: 'M29 38 C17 31 16 20 28 14',
-      pullup: 'M36 11 C23 17 23 33 37 42',
-      lat_pulldown: 'M36 10 C25 18 25 33 37 44',
-      rowing: 'M26 38 C17 30 23 20 37 17',
-      deadlift: 'M37 12 C25 20 20 33 34 43',
-      bench_press: 'M17 22 C25 12 37 12 47 21',
-      incline_press: 'M18 28 C27 15 37 13 47 20',
-      cable_fly: 'M17 17 C25 35 38 35 47 17',
-      pec_deck: 'M21 17 C18 33 44 33 42 17',
-      dips: 'M38 12 C26 20 26 34 38 43',
-      plank: 'M17 28 C26 23 37 23 47 28'
-    }[exercise.animType] || 'M20 35 C23 15 39 15 44 35';
-    const figure = createElement('div', `exercise-demo${compact ? ' compact' : ''}`);
-    const markerId = `demoArrow${exerciseAnimationId++}`;
-    figure.setAttribute('role', 'img');
-    figure.setAttribute('aria-label', `הדגמת תנועה וקטורית: ${exercise.name}`);
-    figure.innerHTML = `<svg viewBox="0 0 64 56" aria-hidden="true" focusable="false">
-      <path class="demo-floor" d="M8 48h48"></path>
-      <circle class="demo-head" cx="32" cy="8" r="4"></circle>
-      <path class="demo-body" d="M32 13v19m-10-12 10 5 10-5m-10 12-8 14m8-14 8 14"></path>
-      <path class="demo-trajectory" d="${trajectory}" marker-end="url(#${markerId})"></path>
-      <circle class="demo-moving-weight" r="3"><animateMotion dur="1.8s" repeatCount="indefinite" path="${trajectory}"></animateMotion></circle>
-      <defs><marker id="${markerId}" markerWidth="5" markerHeight="5" refX="2" refY="2" orient="auto"><path d="M0 0 4 2 0 4" class="demo-arrow"></path></marker></defs>
-    </svg>`;
-    return figure;
+  function createExerciseAnimation() {
+    return document.createDocumentFragment();
   }
 
   function renderWorkoutsTab() {
@@ -657,23 +642,23 @@
     if (categoryTabsContainer && (!categoryTabsContainer.childElementCount || categoryTabsContainer.dataset.rendered !== 'true')) {
       categoryTabsContainer.replaceChildren();
       const categories = FIT_DATA.workoutCategories || [
-        { id: 'all', name: 'כל האימונים', icon: '⚡' },
-        { id: 'push', name: 'אימוני דחיפה (Push)', icon: '🏋️‍♂️' },
-        { id: 'pull', name: 'אימוני משיכה (Pull)', icon: '🦅' },
-        { id: 'legs', name: 'אימוני רגליים (Legs)', icon: '🦵' },
-        { id: 'upper', name: 'פלג גוף עליון (Upper)', icon: '💪' },
-        { id: 'lower', name: 'פלג גוף תחתון (Lower)', icon: '🦿' },
-        { id: 'full_body', name: 'גוף מלא (Full Body)', icon: '🔥' },
-        { id: 'specialized', name: 'שילובים ממוקדים (Splits)', icon: '🎯' }
+        { id: 'all', name: 'כל האימונים', icon: '' },
+        { id: 'push', name: 'אימוני דחיפה (Push)', icon: '' },
+        { id: 'pull', name: 'אימוני משיכה (Pull)', icon: '' },
+        { id: 'legs', name: 'אימוני רגליים (Legs)', icon: '' },
+        { id: 'upper', name: 'פלג גוף עליון (Upper)', icon: '' },
+        { id: 'lower', name: 'פלג גוף תחתון (Lower)', icon: '' },
+        { id: 'full_body', name: 'גוף מלא (Full Body)', icon: '' },
+        { id: 'specialized', name: 'שילובים ממוקדים (Splits)', icon: '' }
       ];
       categories.forEach(cat => {
         const chip = createElement('button', `workout-category-chip${state.workoutCategory === cat.id ? ' active' : ''}`);
         chip.type = 'button';
         chip.dataset.categoryId = cat.id;
-        chip.append(
-          createElement('span', 'chip-icon', cat.icon || '⚡'),
-          createElement('span', 'chip-name', cat.name)
-        );
+        if (cat.icon) {
+          chip.append(createElement('span', 'chip-icon', cat.icon));
+        }
+        chip.append(createElement('span', 'chip-name', cat.name));
         chip.setAttribute('aria-pressed', String(state.workoutCategory === cat.id));
         chip.addEventListener('click', () => {
           state.workoutCategory = cat.id;
@@ -806,14 +791,15 @@
 
       const header = createElement('div', 'workout-category-header');
       const titleGroup = createElement('div', 'workout-category-title-group');
-      titleGroup.append(
-        createElement('span', 'workout-category-icon', cat.icon || '⚡'),
-        createElement('div', '', '')
-      );
-      titleGroup.lastChild.append(
+      if (cat.icon) {
+        titleGroup.append(createElement('span', 'workout-category-icon', cat.icon));
+      }
+      const textGroup = createElement('div', '', '');
+      textGroup.append(
         createElement('h3', 'workout-category-title', cat.name),
         createElement('p', 'workout-category-desc', cat.desc || '')
       );
+      titleGroup.append(textGroup);
 
       const badge = createElement('span', 'workout-category-count-badge', `${plansInCat.length} אימונים`);
       header.append(titleGroup, badge);
@@ -834,14 +820,12 @@
       const customCol = createElement('section', 'workout-category-column custom-workouts-column');
       const header = createElement('div', 'workout-category-header');
       const titleGroup = createElement('div', 'workout-category-title-group');
-      titleGroup.append(
-        createElement('span', 'workout-category-icon', '⭐'),
-        createElement('div', '', '')
-      );
-      titleGroup.lastChild.append(
+      const textGroup = createElement('div', '', '');
+      textGroup.append(
         createElement('h3', 'workout-category-title', 'אימונים מותאמים אישית (Custom)'),
         createElement('p', 'workout-category-desc', 'שגרות שנבנו או יובאו על ידך')
       );
+      titleGroup.append(textGroup);
       header.append(titleGroup, createElement('span', 'workout-category-count-badge', `${customPlans.length} אימונים`));
       customCol.append(header);
       const grid = createElement('div', 'preset-workouts-grid');
@@ -1023,6 +1007,12 @@
     todayMeals().forEach(meal => {
       const item = createElement('article', 'meal-item');
       const title = createElement('div', 'meal-item-title');
+      if (meal.time || meal.loggedAt) {
+        const timeStr = meal.time || new Date(meal.loggedAt).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', hour12: false });
+        const timeBadge = createElement('span', 'timeline-time-badge', timeStr);
+        timeBadge.style.marginInlineEnd = '8px';
+        title.append(timeBadge);
+      }
       title.append(createElement('span', 'meal-icon', meal.icon || '🍽️'));
       const name = createElement('div');
       name.append(createElement('strong', '', meal.name), createElement('span', 'meal-portion',
@@ -1178,7 +1168,7 @@
     const voiceBtn = byId('voiceNutritionBtn');
     if (voiceBtn) {
       voiceBtn.classList.remove('recording');
-      voiceBtn.innerHTML = '🎙️ הקלטה קולית';
+      voiceBtn.innerHTML = 'הקלטה קולית';
     }
     if (nutritionSpeechRecognition) {
       try { nutritionSpeechRecognition.abort(); } catch (e) {}
@@ -1587,10 +1577,315 @@
     });
   }
 
-  function renderCoach() {
-    const grid = byId('coachTraineesGrid');
-    if (!grid) return;
-    grid.replaceChildren();
+  // ==========================================================================
+  // DAILY TRAINEE REPORT & PIPELINE (דוח יומי למתאמן ולמאמן)
+  // ==========================================================================
+  let dailyReportSaveTimeout = null;
+
+  function getOrCreateDailyReport(traineeId, date) {
+    const localKey = `${traineeId}_${date}`;
+    const existing = state.dailyReports[localKey];
+
+    const meals = (state.nutritionLogs[date] || []).map(m => ({
+      id: m.id,
+      loggedAt: m.loggedAt || `${date}T12:00:00.000Z`,
+      time: m.time || (m.loggedAt ? new Date(m.loggedAt).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', hour12: false }) : '12:00'),
+      name: m.name,
+      amount: m.amount || m.grams,
+      unitName: m.unitName || 'גרם',
+      calories: m.calories,
+      protein: m.protein,
+      carbs: m.carbs,
+      fat: m.fat,
+      source: m.source
+    }));
+    const totalCals = meals.reduce((s, m) => s + (Number(m.calories) || 0), 0);
+    const totalProt = meals.reduce((s, m) => s + (Number(m.protein) || 0), 0);
+    const totalCarb = meals.reduce((s, m) => s + (Number(m.carbs) || 0), 0);
+    const totalFat = meals.reduce((s, m) => s + (Number(m.fat) || 0), 0);
+
+    const workouts = (state.workoutLogs[date] || []).map(w => ({
+      id: w.id,
+      routineId: w.routineId,
+      name: w.name,
+      startedAt: w.startedAt || `${date}T18:00:00.000Z`,
+      completedAt: w.completedAt || `${date}T19:00:00.000Z`,
+      time: w.time || (w.completedAt ? new Date(w.completedAt).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', hour12: false }) : '18:00'),
+      durationMinutes: w.durationMinutes || 60,
+      completedSets: w.completedSets || 0,
+      totalSets: w.totalSets || 0,
+      totalVolume: w.totalVolume || 0,
+      difficulty: w.difficulty || 8,
+      notes: w.notes || '',
+      exercises: (w.setLogs || []).reduce((acc, set) => {
+        let ex = acc.find(e => e.name === set.exerciseName);
+        if (!ex) {
+          ex = { name: set.exerciseName, exerciseId: set.exerciseId, sets: [] };
+          acc.push(ex);
+        }
+        ex.sets.push({
+          setNumber: set.setNumber,
+          weight: set.weight,
+          reps: set.reps,
+          completed: set.completed,
+          time: set.time || w.time || '18:30'
+        });
+        return acc;
+      }, [])
+    }));
+
+    const isPast = date < state.currentDate;
+    const status = existing?.status || (isPast ? 'auto_closed' : 'draft');
+
+    const report = {
+      id: localKey,
+      traineeId,
+      date,
+      status,
+      createdAt: existing?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      finalizedAt: status === 'draft' ? null : (existing?.finalizedAt || `${date}T23:59:59.000Z`),
+      metrics: {
+        morningWeightKg: existing?.metrics?.morningWeightKg ?? (state.weightLogs.find(w => w.date === date)?.weight || null),
+        sleepHours: existing?.metrics?.sleepHours ?? (state.sleepLogs[date] || 7.5),
+        sleepQuality: existing?.metrics?.sleepQuality ?? 8,
+        waterMl: existing?.metrics?.waterMl ?? (state.waterLogs[date] || 2500),
+        steps: existing?.metrics?.steps ?? 9000,
+        energyLevel: existing?.metrics?.energyLevel ?? 4,
+        hungerLevel: existing?.metrics?.hungerLevel ?? 2,
+        stressLevel: existing?.metrics?.stressLevel ?? 2,
+        digestion: existing?.metrics?.digestion ?? 'good',
+        traineeNotes: existing?.metrics?.traineeNotes ?? ''
+      },
+      nutrition: {
+        totalCalories: totalCals,
+        totalProtein: totalProt,
+        totalCarbs: totalCarb,
+        totalFat: totalFat,
+        totalFiber: 30,
+        totalSodium: 2100,
+        targetCalories: Number(state.profile.targetCalories) || 2400,
+        targetProtein: Number(state.profile.targetProtein) || 175,
+        meals
+      },
+      workouts,
+      coachFeedback: existing?.coachFeedback || null
+    };
+
+    state.dailyReports[localKey] = report;
+    writeStorage(STORAGE_KEYS.dailyReports, state.dailyReports);
+    return report;
+  }
+
+  function syncDailyReportDraft() {
+    const traineeId = state.profile.demoTraineeId || 'client_1';
+    const date = state.currentDate;
+    const report = getOrCreateDailyReport(traineeId, date);
+
+    if (dailyReportSaveTimeout) clearTimeout(dailyReportSaveTimeout);
+    dailyReportSaveTimeout = setTimeout(async () => {
+      // 1. Sync to Firebase Cloud Firestore if configured
+      if (window.FitPulseFirebase?.isConfigured) {
+        await window.FitPulseFirebase.saveReportDraft(report);
+      }
+      // 2. Sync to local REST API
+      try {
+        await fetch('/api/reports/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(report)
+        });
+        const syncEl = byId('dailyReportSyncTime');
+        if (syncEl) {
+          const timeNow = new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', hour12: false });
+          const cloudTag = window.FitPulseFirebase?.isConfigured ? ' (Cloud + Local)' : '';
+          syncEl.textContent = `סונכרן למסד הנתונים ב-${timeNow}${cloudTag}`;
+        }
+      } catch (err) {
+        console.warn('[DailyReport] Auto-save error, preserved locally:', err);
+      }
+    }, 500);
+  }
+
+  async function finalizeDailyReport() {
+    const traineeId = state.profile.demoTraineeId || 'client_1';
+    const date = state.dailyReportDate || state.currentDate;
+    const report = getOrCreateDailyReport(traineeId, date);
+    report.status = 'finalized';
+    report.finalizedAt = new Date().toISOString();
+    report.updatedAt = new Date().toISOString();
+
+    const localKey = `${traineeId}_${date}`;
+    state.dailyReports[localKey] = report;
+    writeStorage(STORAGE_KEYS.dailyReports, state.dailyReports);
+
+    // 1. Finalize in Firebase Cloud Firestore if configured
+    if (window.FitPulseFirebase?.isConfigured) {
+      await window.FitPulseFirebase.finalizeReport(report.id || `${traineeId}_${date}`);
+    }
+
+    // 2. Finalize in local REST API
+    try {
+      const res = await fetch('/api/reports/finalize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ traineeId, date })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.report) state.dailyReports[localKey] = data.report;
+      }
+    } catch (err) {
+      console.warn('[DailyReport] Server finalize error, finalized locally:', err);
+    }
+
+    renderDailyReportTab();
+    alert('דוח הפעילות היומי ננעל, נחתם ונשלח בהצלחה למאמן!');
+  }
+
+  async function renderDailyReportTab() {
+    const traineeId = state.profile.demoTraineeId || 'client_1';
+    const date = state.dailyReportDate || state.currentDate;
+
+    // Fetch latest from server or fallback
+    let report = null;
+    try {
+      const res = await fetch(`/api/reports/${traineeId}/${date}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.report) {
+          report = data.report;
+          state.dailyReports[`${traineeId}_${date}`] = report;
+        }
+      }
+    } catch (err) {
+      // Offline fallback
+    }
+    if (!report) {
+      report = getOrCreateDailyReport(traineeId, date);
+    }
+
+    // 1. Date label & picker
+    const dateLabel = byId('dailyReportDateLabel');
+    if (dateLabel) {
+      const isToday = date === state.currentDate;
+      const d = new Date(date + 'T00:00:00');
+      const dayNames = ['יום ראשון', 'יום שני', 'יום שלישי', 'יום רביעי', 'יום חמישי', 'יום שישי', 'יום שבת'];
+      dateLabel.textContent = isToday ? `היום, ${dayNames[d.getDay()]} (${date})` : `${dayNames[d.getDay()]}, ${date}`;
+    }
+    const datePicker = byId('dailyReportDatePicker');
+    if (datePicker) datePicker.value = date;
+
+    // 2. Status Badge
+    const badge = byId('dailyReportStatusBadge');
+    if (badge) {
+      badge.className = `status-pill status-${report.status}`;
+      if (report.status === 'finalized') {
+        const finTime = report.finalizedAt ? new Date(report.finalizedAt).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
+        badge.textContent = `נחתם ונשלח למאמן ✓ ${finTime ? '(' + finTime + ')' : ''}`;
+      } else if (report.status === 'auto_closed') {
+        badge.textContent = 'נסגר אוטומטית (סוף יום)';
+      } else {
+        badge.textContent = 'טיוטה פעילה · מסתנכרן אוטומטית';
+      }
+    }
+
+    // 3. Finalize button
+    const finalizeBtn = byId('dailyReportFinalizeBtn');
+    if (finalizeBtn) {
+      if (report.status === 'finalized') {
+        finalizeBtn.textContent = 'הדוח חתום ונעול ✓';
+        finalizeBtn.disabled = true;
+        finalizeBtn.style.opacity = '0.7';
+      } else {
+        finalizeBtn.textContent = 'נעילה ושליחת דוח יומי למאמן';
+        finalizeBtn.disabled = false;
+        finalizeBtn.style.opacity = '1';
+      }
+    }
+
+    // 4. Quick Summary Cards
+    const targetCals = report.nutrition?.targetCalories || Number(state.profile.targetCalories) || 2400;
+    const consumedCals = report.nutrition?.totalCalories || 0;
+    if (byId('reportCaloriesSummary')) byId('reportCaloriesSummary').textContent = `${formatNumber(consumedCals)} / ${formatNumber(targetCals)} קק"ל`;
+    if (byId('reportMacrosSummary')) byId('reportMacrosSummary').textContent = `חלבון: ${formatNumber(report.nutrition?.totalProtein || 0)}g · פחמימות: ${formatNumber(report.nutrition?.totalCarbs || 0)}g · שומן: ${formatNumber(report.nutrition?.totalFat || 0)}g`;
+    const pct = targetCals > 0 ? Math.min(100, Math.round(consumedCals / targetCals * 100)) : 0;
+    if (byId('reportCalorieProgress')) byId('reportCalorieProgress').style.width = `${pct}%`;
+
+    const workouts = report.workouts || [];
+    if (byId('reportWorkoutSummary')) byId('reportWorkoutSummary').textContent = workouts.length > 0 ? workouts.map(w => w.name).join(', ') : 'טרם בוצע אימון היום';
+    const totalVol = workouts.reduce((s, w) => s + (Number(w.totalVolume) || 0), 0);
+    const completedSets = workouts.reduce((s, w) => s + (w.completedSets || 0), 0);
+    if (byId('reportWorkoutVolume')) byId('reportWorkoutVolume').textContent = workouts.length > 0 ? `נפח כולל: ${formatNumber(totalVol)} ק"ג (${completedSets} סטים)` : 'נפח כולל: 0 ק"ג';
+
+    const weightStr = report.metrics?.morningWeightKg ? `${report.metrics.morningWeightKg} ק"ג` : '-- ק"ג';
+    const waterStr = report.metrics?.waterMl ? `${formatNumber(report.metrics.waterMl)} מ"ל` : '0 מ"ל';
+    if (byId('reportWeightWaterSummary')) byId('reportWeightWaterSummary').textContent = `${weightStr} · ${waterStr}`;
+    if (byId('reportSleepSummary')) byId('reportSleepSummary').textContent = `שינה: ${report.metrics?.sleepHours || '--'} שעות (איכות: ${report.metrics?.sleepQuality || '--'}/10)`;
+
+    // 5. Check-in Form Inputs
+    if (byId('checkinWeight')) byId('checkinWeight').value = report.metrics?.morningWeightKg || '';
+    if (byId('checkinWater')) byId('checkinWater').value = report.metrics?.waterMl || '';
+    if (byId('checkinSleepHours')) byId('checkinSleepHours').value = report.metrics?.sleepHours || '';
+    if (byId('checkinSleepQuality')) byId('checkinSleepQuality').value = report.metrics?.sleepQuality || 8;
+    if (byId('checkinSleepQualityVal')) byId('checkinSleepQualityVal').textContent = `${report.metrics?.sleepQuality || 8}/10`;
+    if (byId('checkinSteps')) byId('checkinSteps').value = report.metrics?.steps || '';
+    if (byId('checkinDigestion')) byId('checkinDigestion').value = report.metrics?.digestion || 'good';
+    if (byId('checkinNotes')) byId('checkinNotes').value = report.metrics?.traineeNotes || '';
+
+    // Rating pills
+    ['energy', 'hunger', 'stress'].forEach(ratingType => {
+      const val = report.metrics?.[`${ratingType}Level`] || (ratingType === 'energy' ? 4 : (ratingType === 'hunger' ? 2 : 1));
+      const container = byId(`${ratingType}RatingPills`);
+      if (container) {
+        container.querySelectorAll('.rating-pill').forEach(btn => {
+          btn.classList.toggle('active', parseInt(btn.getAttribute('data-val'), 10) === Number(val));
+        });
+      }
+    });
+
+    // 6. Time-stamped Activity Stream
+    const timeline = byId('dailyReportTimeline');
+    if (timeline) {
+      timeline.replaceChildren();
+      const items = [];
+      (report.nutrition?.meals || []).forEach(m => items.push({ type: 'meal', time: m.time || '12:00', data: m }));
+      (report.workouts || []).forEach(w => items.push({ type: 'workout', time: w.time || '18:00', data: w }));
+      items.sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+
+      if (!items.length) {
+        timeline.append(createElement('p', 'empty-state', 'טרם נרשמו ארוחות או אימונים לתאריך זה. כל פריט שיירשם ביומן התזונה או האימונים יופיע כאן מיד עם שעת התיעוד המדויקת.'));
+      } else {
+        items.forEach(item => {
+          const card = createElement('article', 'timeline-card');
+          const timeBadge = createElement('span', 'timeline-time-badge', item.time);
+          const content = createElement('div', 'timeline-content');
+
+          if (item.type === 'meal') {
+            const m = item.data;
+            content.append(
+              createElement('div', 'timeline-title', `ארוחה: ${m.name}`),
+              createElement('div', 'timeline-sub', `${formatNumber(m.amount)} ${m.unitName || 'גרם'} · ${formatNumber(m.calories)} קק"ל · חלבון: ${formatNumber(m.protein)}g · פחמימות: ${formatNumber(m.carbs)}g · שומן: ${formatNumber(m.fat)}g`)
+            );
+          } else {
+            const w = item.data;
+            content.append(
+              createElement('div', 'timeline-title', `אימון: ${w.name}`),
+              createElement('div', 'timeline-sub', `${w.durationMinutes} דקות · ${w.completedSets} סטים · נפח כולל: ${formatNumber(w.totalVolume)} ק"ג · RPE: ${w.difficulty}/10`)
+            );
+          }
+          card.append(timeBadge, content);
+          timeline.append(card);
+        });
+      }
+    }
+  }
+
+  // ==========================================================================
+  // COACH DASHBOARD & HISTORICAL DRILL-DOWN (לוח מאמן והיסטוריה)
+  // ==========================================================================
+
+  async function renderCoach() {
     const isTrainer = isTrainerRole();
     if (byId('coachAccessNotice')) byId('coachAccessNotice').hidden = isTrainer;
     if (byId('coachAdminContent')) byId('coachAdminContent').hidden = !isTrainer;
@@ -1600,19 +1895,38 @@
     if (byId('navTabEquivalents')) byId('navTabEquivalents').hidden = !isTrainer;
     if (byId('manageEquivalentExercisesBtn')) byId('manageEquivalentExercisesBtn').hidden = !isTrainer;
     if (!isTrainer) return;
+
+    // 1. Fetch Trainees from API or fallback
+    let trainees = FIT_DATA.coachTrainees || [];
+    try {
+      const res = await fetch('/api/trainees');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.trainees)) {
+          trainees = data.trainees;
+          FIT_DATA.coachTrainees = trainees;
+        }
+      }
+    } catch (err) {
+      console.warn('[Coach] Could not fetch trainees from server, using local list:', err);
+    }
+
     const searchInput = byId('coachTraineeSearch');
     const query = (searchInput?.value || '').trim().toLocaleLowerCase();
     const activityFilter = byId('coachTraineeFilter');
     if (activityFilter) activityFilter.value = state.coachActivityFilter;
-    const trainees = FIT_DATA.coachTrainees.filter(trainee => {
+
+    const filteredTrainees = trainees.filter(trainee => {
       const matchesQuery = trainee.name.toLocaleLowerCase().includes(query);
       const matchesActivity = state.coachActivityFilter === 'all' ||
         (state.coachActivityFilter === 'active' ? trainee.hasWorkedOutToday : !trainee.hasWorkedOutToday);
       return matchesQuery && matchesActivity;
     });
+
+    // 2. Trainee Selector Dropdown
     const select = byId('coachTraineeSelect');
     if (select) {
-      const current = state.selectedTraineeId;
+      const current = state.selectedTraineeId || trainees[0]?.id;
       select.replaceChildren();
       trainees.forEach(trainee => {
         const option = document.createElement('option');
@@ -1620,131 +1934,435 @@
         option.textContent = trainee.name;
         select.append(option);
       });
-      if (trainees.some(trainee => trainee.id === current)) select.value = current;
-      else if (trainees[0]) {
+      if (trainees.some(t => t.id === current)) {
+        select.value = current;
+        state.selectedTraineeId = current;
+      } else if (trainees[0]) {
         state.selectedTraineeId = trainees[0].id;
         select.value = trainees[0].id;
-      } else {
-        state.selectedTraineeId = '';
       }
     }
-    const nutritionRows = byId('coachNutritionRows');
-    if (nutritionRows) {
-      nutritionRows.replaceChildren();
-      trainees.forEach(trainee => {
-        const row = document.createElement('tr');
+
+    const currentTrainee = trainees.find(t => t.id === state.selectedTraineeId) || trainees[0];
+
+    // 3. Trainee Quick Profile Bar
+    const profileBar = byId('coachTraineeProfileBar');
+    if (profileBar && currentTrainee) {
+      profileBar.replaceChildren();
+      const meta = createElement('div', 'coach-trainee-meta');
+      const avatar = createElement('div', 'coach-trainee-avatar', currentTrainee.avatar || currentTrainee.name.slice(0, 2));
+      const info = createElement('div', 'coach-trainee-info');
+      info.append(
+        createElement('strong', '', `${currentTrainee.name} (${currentTrainee.age} · ${currentTrainee.gender === 'male' ? 'גבר' : 'אישה'})`),
+        createElement('span', '', `תוכנית משויכת: ${currentTrainee.assignedRoutine || 'Push-Pull-Legs 4D'} · גובה: ${currentTrainee.height || 180} ס"מ`)
+      );
+      meta.append(avatar, info);
+
+      const stats = createElement('div', 'coach-trainee-stats');
+      [
+        ['משקל עדכני', `${currentTrainee.weight} ק"ג`],
+        ['יעד קלוריות', `${formatNumber(currentTrainee.targetCalories)} קק"ל`],
+        ['יעד חלבון', `${formatNumber(currentTrainee.targetProtein)}g`],
+        ['יעד מים', `${formatNumber(currentTrainee.targetWaterMl)} מ"ל`]
+      ].forEach(([label, val]) => {
+        const box = createElement('div', 'coach-stat-box');
+        box.append(createElement('span', 'stat-label', label), createElement('strong', 'stat-val', val));
+        stats.append(box);
+      });
+
+      profileBar.append(meta, stats);
+    }
+
+    // 4. Fetch & Render Historical Reports for Selected Trainee (Default 14 Days)
+    const rangeSelect = byId('coachRangeFilter');
+    const rangeDays = rangeSelect?.value === 'all' ? 9999 : (parseInt(rangeSelect?.value, 10) || 14);
+
+    let reports = [];
+    try {
+      const res = await fetch(`/api/reports?traineeId=${state.selectedTraineeId}&days=${rangeDays}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.reports)) {
+          reports = data.reports;
+        }
+      }
+    } catch (err) {
+      console.warn('[Coach] Could not fetch reports from server, filtering local:', err);
+    }
+
+    if (!reports.length) {
+      // Local fallback
+      reports = Object.values(state.dailyReports)
+        .filter(r => r.traineeId === state.selectedTraineeId)
+        .sort((a, b) => b.date.localeCompare(a.date));
+    }
+
+    renderCoachReportsTable(reports, currentTrainee);
+
+    // Live real-time Firestore sync
+    if (window.FitPulseFirebase?.isConfigured) {
+      window.FitPulseFirebase.subscribeToTraineeReports(state.selectedTraineeId, rangeDays, (cloudReports) => {
+        if (cloudReports && cloudReports.length) {
+          renderCoachReportsTable(cloudReports, currentTrainee);
+        }
+      });
+    }
+
+    // 5. Render General Trainee Grid
+    const grid = byId('coachTraineesGrid');
+    if (grid) {
+      grid.replaceChildren();
+      filteredTrainees.forEach(trainee => {
+        const card = createElement('article', 'coach-card');
+        const header = createElement('div', 'coach-card-header');
+        header.append(createElement('span', 'coach-avatar', trainee.avatar || trainee.name.slice(0, 2)), createElement('div', '', trainee.name));
+        card.append(header);
+
+        const metrics = createElement('div', 'coach-metrics');
         [
-          trainee.name,
-          `${formatNumber(trainee.targetCalories)} / ${formatNumber(trainee.consumedCalories)} kcal`,
-          `${formatNumber(trainee.consumedProtein)} g`,
-          '—',
-          '—',
-          `${formatNumber(trainee.waterMl)} ml`
-        ].forEach(value => row.append(createElement('td', '', value)));
-        nutritionRows.append(row);
-      });
-      const currentTotals = getDailyNutrition();
-      const localRow = document.createElement('tr');
-      [
-        `${state.profile.name || 'המתאמן בדפדפן'} · נתונים מקומיים`,
-        `${formatNumber(state.profile.targetCalories)} / ${formatNumber(currentTotals.calories)} kcal`,
-        `${formatNumber(currentTotals.protein)} g`,
-        `${formatNumber(currentTotals.carbs)} g`,
-        `${formatNumber(currentTotals.fat)} g`,
-        `${formatNumber(state.waterLogs[state.currentDate] || 0)} ml`
-      ].forEach(value => localRow.append(createElement('td', '', value)));
-      nutritionRows.append(localRow);
-    }
-    let compliance = byId('coachComplianceScore');
-    if (!compliance) {
-      compliance = createElement('p', 'coach-compliance-score');
-      compliance.id = 'coachComplianceScore';
-      byId('coachAdminContent')?.insertBefore(compliance, byId('coachAdminContent').firstChild?.nextSibling || null);
-    }
-    const today = new Date();
-    const weekWorkouts = Array.from({ length: 7 }, (_, index) => {
-      const date = localDateKey(new Date(today.getFullYear(), today.getMonth(), today.getDate() - index));
-      return (state.workoutLogs[date] || []).length;
-    }).reduce((total, count) => total + count, 0);
-    const compliancePercent = Math.min(100, Math.round(weekWorkouts / 5 * 100));
-    compliance.textContent = `עמידה שבועית · היומן המקומי: ${compliancePercent}% (${Math.min(weekWorkouts, 5)}/5 אימונים; יעד שבועי של 5)`;
-    const feed = byId('coachLiveFeed');
-    if (feed) {
-      feed.replaceChildren();
-      const sampleEntries = FIT_DATA.coachTrainees.filter(trainee => trainee.lastWorkout);
-      sampleEntries.forEach(trainee => {
-        const workout = trainee.lastWorkout;
-        const article = createElement('article', 'coach-feed-item');
-        article.append(
-          createElement('strong', '', `דוגמה סטטית · ${trainee.name} · ${workout.title}`),
-          createElement('span', '', `${workout.durationMinutes} דקות · ${workout.completedSets} סטים · נפח ${formatNumber(workout.totalVolume)} ק״ג · ${formatNumber(trainee.burnedCalories)} קלוריות משוערות`)
-        );
-        (workout.exercises || []).forEach(exercise => {
-          article.append(createElement('small', '', `${exercise.name}: ${exercise.weight} ק״ג × ${exercise.reps} · ${exercise.sets} סטים`));
+          [`${formatNumber(trainee.targetCalories)} kcal`, 'יעד קלוריות'],
+          [`${formatNumber(trainee.targetProtein)}g`, 'יעד חלבון'],
+          [`${formatNumber(trainee.weight)} ק"ג`, 'משקל'],
+          [`${trainee.targetSleepHours || 8} שעות`, 'יעד שינה']
+        ].forEach(([value, label]) => {
+          const metric = createElement('div', 'coach-metric');
+          metric.append(createElement('strong', '', value), createElement('span', '', label));
+          metrics.append(metric);
         });
-        feed.append(article);
-      });
-      const localEntries = Object.entries(state.workoutLogs).flatMap(([date, entries]) =>
-        (Array.isArray(entries) ? entries : []).map(workout => ({ date, name: state.profile.name || 'דפדפן נוכחי', workout })));
-      localEntries.forEach(({ date, name, workout }) => {
-        const article = createElement('article', 'coach-feed-item');
-        article.append(
-          createElement('strong', '', `${name} · ${workout.name || workout.title || 'אימון'}`),
-          createElement('span', '', `${workout.completedAt ? new Date(workout.completedAt).toLocaleString('he-IL') : date} · ${workout.durationMinutes || 0} דקות · ${workout.completedSets || 0} סטים · נפח ${formatNumber(workout.totalVolume || 0)} ק״ג · ${formatNumber(workout.calories || 0)} קלוריות משוערות`)
-        );
-        (workout.setLogs || []).filter(entry => entry.completed).forEach(entry => {
-          article.append(createElement('small', '', `${entry.exerciseName}: ${entry.weight} ק״ג × ${entry.reps}${entry.rir === '' || entry.rir == null ? '' : ` · RIR ${entry.rir}`}${entry.completedAt ? ` · ${new Date(entry.completedAt).toLocaleTimeString('he-IL')}` : ''}`));
+        card.append(metrics);
+
+        const selectBtn = createElement('button', 'btn-action-primary', 'מעבר לתיק מתאמן');
+        selectBtn.style.marginTop = '12px';
+        selectBtn.type = 'button';
+        selectBtn.addEventListener('click', () => {
+          state.selectedTraineeId = trainee.id;
+          if (select) select.value = trainee.id;
+          renderCoach();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         });
-        feed.append(article);
+        card.append(selectBtn);
+
+        grid.append(card);
       });
-      if (!localEntries.length && !sampleEntries.length) feed.append(createElement('p', 'empty-state', 'אין עדיין אימונים שנשמרו בדפדפן זה.'));
+      if (!filteredTrainees.length) grid.append(createElement('p', 'empty-state', 'לא נמצאו מתאמנים לפי החיפוש והסינון.'));
     }
-    trainees.forEach(trainee => {
-      const card = createElement('article', 'coach-card');
-      const header = createElement('div', 'coach-card-header');
-      header.append(createElement('span', 'coach-avatar', trainee.avatar), createElement('div', '', trainee.name));
-      card.append(header);
-      const metrics = createElement('div', 'coach-metrics');
-      [
-        [`${formatNumber(trainee.consumedCalories)} / ${formatNumber(trainee.targetCalories)}`, 'קלוריות'],
-        [`${formatNumber(trainee.consumedProtein)}g`, 'חלבון'],
-        [`${formatNumber(trainee.weight)} ק״ג`, 'משקל'],
-        [`${formatNumber(trainee.sleepHours)} שעות`, 'שינה']
-      ].forEach(([value, label]) => {
-        const metric = createElement('div', 'coach-metric');
-        metric.append(createElement('strong', '', value), createElement('span', '', label));
-        metrics.append(metric);
-      });
-      card.append(metrics);
-      const workout = trainee.lastWorkout;
-      card.append(createElement('h3', '', workout ? 'האימון האחרון' : 'עדיין אין אימונים'));
-      if (workout) {
-        card.append(createElement('p', 'coach-workout', `${workout.title} · ${workout.durationMinutes} דקות · RPE ${workout.difficulty}/10`));
-        if (workout.notes) card.append(createElement('p', 'coach-note', workout.notes));
+  }
+
+  function renderCoachReportsTable(reports, currentTrainee) {
+    state.coachHistoricalReports = reports;
+    const tbody = byId('coachReportsHistoryRows');
+    const emptyState = byId('coachReportsEmptyState');
+    if (!tbody) return;
+    tbody.replaceChildren();
+
+    if (!reports || !reports.length) {
+      if (emptyState) emptyState.hidden = false;
+      return;
+    }
+    if (emptyState) emptyState.hidden = true;
+
+    reports.forEach(report => {
+      const tr = document.createElement('tr');
+      tr.style.cursor = 'pointer';
+
+      // Date & Day
+      const d = new Date(report.date + 'T00:00:00');
+      const dayNamesShort = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
+      const dateCell = createElement('td', '', '');
+      dateCell.innerHTML = `<strong>${report.date}</strong> <span style="color:var(--text-muted); font-size:0.75rem;">(יום ${dayNamesShort[d.getDay()]})</span>`;
+
+      // Status
+      const statusCell = createElement('td', '', '');
+      const statusClass = report.status === 'finalized' ? 'status-finalized' : (report.status === 'auto_closed' ? 'status-auto_closed' : 'status-draft');
+      const statusText = report.status === 'finalized' ? 'נחתם ✓' : (report.status === 'auto_closed' ? 'סגור אוטומטית' : 'טיוטה');
+      statusCell.innerHTML = `<span class="status-pill ${statusClass}">${statusText}</span>`;
+
+      // Submission Time
+      const subTime = report.finalizedAt ? new Date(report.finalizedAt).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', hour12: false }) : '—';
+      const timeCell = createElement('td', '', subTime);
+      timeCell.style.fontFamily = 'monospace';
+
+      // Calories
+      const calsConsumed = report.nutrition?.totalCalories || 0;
+      const calsTarget = report.nutrition?.targetCalories || currentTrainee?.targetCalories || 2400;
+      const calDiff = calsConsumed - calsTarget;
+      const calColor = Math.abs(calDiff) <= 150 ? '#22c55e' : (calDiff > 150 ? '#ef4444' : '#f59e0b');
+      const calCell = createElement('td', '', '');
+      calCell.innerHTML = `<strong style="color:${calColor};">${formatNumber(calsConsumed)}</strong> / ${formatNumber(calsTarget)} kcal`;
+
+      // Protein
+      const prot = report.nutrition?.totalProtein || 0;
+      const protTarget = report.nutrition?.targetProtein || currentTrainee?.targetProtein || 175;
+      const protColor = prot >= protTarget - 10 ? '#22c55e' : '#f59e0b';
+      const protCell = createElement('td', '', '');
+      protCell.innerHTML = `<strong style="color:${protColor};">${formatNumber(prot)}g</strong>`;
+
+      // Workout
+      const workouts = report.workouts || [];
+      const woCell = createElement('td', '', '');
+      if (workouts.length) {
+        const wo = workouts[0];
+        const dur = wo.durationMinutes || 45;
+        const vol = wo.totalVolume ? ` · ${formatNumber(wo.totalVolume)} ק"ג` : '';
+        woCell.innerHTML = `<strong>${wo.planName || wo.name || 'אימון'}</strong> <span style="color:var(--text-muted); font-size:0.72rem;">(${dur} דק׳${vol})</span>`;
+      } else {
+        woCell.innerHTML = '<span style="color:var(--text-muted);">מנוחה</span>';
       }
-      const profileDetails = document.createElement('details');
-      profileDetails.className = 'coach-profile-details';
-      const profileSummary = document.createElement('summary');
-      profileSummary.textContent = 'פרופיל ויומן תזונה לדוגמה';
-      profileDetails.append(profileSummary);
-      profileDetails.append(createElement('p', '', `גיל ${trainee.age} · משקל ${formatNumber(trainee.weight)} ק״ג · יעד ${formatNumber(trainee.targetCalories)} קלוריות · מים ${formatNumber(trainee.waterMl)} מ״ל`));
-      (trainee.mealsToday || []).forEach(meal => {
-        profileDetails.append(createElement('small', '', `${meal.name}: ${formatNumber(meal.calories)} kcal · חלבון ${formatNumber(meal.protein)} g`));
+
+      // Water
+      const water = report.checkIn?.waterLiters ? `${report.checkIn.waterLiters}L` : (report.metrics?.waterMl ? `${formatNumber(report.metrics.waterMl)} מ"ל` : '—');
+      const waterCell = createElement('td', '', water);
+
+      // Sleep
+      const sleep = report.checkIn?.sleepHours || report.metrics?.sleepHours || '—';
+      const sleepCell = createElement('td', '', `${sleep} שעות`);
+
+      // Weight
+      const weight = report.checkIn?.morningWeight ? `${report.checkIn.morningWeight} ק"ג` : (report.metrics?.morningWeightKg ? `${report.metrics.morningWeightKg} ק"ג` : '—');
+      const weightCell = createElement('td', '', weight);
+
+      // Energy / Stress
+      const energy = report.checkIn?.energyLevel || report.metrics?.energyLevel || '—';
+      const stress = report.checkIn?.stressLevel || report.metrics?.stressLevel || '—';
+      const ratingsCell = createElement('td', '', `אנרגיה: ${energy}/5 · סטרס: ${stress}/5`);
+      ratingsCell.style.fontSize = '0.72rem';
+      ratingsCell.style.color = 'var(--text-muted)';
+
+      // Action: Deep Dive Button
+      const actionCell = createElement('td', '', '');
+      const drillBtn = createElement('button', 'btn-drilldown', 'צפייה מעמיקה');
+      drillBtn.type = 'button';
+      drillBtn.addEventListener('click', event => {
+        event.stopPropagation();
+        openCoachDrilldownModal(report);
       });
-      card.append(profileDetails);
-      const sendButton = createElement('button', 'btn-action-secondary', 'שליחה למתאמן ↗');
-      sendButton.type = 'button';
-      sendButton.addEventListener('click', () => sendRoutineToTrainee(trainee));
-      card.append(sendButton, createElement('p', 'coach-note', 'העברה נשמרת בדפדפן ההדגמה בלבד; היא אינה מגיעה לחשבון אחר.'));
-      grid.append(card);
+      actionCell.append(drillBtn);
+
+      tr.append(dateCell, statusCell, timeCell, calCell, protCell, woCell, waterCell, sleepCell, weightCell, ratingsCell, actionCell);
+      tr.addEventListener('click', () => openCoachDrilldownModal(report));
+      tbody.append(tr);
     });
-    if (!trainees.length) grid.append(createElement('p', 'empty-state', 'לא נמצאו מתאמנים לפי החיפוש והסינון.'));
+  }
+
+  // ==========================================================================
+  // COACH DRILL-DOWN MODAL (צפייה מעמיקה בדוח יומי)
+  // ==========================================================================
+
+  function openCoachDrilldownModal(report) {
+    const modal = byId('coachReportDetailModal');
+    const content = byId('drilldownModalContent');
+    const title = byId('drilldownTitle');
+    const badge = byId('drilldownTraineeBadge');
+    if (!modal || !content) return;
+
+    document.body.appendChild(modal);
+
+    const trainee = (FIT_DATA.coachTrainees || []).find(t => t.id === report.traineeId) || { name: 'מתאמן' };
+    if (badge) badge.textContent = `דוח יומי מעמיק · ${trainee.name}`;
+    if (title) title.textContent = `פירוט דוח יומי - ${report.date}`;
+
+    content.replaceChildren();
+    const wrapper = createElement('div', 'drilldown-scroll-content');
+
+    // Header info pill
+    const headerBanner = createElement('div', '', '');
+    headerBanner.style.display = 'flex';
+    headerBanner.style.alignItems = 'center';
+    headerBanner.style.justifyContent = 'space-between';
+    headerBanner.style.flexWrap = 'wrap';
+    headerBanner.style.gap = '10px';
+    headerBanner.style.padding = '10px 14px';
+    headerBanner.style.background = 'rgba(255, 255, 255, 0.02)';
+    headerBanner.style.borderRadius = '10px';
+    headerBanner.style.border = '1px solid var(--border)';
+
+    const statusPillClass = report.status === 'finalized' ? 'status-finalized' : (report.status === 'auto_closed' ? 'status-auto_closed' : 'status-draft');
+    const statusPillText = report.status === 'finalized' ? 'נחתם ונשלח למאמן ✓' : (report.status === 'auto_closed' ? 'נסגר אוטומטית (סוף יום)' : 'טיוטה פעילה');
+    const finTime = report.finalizedAt ? new Date(report.finalizedAt).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
+
+    headerBanner.innerHTML = `
+      <span class="status-pill ${statusPillClass}">${statusPillText}</span>
+      <span style="font-size:0.75rem; color:var(--text-muted);">שעת נעילה/הגשה: ${finTime || 'טרם ננעל'} · עדכון אחרון: ${new Date(report.updatedAt).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}</span>
+    `;
+    wrapper.append(headerBanner);
+
+    // --- SECTION 1: LIFESTYLE & METRICS ---
+    const sec1 = createElement('section', 'drilldown-section');
+    sec1.append(createElement('div', 'drilldown-section-title', 'מדדי בוקר וסגנון חיים'));
+    const grid1 = createElement('div', 'drilldown-metrics-grid');
+
+    const m = report.metrics || {};
+    const metricItems = [
+      ['משקל בוקר', m.morningWeightKg ? `${m.morningWeightKg} ק"ג` : 'לא דווח'],
+      ['שתיית מים', m.waterMl ? `${formatNumber(m.waterMl)} מ"ל` : 'לא דווח'],
+      ['שעות שינה', m.sleepHours ? `${m.sleepHours} שעות` : 'לא דווח'],
+      ['איכות שינה', m.sleepQuality ? `${m.sleepQuality}/10` : 'לא דווח'],
+      ['צעדים / פעילות', m.steps ? `${formatNumber(m.steps)}` : 'לא דווח'],
+      ['רמת אנרגיה', m.energyLevel ? `${m.energyLevel}/5` : 'לא דווח'],
+      ['רמת רעב', m.hungerLevel ? `${m.hungerLevel}/5` : 'לא דווח'],
+      ['רמת סטרס', m.stressLevel ? `${m.stressLevel}/5` : 'לא דווח'],
+      ['מערכת עיכול', m.digestion === 'good' ? 'תקין (ללא נפיחות)' : (m.digestion === 'bloated' ? 'נפיחות קלה' : 'רגיל')]
+    ];
+    metricItems.forEach(([label, val]) => {
+      const box = createElement('div', 'drilldown-metric-box');
+      box.append(createElement('span', 'box-label', label), createElement('strong', 'box-val', val));
+      grid1.append(box);
+    });
+    sec1.append(grid1);
+
+    if (m.traineeNotes) {
+      const notesBox = createElement('div', 'drilldown-trainee-notes', `הערות אישיות מהמתאמן: "${m.traineeNotes}"`);
+      notesBox.style.marginTop = '12px';
+      sec1.append(notesBox);
+    }
+    wrapper.append(sec1);
+
+    // --- SECTION 2: DETAILED NUTRITION & EXACT TIMESTAMPS ---
+    const sec2 = createElement('section', 'drilldown-section');
+    const nutrHeader = createElement('div', 'drilldown-section-title');
+    nutrHeader.append(
+      createElement('span', '', 'פירוט תזונה מלא · חותמות שעה מדויקות'),
+      createElement('span', 'card-caption', `${formatNumber(report.nutrition?.totalCalories || 0)} / ${formatNumber(report.nutrition?.targetCalories || 2400)} קק"ל · חלבון: ${formatNumber(report.nutrition?.totalProtein || 0)}g`)
+    );
+    sec2.append(nutrHeader);
+
+    const mealsList = createElement('div', 'drilldown-items-list');
+    const meals = report.nutrition?.meals || [];
+    if (!meals.length) {
+      mealsList.append(createElement('p', 'empty-state', 'אין תיעוד ארוחות ליום זה.'));
+    } else {
+      meals.forEach(meal => {
+        const card = createElement('div', 'drilldown-item-card');
+        const timeBadge = createElement('span', 'timeline-time-badge', meal.time || '12:00');
+        const info = createElement('div', 'timeline-content');
+        info.append(
+          createElement('div', 'timeline-title', meal.name),
+          createElement('div', 'timeline-sub', `${formatNumber(meal.amount)} ${meal.unitName || 'גרם'} · ${formatNumber(meal.calories)} קק"ל · חלבון: ${formatNumber(meal.protein)}g · פחמימות: ${formatNumber(meal.carbs)}g · שומן: ${formatNumber(meal.fat)}g`)
+        );
+        card.append(timeBadge, info);
+        mealsList.append(card);
+      });
+    }
+    sec2.append(mealsList);
+    wrapper.append(sec2);
+
+    // --- SECTION 3: DETAILED WORKOUTS & EXACT TIMESTAMPS ---
+    const sec3 = createElement('section', 'drilldown-section');
+    sec3.append(createElement('div', 'drilldown-section-title', 'פירוט אימונים וסטים · ביצועים מדויקים'));
+    const workoutsList = createElement('div', 'drilldown-items-list');
+    const workouts = report.workouts || [];
+
+    if (!workouts.length) {
+      workoutsList.append(createElement('p', 'empty-state', 'יום מנוחה / לא בוצע אימון בתאריך זה.'));
+    } else {
+      workouts.forEach(wo => {
+        const woCard = createElement('div', 'drilldown-item-card');
+        woCard.style.flexDirection = 'column';
+        const topRow = createElement('div', '', '');
+        topRow.style.display = 'flex';
+        topRow.style.alignItems = 'center';
+        topRow.style.gap = '10px';
+        topRow.style.width = '100%';
+        const timeBadge = createElement('span', 'timeline-time-badge', wo.time || '18:15');
+        const woTitle = createElement('strong', 'timeline-title', `${wo.name} (${wo.durationMinutes} דקות · נפח: ${formatNumber(wo.totalVolume)} ק"ג · RPE ${wo.difficulty}/10)`);
+        topRow.append(timeBadge, woTitle);
+        woCard.append(topRow);
+
+        if (wo.notes) {
+          const woNote = createElement('p', 'timeline-sub', `הערות אימון: ${wo.notes}`);
+          woNote.style.margin = '6px 0';
+          woCard.append(woNote);
+        }
+
+        if (Array.isArray(wo.exercises) && wo.exercises.length) {
+          const table = createElement('table', 'drilldown-exercise-table');
+          table.innerHTML = '<thead><tr><th>תרגיל</th><th>סט</th><th>משקל</th><th>חזרות</th><th>שעה</th><th>סטטוס</th></tr></thead>';
+          const tbodyEl = document.createElement('tbody');
+          wo.exercises.forEach(ex => {
+            (ex.sets || []).forEach(set => {
+              const tr = document.createElement('tr');
+              tr.innerHTML = `
+                <td><strong>${ex.name}</strong></td>
+                <td>${set.setNumber}</td>
+                <td>${set.weight} ק"ג</td>
+                <td>${set.reps}</td>
+                <td><span style="font-family:monospace; color:#a78bfa;">${set.time || wo.time || '--'}</span></td>
+                <td><span style="color:#22c55e; font-weight:bold;">${set.completed ? '✓ הושלם' : '—'}</span></td>
+              `;
+              tbodyEl.append(tr);
+            });
+          });
+          table.append(tbodyEl);
+          woCard.append(table);
+        }
+        workoutsList.append(woCard);
+      });
+    }
+    sec3.append(workoutsList);
+    wrapper.append(sec3);
+
+    // --- SECTION 4: COACH FEEDBACK & INSTRUCTIONS ---
+    const sec4 = createElement('section', 'drilldown-section');
+    sec4.append(createElement('div', 'drilldown-section-title', 'משוב והנחיות המאמן'));
+    const feedbackForm = createElement('form', 'drilldown-feedback-form');
+    feedbackForm.addEventListener('submit', async event => {
+      event.preventDefault();
+      const notesInput = feedbackForm.querySelector('textarea');
+      const notes = notesInput?.value.trim() || '';
+      // 1. Sync to Firebase Cloud Firestore if configured
+      if (window.FitPulseFirebase?.isConfigured) {
+        await window.FitPulseFirebase.saveCoachFeedback(report.id || `${report.traineeId}_${report.date}`, {
+          notes,
+          coachRating: 5
+        });
+      }
+
+      // 2. Sync to local REST API
+      try {
+        const res = await fetch('/api/reports/feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            traineeId: report.traineeId,
+            date: report.date,
+            notes,
+            coachRating: 5
+          })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.report) report.coachFeedback = data.report.coachFeedback;
+        }
+        alert('משוב המאמן נשמר ונשלח בהצלחה למתאמן!');
+      } catch (err) {
+        console.warn('[CoachFeedback] Server save error:', err);
+        alert('משוב המאמן נשמר מקומית.');
+      }
+    });
+
+    const textarea = document.createElement('textarea');
+    textarea.rows = 3;
+    textarea.placeholder = 'הקלידו כאן הנחיות, דגשים לטכניקה או חיזוקים למתאמן עבור יום זה...';
+    textarea.value = report.coachFeedback?.notes || '';
+
+    const actions = createElement('div', 'drilldown-feedback-actions');
+    const saveBtn = createElement('button', 'btn-action-primary', 'שמירת משוב מאמן');
+    saveBtn.type = 'submit';
+    actions.append(createElement('span', 'timeline-sub', report.coachFeedback?.reviewed ? `נבדק ונשלח ב-${new Date(report.coachFeedback.reviewedAt).toLocaleDateString('he-IL')}` : 'טרם נשלח משוב ליום זה'), saveBtn);
+
+    feedbackForm.append(textarea, actions);
+    sec4.append(feedbackForm);
+    wrapper.append(sec4);
+
+    content.append(wrapper);
+    modal.hidden = false;
   }
 
   function renderAll() {
     renderDashboard();
     renderNutrition();
     renderWorkoutsTab();
+    renderDailyReportTab();
     renderCoach();
     renderProgress();
   }
@@ -1774,7 +2392,7 @@
     if (!list || !filters) return;
     filters.replaceChildren();
     FIT_DATA.muscleGroups.forEach(group => {
-      const button = createElement('button', `category-chip${state.exerciseMuscle === group.id ? ' active' : ''}`, `${group.icon} ${group.name}`);
+      const button = createElement('button', `category-chip${state.exerciseMuscle === group.id ? ' active' : ''}`, group.name);
       button.type = 'button';
       button.setAttribute('aria-pressed', String(state.exerciseMuscle === group.id));
       button.addEventListener('click', () => {
@@ -1796,7 +2414,6 @@
     if (!filtered.length) list.append(createElement('p', 'empty-state', 'לא נמצאו תרגילים מתאימים.'));
     filtered.slice(0, 40).forEach(exercise => {
       const card = createElement('article', 'library-exercise-card');
-      card.append(createExerciseAnimation(exercise, true));
       const details = createElement('div', 'library-exercise-details');
       const name = createElement('strong', 'exercise-name-en', exercise.name);
       name.dir = 'ltr';
@@ -1839,6 +2456,7 @@
   function openExerciseLibrary(selection, onToggle, onDone = null, options = {}) {
     const dialog = byId('exerciseLibraryDialog');
     if (!dialog) return;
+    document.body.appendChild(dialog);
     state.exerciseQuery = '';
     state.exerciseMuscle = 'all';
     state.exerciseLibrarySelection = selection;
@@ -1872,8 +2490,9 @@
   function openExerciseSwap(context) {
     const dialog = byId('exerciseSwapDialog');
     if (!dialog) return;
+    document.body.appendChild(dialog);
     exerciseSwapContext = {
-      tab: 'all',
+      tab: 'equiv',
       query: '',
       equipment: 'all',
       ...context
@@ -1890,7 +2509,7 @@
     if (search) search.value = '';
     const equipment = byId('exerciseSwapEquipmentFilter');
     if (equipment) equipment.value = 'all';
-    setExerciseSwapTab(exerciseSwapContext.allowedIds?.size ? 'equiv' : 'all');
+    setExerciseSwapTab('equiv');
     renderExerciseSwapList();
     dialog.hidden = false;
     search?.focus();
@@ -1922,40 +2541,88 @@
     const sessionEquipment = exerciseSwapContext.sessionEquipment;
     const allowedIds = exerciseSwapContext.allowedIds;
     const focusMuscle = exerciseSwapContext.muscle || current?.muscle;
-    let candidates = FIT_DATA.exercises.filter(exercise => exercise.id !== exerciseSwapContext.currentId);
-    if (exerciseSwapContext.tab === 'equiv' && allowedIds?.size) {
-      candidates = candidates.filter(exercise => allowedIds.has(exercise.id));
-    } else if (exerciseSwapContext.tab === 'muscle' && focusMuscle) {
-      candidates = candidates.filter(exercise => exercise.muscle === focusMuscle);
+    const currentSubgroup = current ? getExerciseSubgroup(current) : null;
+
+    let candidates = [];
+
+    if (exerciseSwapContext.tab === 'equiv') {
+      const pool = FIT_DATA.exercises.filter(ex => ex.id !== exerciseSwapContext.currentId);
+      const scored = pool.map(ex => {
+        let score = 0;
+        const isAllowed = allowedIds instanceof Set && allowedIds.has(ex.id);
+        const isSameMuscle = Boolean(focusMuscle && ex.muscle === focusMuscle);
+        const isSameSubgroup = Boolean(currentSubgroup && getExerciseSubgroup(ex) === currentSubgroup);
+        const isSameEquipment = Boolean(current && ex.equipment === current.equipment);
+
+        if (isAllowed) score += 100;
+        if (isSameMuscle) score += 30;
+        if (isSameSubgroup) score += 40;
+        if (isSameEquipment) score += 10;
+
+        return { exercise: ex, score };
+      });
+
+      const filteredScored = scored.filter(item => item.score > 0);
+      filteredScored.sort((a, b) => b.score - a.score || a.exercise.name.localeCompare(b.exercise.name));
+      candidates = (filteredScored.length ? filteredScored : scored).map(item => item.exercise);
+    } else if (exerciseSwapContext.tab === 'muscle') {
+      candidates = FIT_DATA.exercises.filter(ex =>
+        ex.id !== exerciseSwapContext.currentId && (!focusMuscle || ex.muscle === focusMuscle)
+      );
+    } else {
+      candidates = FIT_DATA.exercises.filter(ex => ex.id !== exerciseSwapContext.currentId);
     }
-    if (equipment !== 'all') candidates = candidates.filter(exercise => exercise.equipment === equipment);
-    if (sessionEquipment instanceof Set) {
+
+    if (equipment !== 'all') {
+      candidates = candidates.filter(exercise => exercise.equipment === equipment);
+    }
+    if (sessionEquipment instanceof Set && sessionEquipment.size > 0) {
       candidates = candidates.filter(exercise => sessionEquipment.has(exercise.equipment));
     }
     if (query) {
       candidates = candidates.filter(exercise =>
-        `${exercise.name} ${exercise.equipment} ${muscleLabel(exercise.muscle)}`.toLocaleLowerCase().includes(query));
+        `${exercise.name} ${exercise.equipment} ${muscleLabel(exercise.muscle)} ${exercise.category || ''}`
+          .toLocaleLowerCase()
+          .includes(query)
+      );
     }
+
     if (status) {
       status.textContent = candidates.length
-        ? `${candidates.length} תרגילים לבחירה`
+        ? `${candidates.length} תרגילים חלופיים זמינים לבחירה מיידית`
         : 'לא נמצאו תרגילים תואמים. נסו חיפוש אחר או לשונית אחרת.';
     }
+
     list.replaceChildren();
-    candidates.slice(0, 50).forEach(exercise => {
+    if (!candidates.length) {
+      list.append(createElement('p', 'empty-state', 'לא נמצאו תרגילים מתאימים לסינון הנוכחי.'));
+      return;
+    }
+
+    candidates.slice(0, 60).forEach(exercise => {
       const card = createElement('article', 'swap-candidate-card');
+      card.style.cursor = 'pointer';
       const info = createElement('div', 'swap-candidate-info');
       const name = createElement('strong', 'swap-candidate-name', exercise.name);
       name.dir = 'ltr';
       info.append(name, createElement('span', 'swap-candidate-meta',
-        `${muscleLabel(exercise.muscle)} · ${exercise.equipment}`));
+        `${muscleLabel(exercise.muscle)} · ${exercise.equipment}${exercise.category ? ' · ' + exercise.category : ''}`));
+      
       const select = createElement('button', 'swap-select-btn', 'בחירה');
       select.type = 'button';
-      select.addEventListener('click', () => {
+
+      const handleSelect = () => {
         const onSelect = exerciseSwapContext?.onSelect;
         closeExerciseSwap();
         onSelect?.(exercise.id);
+      };
+
+      select.addEventListener('click', handleSelect);
+      card.addEventListener('click', event => {
+        if (event.target.closest('button')) return;
+        handleSelect();
       });
+
       card.append(info, select);
       list.append(card);
     });
@@ -2448,7 +3115,7 @@
         categoryId: categorySelect.value === 'custom' ? undefined : categorySelect.value,
         name: nameInput.value.trim(), subtitle: existingPlan?.subtitle || 'תוכנית אימון אישית',
         durationMinutes: Number(durationInput.value), level: existingPlan?.level || 'אישי',
-        badge: existingPlan?.badge || '✨ אימון אישי', defaultRestSeconds: Number(restInput.value),
+        badge: existingPlan?.badge || 'אימון אישי', defaultRestSeconds: Number(restInput.value),
         recoveryGoal: recoverySelect.value,
         ...(isTrainerRole() && state.selectedTraineeId
           ? { audienceTraineeId: state.selectedTraineeId }
@@ -2505,100 +3172,18 @@
       alert('בתוכנית הזו אין תרגילים שאפשר להתחיל.');
       return;
     }
-    const equipmentTypes = [...new Set(FIT_DATA.exercises.map(exercise => exercise.equipment).filter(Boolean))];
-    const preferredIds = plan.exercises.map(entry => entry.preferredExerciseId || entry.exerciseId);
-    const availableEquipment = new Set(preferredIds.map(id => getExercise(id)?.equipment).filter(Boolean));
-    const overlay = createElement('div', 'dialog-backdrop');
-    overlay.className += ' workout-setup-backdrop';
-    const dialog = createElement('section', 'dialog-card workout-setup-dialog');
-    dialog.setAttribute('role', 'dialog');
-    dialog.setAttribute('aria-modal', 'true');
-    dialog.setAttribute('aria-labelledby', 'workoutSetupTitle');
-    const header = createElement('div', 'dialog-header');
-    const heading = createElement('h2', '', 'הכנה לאימון');
-    heading.id = 'workoutSetupTitle';
-    const close = createIconButton('icon-button icon-button-ghost', 'סגירה', 'close');
-    close.addEventListener('click', () => overlay.remove());
-    header.append(heading, close);
-    dialog.append(header,
-      createElement('p', 'equivalent-page-note', 'סמנו את הציוד שזמין עכשיו. לכל תרגיל יוצגו רק המועדף והחלופות השקולות שסומנו על ידי המאמן, ורק אם הציוד שלהן זמין.'));
-    const equipmentSection = createElement('fieldset', 'builder-equipment-section');
-    equipmentSection.append(createElement('legend', '', 'הציוד שזמין'));
-    const equipmentOptions = createElement('div', 'builder-equipment-options');
-    equipmentTypes.forEach(equipment => {
-      const label = createElement('label', 'builder-equipment-choice');
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.value = equipment;
-      checkbox.checked = availableEquipment.has(equipment);
-      checkbox.addEventListener('change', () => {
-        if (checkbox.checked) availableEquipment.add(equipment);
-        else availableEquipment.delete(equipment);
-        renderChoices();
-      });
-      label.append(checkbox, document.createTextNode(equipment));
-      equipmentOptions.append(label);
-    });
-    equipmentSection.append(equipmentOptions);
-    dialog.append(equipmentSection);
-    const choiceList = createElement('div', 'workout-setup-choices');
-    dialog.append(choiceList);
-    const startButton = createElement('button', 'btn-action-primary workout-setup-start', 'התחלת אימון');
-    startButton.type = 'button';
-    startButton.disabled = true;
-    dialog.append(startButton);
-    const selectors = [];
-    function renderChoices() {
-      choiceList.replaceChildren();
-      selectors.length = 0;
-      let missingChoices = 0;
-      plan.exercises.forEach((entry, index) => {
-        const preferredId = entry.preferredExerciseId || entry.exerciseId;
-        const preferred = getExercise(preferredId);
-        const candidates = getRoutineCandidateExerciseIds(entry).map(getExercise).filter(exercise =>
-          exercise && availableEquipment.has(exercise.equipment));
-        const card = createElement('label', 'workout-setup-choice');
-        card.append(createElement('strong', '', `${index + 1}. ${preferred?.name || 'תרגיל'}`));
-        const select = document.createElement('select');
-        select.setAttribute('aria-label', `בחירת תרגיל עבור ${preferred?.name || 'תרגיל'} לפי ציוד זמין`);
-        fillSelect(select, candidates.map(exercise => ({
-          value: exercise.id, label: `${exercise.name} · ${exercise.equipment}${exercise.id === preferredId ? ' · מועדף' : ' · שקול'}`
-        })), candidates.some(exercise => exercise.id === (entry.selectedExerciseId || entry.exerciseId))
-          ? (entry.selectedExerciseId || entry.exerciseId) : candidates.some(exercise => exercise.id === preferredId) ? preferredId : candidates[0]?.id,
-        candidates.length ? '' : 'אין תרגיל תואם לציוד שנבחר');
-        if (!candidates.length) {
-          missingChoices += 1;
-          select.disabled = true;
-        }
-        selectors.push({ entry, select });
-        card.append(select);
-        choiceList.append(card);
-      });
-      startButton.disabled = missingChoices > 0 || selectors.some(item => !item.select.value);
-      const existingNotice = dialog.querySelector('.workout-setup-warning');
-      existingNotice?.remove();
-      if (missingChoices) {
-        dialog.insertBefore(createElement('p', 'workout-setup-warning', `${missingChoices} תרגילים ללא תרגיל תואם. סמנו ציוד נוסף או בקשו מהמאמן להגדיר חלופה שקולה.`), startButton);
-      }
-    }
-    startButton.addEventListener('click', () => {
-      if (startButton.disabled) return;
-      const workoutPlan = {
-        ...plan,
-        availableEquipment: [...availableEquipment],
-        exercises: plan.exercises.map((entry, index) => ({
-          ...entry,
-          preferredExerciseId: entry.preferredExerciseId || entry.exerciseId,
-          exerciseId: selectors[index].select.value
-        }))
-      };
-      overlay.remove();
-      launchWorkoutSession(workoutPlan);
-    });
-    renderChoices();
-    overlay.append(dialog);
-    overlay.addEventListener('click', event => { if (event.target === overlay) overlay.remove(); });
-    document.body.append(overlay);
+    const workoutPlan = {
+      ...plan,
+      availableEquipment: Array.isArray(plan.availableEquipment) && plan.availableEquipment.length
+        ? [...plan.availableEquipment]
+        : [...new Set(plan.exercises.map(entry => getExercise(entry.preferredExerciseId || entry.exerciseId)?.equipment).filter(Boolean))],
+      exercises: plan.exercises.map(entry => ({
+        ...entry,
+        preferredExerciseId: entry.preferredExerciseId || entry.exerciseId,
+        exerciseId: entry.exerciseId || entry.preferredExerciseId
+      }))
+    };
+    launchWorkoutSession(workoutPlan);
   }
 
   function launchWorkoutSession(plan) {
@@ -2629,7 +3214,7 @@
     };
     state.isTimeCrunchActive = false;
     byId('timeCrunchToggleBtn')?.classList.remove('active');
-    if (byId('timeCrunchToggleBtn')) byId('timeCrunchToggleBtn').textContent = '⏱️ מצב קצר בזמן: כבוי';
+    if (byId('timeCrunchToggleBtn')) byId('timeCrunchToggleBtn').textContent = 'מצב קצר בזמן: כבוי';
     if (byId('timeCrunchBanner')) byId('timeCrunchBanner').style.display = 'none';
     if (byId('activeWorkoutTitle')) byId('activeWorkoutTitle').textContent = plan.name;
     const restInput = byId('sessionRestSeconds');
@@ -3023,11 +3608,15 @@
       if (primaryMuscle) counts[primaryMuscle] = (counts[primaryMuscle] || 0) + 1;
       return counts;
     }, {});
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', hour12: false });
     const workout = {
       id: `workout-${Date.now()}`,
       routineId: session.plan.id,
       name: session.plan.name,
-      completedAt: new Date().toISOString(),
+      startedAt: new Date(session.startedAt).toISOString(),
+      completedAt: now.toISOString(),
+      time: timeStr,
       durationMinutes: Math.max(1, Math.round((Date.now() - session.startedAt) / 60000)),
       completedSets: completedSets.length,
       totalSets,
@@ -3039,6 +3628,7 @@
     };
     state.workoutLogs[state.currentDate] = [...todayWorkouts(), workout];
     const saved = writeStorage(STORAGE_KEYS.workouts, state.workoutLogs);
+    syncDailyReportDraft();
     state.activeSession = null;
     hideRestHud();
     const modal = byId('activeWorkoutModal');
@@ -3061,8 +3651,8 @@
     const banner = byId('timeCrunchBanner');
     button?.classList.toggle('active', state.isTimeCrunchActive);
     if (button) button.textContent = state.isTimeCrunchActive
-      ? '⏱️ מצב קצר בזמן: פעיל ✓'
-      : '⏱️ מצב קצר בזמן: כבוי';
+      ? 'מצב קצר בזמן: פעיל ✓'
+      : 'מצב קצר בזמן: כבוי';
     if (banner) banner.style.display = state.isTimeCrunchActive ? 'block' : 'none';
     if (state.activeSession) {
       state.activeSession.timeCrunch = state.isTimeCrunchActive;
@@ -3159,7 +3749,7 @@
       ...plan,
       id: `imported-${Date.now()}`,
       section: 'individual_session',
-      badge: '📥 תוכנית מיובאת',
+      badge: 'תוכנית מיובאת',
       defaultRestSeconds: Number.isInteger(Number(plan.defaultRestSeconds))
         ? Number(plan.defaultRestSeconds)
         : Number(plan.exercises.find(entry => Number.isFinite(Number(entry.restSeconds)))?.restSeconds) || 90,
@@ -3388,6 +3978,78 @@
     });
     byId('coachTraineeSelect')?.addEventListener('change', event => {
       state.selectedTraineeId = event.currentTarget.value;
+      renderCoach();
+    });
+    byId('coachRangeFilter')?.addEventListener('change', () => {
+      renderCoach();
+    });
+    byId('closeDrilldownModalBtn')?.addEventListener('click', () => {
+      const modal = byId('coachReportDetailModal');
+      if (modal) modal.hidden = true;
+    });
+
+    // Daily Trainee Report events
+    byId('dailyReportPrevDayBtn')?.addEventListener('click', () => {
+      const d = new Date(state.dailyReportDate + 'T00:00:00');
+      d.setDate(d.getDate() - 1);
+      state.dailyReportDate = localDateKey(d);
+      renderDailyReportTab();
+    });
+    byId('dailyReportNextDayBtn')?.addEventListener('click', () => {
+      const d = new Date(state.dailyReportDate + 'T00:00:00');
+      d.setDate(d.getDate() + 1);
+      state.dailyReportDate = localDateKey(d);
+      renderDailyReportTab();
+    });
+    byId('dailyReportDatePicker')?.addEventListener('change', event => {
+      if (event.currentTarget.value) {
+        state.dailyReportDate = event.currentTarget.value;
+        renderDailyReportTab();
+      }
+    });
+    byId('dailyReportFinalizeBtn')?.addEventListener('click', finalizeDailyReport);
+
+    // Auto-save checkin form inputs
+    const bindCheckinInput = (id, prop, isNumber = false) => {
+      const el = byId(id);
+      if (!el) return;
+      const handler = () => {
+        const traineeId = state.profile.demoTraineeId || 'client_1';
+        const date = state.dailyReportDate || state.currentDate;
+        const report = getOrCreateDailyReport(traineeId, date);
+        report.metrics[prop] = isNumber ? (parseFloat(el.value) || null) : el.value;
+        if (id === 'checkinSleepQuality' && byId('checkinSleepQualityVal')) {
+          byId('checkinSleepQualityVal').textContent = `${el.value}/10`;
+        }
+        syncDailyReportDraft();
+      };
+      el.addEventListener('input', handler);
+      el.addEventListener('change', handler);
+    };
+
+    bindCheckinInput('checkinWeight', 'morningWeightKg', true);
+    bindCheckinInput('checkinWater', 'waterMl', true);
+    bindCheckinInput('checkinSleepHours', 'sleepHours', true);
+    bindCheckinInput('checkinSleepQuality', 'sleepQuality', true);
+    bindCheckinInput('checkinSteps', 'steps', true);
+    bindCheckinInput('checkinDigestion', 'digestion', false);
+    bindCheckinInput('checkinNotes', 'traineeNotes', false);
+
+    // Rating pills handlers
+    ['energy', 'hunger', 'stress'].forEach(ratingType => {
+      const container = byId(`${ratingType}RatingPills`);
+      if (!container) return;
+      container.querySelectorAll('.rating-pill').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const val = parseInt(btn.getAttribute('data-val'), 10);
+          const traineeId = state.profile.demoTraineeId || 'client_1';
+          const date = state.dailyReportDate || state.currentDate;
+          const report = getOrCreateDailyReport(traineeId, date);
+          report.metrics[`${ratingType}Level`] = val;
+          container.querySelectorAll('.rating-pill').forEach(b => b.classList.toggle('active', b === btn));
+          syncDailyReportDraft();
+        });
+      });
     });
     byId('importRoutineCodeBtn')?.addEventListener('click', importRoutine);
     byId('timeCrunchToggleBtn')?.addEventListener('click', toggleTimeCrunchMode);
@@ -3409,6 +4071,9 @@
   }
 
   function init() {
+    if (window.FitPulseFirebase) {
+      window.FitPulseFirebase.init();
+    }
     addProgressControls();
     bindEvents();
     renderAll();

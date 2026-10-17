@@ -377,14 +377,16 @@
 
   <div class="dialog-backdrop" id="exerciseLibraryDialog" hidden>
     <section class="dialog-card exercise-library-dialog" role="dialog" aria-modal="true" aria-labelledby="exerciseLibraryTitle">
-      <div class="dialog-header"><div><span class="eyebrow">Exercise Library · Local</span><h2 id="exerciseLibraryTitle">מאגר תרגילים לבחירה</h2></div><button class="icon-button" id="closeExerciseLibraryBtn" type="button">סגירה</button></div>
-      <p class="scanner-hint">חפשו תרגיל וסננו לפי קבוצת שרירים וציוד במאגר המקומי. הוסיפו או הסירו אותו מתוכנית האימון.</p>
-      <label class="food-search-field exercise-search-field"><span aria-hidden="true">⌕</span><input id="exerciseLibrarySearch" type="search" placeholder="חיפוש תרגילים באנגלית..." autocomplete="off" aria-label="חיפוש תרגילים"></label>
+      <div class="dialog-header"><div><span class="eyebrow">Exercise Library · Local</span><h2 id="exerciseLibraryTitle">מאגר תרגילים לבחירה</h2></div><button class="icon-button icon-button-ghost" id="closeExerciseLibraryBtn" type="button" aria-label="סגירה">✕</button></div>
+      <div class="dialog-scroll">
+      <p class="scanner-hint" id="exerciseLibraryHint">חפשו תרגיל וסננו לפי קבוצת שרירים וציוד במאגר המקומי. הוסיפו או הסירו אותו מתוכנית האימון.</p>
+      <label class="food-search-field exercise-search-field"><span aria-hidden="true">⌕</span><input id="exerciseLibrarySearch" type="search" placeholder="חיפוש תרגילים באנגלית..." autocomplete="off" aria-label="חיפוש תרגילים" dir="ltr"></label>
       <div class="food-category-filters" id="exerciseMuscleFilters" role="group" aria-label="סינון לפי קבוצת שרירים"></div>
       <label class="exercise-equipment-filter">ציוד <select id="exerciseEquipmentFilter"><option value="all">כל סוגי הציוד</option><option>Barbell</option><option>Dumbbell</option><option>Cable</option><option>Machine</option><option>Bodyweight</option><option>Smith Machine</option><option>Resistance Band</option></select></label>
       <p id="exerciseLibraryStatus" class="food-search-status" aria-live="polite"></p>
       <div class="exercise-library-list" id="exerciseLibraryList"></div>
       <button class="btn-action-primary library-done-btn" id="exerciseLibraryDoneBtn" type="button">סיום בחירה</button>
+      </div>
     </section>
   </div>
 
@@ -396,8 +398,9 @@
           <span class="eyebrow">החלפת תרגיל מהירה · Instant Exercise Swap</span>
           <h2 id="exerciseSwapTitle">החלפת תרגיל באימון</h2>
         </div>
-        <button class="icon-button" id="closeExerciseSwapBtn" type="button">סגירה ✕</button>
+        <button class="icon-button icon-button-ghost" id="closeExerciseSwapBtn" type="button" aria-label="סגירה">✕</button>
       </div>
+      <div class="dialog-scroll">
       <div class="swap-target-box" id="swapTargetBox">
         <span class="swap-target-label">מחליף כעת את:</span>
         <strong id="swapTargetExerciseName" class="swap-target-name">-</strong>
@@ -405,7 +408,7 @@
       </div>
       <label class="food-search-field exercise-search-field">
         <span aria-hidden="true">⌕</span>
-        <input id="exerciseSwapSearch" type="search" placeholder="חיפוש מהיר לפי שם תרגיל (אנגלית/עברית)..." autocomplete="off" aria-label="חיפוש תרגיל חלופי">
+        <input id="exerciseSwapSearch" type="search" placeholder="חיפוש מהיר לפי שם תרגיל (אנגלית/עברית)..." autocomplete="off" aria-label="חיפוש תרגיל חלופי" dir="ltr">
       </label>
       <div class="exercise-swap-tabs" role="tablist">
         <button id="swapTabEquiv" class="category-chip active" type="button" role="tab" aria-selected="true">🔥 שקולים מומלצים</button>
@@ -428,6 +431,7 @@
       </div>
       <p id="exerciseSwapStatus" class="food-search-status" aria-live="polite"></p>
       <div class="exercise-swap-list" id="exerciseSwapList"></div>
+      </div>
     </section>
   </div>
 

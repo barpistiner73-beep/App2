@@ -74,6 +74,8 @@
     exerciseLibrarySelection: null,
     exerciseLibraryOnToggle: null,
     exerciseLibraryOnDone: null,
+    exerciseLibraryMode: 'multi',
+    exerciseLibraryOnPick: null,
     selectedTraineeId: FIT_DATA.coachTrainees[0]?.id || '',
     coachActivityFilter: 'all'
   };
@@ -124,26 +126,34 @@
     ['shoulders', 'כתפיים (Shoulders)'], ['arms', 'זרועות (Arms)'], ['core', 'ליבה (Core)']
   ];
 
-  function getPreviousExercisePerformance(exerciseId) {
-    if (!exerciseId) return null;
+  function getPreviousSets(exerciseId) {
+    if (!exerciseId) return [];
     const allWorkouts = Object.values(state.workoutLogs || {})
       .flatMap(workouts => Array.isArray(workouts) ? workouts : [])
       .sort((a, b) => String(b.completedAt || '').localeCompare(String(a.completedAt || '')));
-
     for (const workout of allWorkouts) {
       if (!Array.isArray(workout.setLogs)) continue;
-      const matchingSets = workout.setLogs.filter(set => set.exerciseId === exerciseId && set.completed);
-      if (matchingSets.length > 0) {
-        const bestSet = matchingSets.reduce((prev, curr) => (Number(curr.weight) > Number(prev.weight) ? curr : prev), matchingSets[0]);
-        return {
-          weight: Number(bestSet.weight) || 0,
-          reps: Number(bestSet.reps) || 0,
-          completedAt: workout.completedAt
-        };
+      const matchingSets = workout.setLogs
+        .filter(set => set.exerciseId === exerciseId && set.completed)
+        .sort((left, right) => Number(left.setNumber || 0) - Number(right.setNumber || 0));
+      if (matchingSets.length) {
+        return matchingSets.map(set => ({
+          weight: Number(set.weight) || 0,
+          reps: Number(set.reps) || 0
+        }));
       }
     }
-    return null;
+    return [];
   }
+
+  function getPreviousExercisePerformance(exerciseId) {
+    const matchingSets = getPreviousSets(exerciseId);
+    if (!matchingSets.length) return null;
+    const bestSet = matchingSets.reduce((prev, curr) => (Number(curr.weight) > Number(prev.weight) ? curr : prev), matchingSets[0]);
+    return { weight: bestSet.weight, reps: bestSet.reps };
+  }
+
+  let exerciseSwapContext = null;
   state.customRoutines = Array.isArray(state.customRoutines)
     ? state.customRoutines.filter(validateRoutine)
     : [];
@@ -175,6 +185,82 @@
     if (className) element.className = className;
     if (text !== undefined) element.textContent = text;
     return element;
+  }
+
+  const UI_ICONS = {
+    close: 'M18 6 6 18M6 6l12 12',
+    trash: 'M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6',
+    swap: 'M7 8h13M16 5l4 3-4 3M17 16H4M8 19l-4-3 4-3',
+    grip: 'M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01',
+    check: 'M5 13l4 4L19 7',
+    plus: 'M12 5v14M5 12h14',
+    up: 'M6 14l6-6 6 6',
+    down: 'M6 10l6 6 6-6'
+  };
+
+  function createSvgIcon(iconKey) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.classList.add('ui-icon');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', UI_ICONS[iconKey] || UI_ICONS.close);
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', 'currentColor');
+    path.setAttribute('stroke-width', iconKey === 'grip' ? '3.4' : '2');
+    path.setAttribute('stroke-linecap', 'round');
+    path.setAttribute('stroke-linejoin', 'round');
+    svg.append(path);
+    return svg;
+  }
+
+  function createIconButton(className, label, iconKey) {
+    const button = createElement('button', className);
+    button.type = 'button';
+    button.setAttribute('aria-label', label);
+    button.title = label;
+    button.append(createSvgIcon(iconKey));
+    return button;
+  }
+
+  function suggestedWeightForExercise(exercise) {
+    if (!exercise) return 0;
+    const previous = getPreviousSets(exercise.id)[0];
+    if (previous) return previous.weight;
+    const profileWeight = Number(state.profile.weight) || Number(FIT_DATA.defaultProfile.weight);
+    const profileScale = Math.max(0.6, Math.min(1.4, profileWeight / Number(FIT_DATA.defaultProfile.weight)));
+    return Math.round((Number(exercise.defaultWeight) || 0) * profileScale * 2) / 2;
+  }
+
+  function applyExerciseToBuilderRow(row, exerciseId) {
+    const exercise = getExercise(exerciseId);
+    if (!exercise) return;
+    row.preferredExerciseId = exercise.id;
+    row.muscleGroup = exercise.muscle;
+    row.subgroup = getExerciseSubgroup(exercise);
+    row.sets = Number(exercise.defaultSets) || 3;
+    row.reps = Number(exercise.defaultReps) || 10;
+    row.weight = suggestedWeightForExercise(exercise);
+    const previous = getPreviousSets(exercise.id);
+    const count = Math.max(1, Number(row.sets) || 3);
+    row.setPrescriptions = Array.from({ length: count }, (_, index) => ({
+      weight: previous[index]?.weight ?? row.weight,
+      reps: previous[index]?.reps ?? row.reps
+    }));
+  }
+
+  function ensureBuilderPrescriptions(row) {
+    const count = Math.max(1, Number(row.sets) || (row.setPrescriptions?.length) || 3);
+    if (!Array.isArray(row.setPrescriptions) || !row.setPrescriptions.length) {
+      row.setPrescriptions = Array.from({ length: count }, () => ({
+        weight: Number(row.weight) || 0,
+        reps: Number(row.reps) || 10
+      }));
+    }
+    row.sets = row.setPrescriptions.length;
+    row.weight = Number(row.setPrescriptions[0]?.weight) || 0;
+    row.reps = Number(row.setPrescriptions[0]?.reps) || 10;
+    return row.setPrescriptions;
   }
 
   function setTab(tabId) {
@@ -1712,38 +1798,167 @@
       const card = createElement('article', 'library-exercise-card');
       card.append(createExerciseAnimation(exercise, true));
       const details = createElement('div', 'library-exercise-details');
+      const name = createElement('strong', 'exercise-name-en', exercise.name);
+      name.dir = 'ltr';
       details.append(
-        createElement('strong', '', exercise.name),
-        createElement('span', '', `${exercise.category} · ${exercise.equipment} · ${exercise.unilateral ? 'Unilateral' : 'Bilateral'} · ${exercise.defaultSets} סטים × ${exercise.defaultReps} חזרות`)
+        name,
+        createElement('span', '', `${muscleLabel(exercise.muscle)} · ${exercise.equipment} · ${exercise.defaultSets} × ${exercise.defaultReps}`)
       );
-      details.append(renderMuscleActivation(exercise));
-      if (exercise.tips) details.append(createElement('p', '', exercise.tips));
-      const toggle = createElement('button', `btn-action-secondary${selection.has(exercise.id) ? ' selected' : ''}`, selection.has(exercise.id) ? 'נבחר ✓' : '＋ הוספה');
-      toggle.type = 'button';
-      toggle.setAttribute('aria-pressed', String(selection.has(exercise.id)));
-      toggle.addEventListener('click', () => {
+      const pickExercise = () => {
+        if (state.exerciseLibraryMode === 'single') {
+          state.exerciseLibraryOnPick?.(exercise.id);
+          closeExerciseLibrary();
+          return;
+        }
         if (selection.has(exercise.id)) selection.delete(exercise.id);
         else selection.add(exercise.id);
         onToggle();
         renderExerciseLibrary(selection, onToggle);
-      });
+      };
+      const toggle = createElement('button',
+        `btn-action-secondary${selection.has(exercise.id) ? ' selected' : ''}`,
+        state.exerciseLibraryMode === 'single' ? 'בחירה' : (selection.has(exercise.id) ? 'נבחר ✓' : '＋ הוספה'));
+      toggle.type = 'button';
+      toggle.addEventListener('click', pickExercise);
       card.append(details, toggle);
+      card.addEventListener('click', event => {
+        if (event.target.closest('button')) return;
+        if (state.exerciseLibraryMode === 'single') pickExercise();
+      });
       list.append(card);
     });
   }
 
-  function openExerciseLibrary(selection, onToggle, onDone = null) {
+  function closeExerciseLibrary() {
+    const dialog = byId('exerciseLibraryDialog');
+    if (dialog) dialog.hidden = true;
+    state.exerciseLibraryMode = 'multi';
+    state.exerciseLibraryOnPick = null;
+  }
+
+  function openExerciseLibrary(selection, onToggle, onDone = null, options = {}) {
     const dialog = byId('exerciseLibraryDialog');
     if (!dialog) return;
     state.exerciseQuery = '';
+    state.exerciseMuscle = 'all';
     state.exerciseLibrarySelection = selection;
     state.exerciseLibraryOnToggle = onToggle;
     state.exerciseLibraryOnDone = onDone;
+    state.exerciseLibraryMode = options.mode || 'multi';
+    state.exerciseLibraryOnPick = options.onPick || null;
     const search = byId('exerciseLibrarySearch');
     if (search) search.value = '';
+    const done = byId('exerciseLibraryDoneBtn');
+    if (done) done.hidden = state.exerciseLibraryMode === 'single';
+    const hint = byId('exerciseLibraryHint');
+    if (hint) hint.textContent = state.exerciseLibraryMode === 'single'
+      ? 'חפשו תרגיל ובחרו אותו. אפשר לסנן לפי שריר או ציוד, בלי לעבור בין תפריטים בכרטיס האימון.'
+      : 'חפשו תרגיל וסננו לפי קבוצת שרירים וציוד במאגר המקומי. הוסיפו או הסירו אותו מתוכנית האימון.';
     renderExerciseLibrary(selection, onToggle);
     dialog.hidden = false;
-    byId('exerciseLibraryDoneBtn')?.focus();
+    search?.focus();
+  }
+
+  function pickExerciseFromLibrary(onPick) {
+    openExerciseLibrary(new Set(), () => {}, null, { mode: 'single', onPick });
+  }
+
+  function closeExerciseSwap() {
+    const dialog = byId('exerciseSwapDialog');
+    if (dialog) dialog.hidden = true;
+    exerciseSwapContext = null;
+  }
+
+  function openExerciseSwap(context) {
+    const dialog = byId('exerciseSwapDialog');
+    if (!dialog) return;
+    exerciseSwapContext = {
+      tab: 'all',
+      query: '',
+      equipment: 'all',
+      ...context
+    };
+    const current = getExercise(exerciseSwapContext.currentId);
+    const name = byId('swapTargetExerciseName');
+    const badge = byId('swapTargetExerciseBadge');
+    if (name) {
+      name.textContent = current?.name || 'תרגיל';
+      name.dir = 'ltr';
+    }
+    if (badge) badge.textContent = current ? `${muscleLabel(current.muscle)} · ${current.equipment}` : '';
+    const search = byId('exerciseSwapSearch');
+    if (search) search.value = '';
+    const equipment = byId('exerciseSwapEquipmentFilter');
+    if (equipment) equipment.value = 'all';
+    setExerciseSwapTab(exerciseSwapContext.allowedIds?.size ? 'equiv' : 'all');
+    renderExerciseSwapList();
+    dialog.hidden = false;
+    search?.focus();
+  }
+
+  function setExerciseSwapTab(tab) {
+    if (!exerciseSwapContext) return;
+    exerciseSwapContext.tab = tab;
+    [
+      ['swapTabEquiv', 'equiv'],
+      ['swapTabMuscle', 'muscle'],
+      ['swapTabAll', 'all']
+    ].forEach(([id, value]) => {
+      const button = byId(id);
+      if (!button) return;
+      const active = value === tab;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-selected', String(active));
+    });
+  }
+
+  function renderExerciseSwapList() {
+    const list = byId('exerciseSwapList');
+    const status = byId('exerciseSwapStatus');
+    if (!list || !exerciseSwapContext) return;
+    const current = getExercise(exerciseSwapContext.currentId);
+    const query = (exerciseSwapContext.query || '').trim().toLocaleLowerCase();
+    const equipment = exerciseSwapContext.equipment || 'all';
+    const sessionEquipment = exerciseSwapContext.sessionEquipment;
+    const allowedIds = exerciseSwapContext.allowedIds;
+    const focusMuscle = exerciseSwapContext.muscle || current?.muscle;
+    let candidates = FIT_DATA.exercises.filter(exercise => exercise.id !== exerciseSwapContext.currentId);
+    if (exerciseSwapContext.tab === 'equiv' && allowedIds?.size) {
+      candidates = candidates.filter(exercise => allowedIds.has(exercise.id));
+    } else if (exerciseSwapContext.tab === 'muscle' && focusMuscle) {
+      candidates = candidates.filter(exercise => exercise.muscle === focusMuscle);
+    }
+    if (equipment !== 'all') candidates = candidates.filter(exercise => exercise.equipment === equipment);
+    if (sessionEquipment instanceof Set) {
+      candidates = candidates.filter(exercise => sessionEquipment.has(exercise.equipment));
+    }
+    if (query) {
+      candidates = candidates.filter(exercise =>
+        `${exercise.name} ${exercise.equipment} ${muscleLabel(exercise.muscle)}`.toLocaleLowerCase().includes(query));
+    }
+    if (status) {
+      status.textContent = candidates.length
+        ? `${candidates.length} תרגילים לבחירה`
+        : 'לא נמצאו תרגילים תואמים. נסו חיפוש אחר או לשונית אחרת.';
+    }
+    list.replaceChildren();
+    candidates.slice(0, 50).forEach(exercise => {
+      const card = createElement('article', 'swap-candidate-card');
+      const info = createElement('div', 'swap-candidate-info');
+      const name = createElement('strong', 'swap-candidate-name', exercise.name);
+      name.dir = 'ltr';
+      info.append(name, createElement('span', 'swap-candidate-meta',
+        `${muscleLabel(exercise.muscle)} · ${exercise.equipment}`));
+      const select = createElement('button', 'swap-select-btn', 'בחירה');
+      select.type = 'button';
+      select.addEventListener('click', () => {
+        const onSelect = exerciseSwapContext?.onSelect;
+        closeExerciseSwap();
+        onSelect?.(exercise.id);
+      });
+      card.append(info, select);
+      list.append(card);
+    });
   }
 
   function getExerciseSubgroups(muscleGroup) {
@@ -1907,15 +2122,14 @@
   function createWorkoutModal(existingPlan = null) {
     const overlay = createElement('div', 'dialog-backdrop');
     overlay.id = 'createWorkoutDialog';
-    const dialog = createElement('section', 'dialog-card');
+    const dialog = createElement('section', 'dialog-card workout-builder-dialog');
     dialog.setAttribute('role', 'dialog');
     dialog.setAttribute('aria-modal', 'true');
     dialog.setAttribute('aria-labelledby', 'createWorkoutTitle');
     const header = createElement('div', 'dialog-header');
     const title = createElement('h2', '', existingPlan?.isDuplicate ? 'שכפול תבנית' : existingPlan ? 'עריכת אימון' : 'בניית אימון חדש');
     title.id = 'createWorkoutTitle';
-    const close = createElement('button', 'icon-button', 'סגירה');
-    close.type = 'button';
+    const close = createIconButton('icon-button icon-button-ghost', 'סגירה', 'close');
     close.addEventListener('click', () => overlay.remove());
     header.append(title, close);
     const form = createElement('form', 'workout-builder-form');
@@ -1927,15 +2141,19 @@
     const rows = (existingPlan?.exercises || []).map(entry => {
       const preferredExerciseId = entry.preferredExerciseId || entry.exerciseId;
       const exercise = getExercise(preferredExerciseId);
-      return {
-        muscleGroup: entry.muscleGroup || exercise?.muscle || 'chest',
+      const row = {
+        muscleGroup: entry.muscleGroup || exercise?.muscle || '',
         subgroup: entry.subgroup || (exercise ? getExerciseSubgroup(exercise) : ''),
-        preferredExerciseId, sets: Number(entry.sets) || exercise?.defaultSets || 3,
+        preferredExerciseId,
+        sets: Number(entry.sets) || exercise?.defaultSets || 3,
         reps: Number(entry.reps) || exercise?.defaultReps || 10,
-        weight: Number(entry.weight ?? exercise?.defaultWeight) || 0
+        weight: Number(entry.weight ?? exercise?.defaultWeight) || 0,
+        setPrescriptions: Array.isArray(entry.setPrescriptions) ? entry.setPrescriptions.map(item => ({ ...item })) : null
       };
+      ensureBuilderPrescriptions(row);
+      return row;
     });
-    const note = createElement('p', 'muscle-activation-note', 'בנו את התוכנית לפי כל תרגיל: הגדירו שריר ראשי, תת־קבוצה ותרגיל מועדף. לרוב העדיפו מכונה יציבה כשמתאימה. ציוד זמין וחלופות שקולות נבחרים בתחילת האימון.');
+    const note = createElement('p', 'muscle-activation-note', 'בחרו תרגיל מהמאגר, ואז ערכו סטים, משקל וחזרות בטבלה. ציוד וחלופות שקולות נבחרים בתחילת האימון.');
     const categoryLabel = createElement('label', 'builder-category-field', 'קטגוריית האימון');
     const categorySelect = document.createElement('select');
     categorySelect.name = 'category';
@@ -1971,113 +2189,172 @@
     nameLabel.append(nameInput);
 
     const exerciseList = createElement('div', 'builder-exercise-list');
+    const moveRow = (from, to) => {
+      if (to < 0 || to >= rows.length || from === to) return;
+      const [moved] = rows.splice(from, 1);
+      rows.splice(to, 0, moved);
+      renderRows();
+    };
     const renderRows = () => {
       exerciseList.replaceChildren();
       if (!rows.length) exerciseList.append(createElement('p', 'empty-state', 'הרשימה ריקה. הוסיפו תרגיל כדי להתחיל לבנות את האימון.'));
       rows.forEach((row, index) => {
-        const card = createElement('article', 'builder-exercise-card');
-        const heading = createElement('div', 'builder-row-heading');
-        heading.append(createElement('strong', '', `תרגיל ${index + 1}`));
-        const remove = createElement('button', 'icon-button', 'הסרה');
-        remove.type = 'button';
+        const exercise = getExercise(row.preferredExerciseId);
+        const prescriptions = ensureBuilderPrescriptions(row);
+        const previousSets = getPreviousSets(row.preferredExerciseId);
+        const card = createElement('article', 'hevy-exercise-card builder-exercise-card');
+        card.draggable = true;
+        card.addEventListener('dragstart', event => {
+          event.dataTransfer.effectAllowed = 'move';
+          event.dataTransfer.setData('text/plain', String(index));
+          card.classList.add('is-dragging');
+        });
+        card.addEventListener('dragend', () => card.classList.remove('is-dragging'));
+        card.addEventListener('dragover', event => {
+          event.preventDefault();
+          card.classList.add('drop-target');
+        });
+        card.addEventListener('dragleave', () => card.classList.remove('drop-target'));
+        card.addEventListener('drop', event => {
+          event.preventDefault();
+          card.classList.remove('drop-target');
+          const from = Number(event.dataTransfer.getData('text/plain'));
+          if (Number.isInteger(from)) moveRow(from, index);
+        });
+        const heading = createElement('div', 'hevy-card-header');
+        const titleArea = createElement('div', 'hevy-title-area');
+        const nameRow = createElement('div', 'hevy-exercise-name');
+        const handle = createElement('span', 'drag-handle');
+        handle.append(createSvgIcon('grip'));
+        handle.setAttribute('aria-hidden', 'true');
+        nameRow.append(handle, createElement('span', 'hevy-exercise-index', `${index + 1}`));
+        if (exercise) {
+          const name = createElement('button', 'exercise-picker-btn exercise-name-en', exercise.name);
+          name.type = 'button';
+          name.dir = 'ltr';
+          name.addEventListener('click', () => {
+            pickExerciseFromLibrary(exerciseId => {
+              applyExerciseToBuilderRow(row, exerciseId);
+              renderRows();
+            });
+          });
+          nameRow.append(name);
+        } else {
+          const picker = createElement('button', 'exercise-picker-btn exercise-picker-empty', 'בחרו תרגיל מהמאגר');
+          picker.type = 'button';
+          picker.addEventListener('click', () => {
+            pickExerciseFromLibrary(exerciseId => {
+              applyExerciseToBuilderRow(row, exerciseId);
+              renderRows();
+            });
+          });
+          nameRow.append(picker);
+        }
+        titleArea.append(nameRow);
+        if (exercise) {
+          const tags = createElement('div', 'hevy-meta-tags');
+          tags.append(
+            createElement('span', 'hevy-tag hevy-tag-primary', muscleLabel(exercise.muscle)),
+            createElement('span', 'hevy-tag hevy-tag-equipment', exercise.equipment)
+          );
+          titleArea.append(tags);
+        }
+        const actions = createElement('div', 'hevy-card-actions');
+        const up = createIconButton('icon-btn', 'העברה למעלה', 'up');
+        up.disabled = index === 0;
+        up.addEventListener('click', () => moveRow(index, index - 1));
+        const down = createIconButton('icon-btn', 'העברה למטה', 'down');
+        down.disabled = index === rows.length - 1;
+        down.addEventListener('click', () => moveRow(index, index + 1));
+        const swap = createIconButton('icon-btn', 'החלפת תרגיל', 'swap');
+        swap.addEventListener('click', () => {
+          openExerciseSwap({
+            currentId: row.preferredExerciseId,
+            muscle: row.muscleGroup || exercise?.muscle,
+            onSelect: exerciseId => {
+              applyExerciseToBuilderRow(row, exerciseId);
+              renderRows();
+            }
+          });
+        });
+        const remove = createIconButton('icon-btn icon-btn-danger', 'הסרת תרגיל', 'trash');
         remove.addEventListener('click', () => {
           rows.splice(index, 1);
           renderRows();
         });
-        heading.append(remove);
+        actions.append(up, down, swap, remove);
+        heading.append(titleArea, actions);
         card.append(heading);
-        const selectors = createElement('div', 'builder-exercise-selectors');
-        const muscleLabelControl = createElement('label', '', 'קבוצת שריר ראשית');
-        const muscleSelect = document.createElement('select');
-        FIT_DATA.muscleGroups.filter(group => group.id !== 'all').forEach(group => {
-          const option = document.createElement('option');
-          option.value = group.id;
-          option.textContent = muscleLabel(group.id);
-          muscleSelect.append(option);
-        });
-        muscleSelect.value = row.muscleGroup;
-        muscleSelect.addEventListener('change', () => {
-          row.muscleGroup = muscleSelect.value;
-          row.subgroup = '';
-          row.preferredExerciseId = '';
-          renderRows();
-        });
-        muscleLabelControl.append(muscleSelect);
-        selectors.append(muscleLabelControl);
-
-        const subgroupLabelControl = createElement('label', '', 'תת־קבוצת שרירים');
-        const subgroupSelect = document.createElement('select');
-        const subgroupChoices = getExerciseSubgroups(row.muscleGroup);
-        fillSelect(subgroupSelect, subgroupChoices.map(value => ({ value, label: value })), row.subgroup, 'בחרו תת־קבוצה');
-        subgroupSelect.addEventListener('change', () => {
-          row.subgroup = subgroupSelect.value;
-          row.preferredExerciseId = '';
-          renderRows();
-        });
-        subgroupLabelControl.append(subgroupSelect);
-        selectors.append(subgroupLabelControl);
-
-        const preferredLabel = createElement('label', '', 'תרגיל מועדף');
-        const preferredSelect = document.createElement('select');
-        const candidates = row.subgroup
-          ? getSubgroupExercises(row.muscleGroup, row.subgroup)
-            .sort((left, right) => Number(right.equipment === 'Machine') - Number(left.equipment === 'Machine'))
-          : [];
-        fillSelect(preferredSelect, candidates.map(exercise => ({
-          value: exercise.id, label: `${exercise.name} · ${exercise.equipment}`
-        })), row.preferredExerciseId, 'בחרו תרגיל מועדף');
-        preferredSelect.addEventListener('change', () => {
-          row.preferredExerciseId = preferredSelect.value;
-          const exercise = getExercise(row.preferredExerciseId);
-          if (exercise) {
-            row.sets = exercise.defaultSets || 3;
-            row.reps = exercise.defaultReps || 10;
-            const latestSet = Object.values(state.workoutLogs || {}).flatMap(workouts =>
-              Array.isArray(workouts) ? workouts : []).flatMap(workout => workout.setLogs || [])
-              .filter(set => set.completed && set.exerciseId === exercise.id)
-              .sort((left, right) => String(right.completedAt || '').localeCompare(String(left.completedAt || '')))[0];
-            const profileWeight = Number(state.profile.weight) || Number(FIT_DATA.defaultProfile.weight);
-            const profileScale = Math.max(0.6, Math.min(1.4, profileWeight / Number(FIT_DATA.defaultProfile.weight)));
-            row.weight = latestSet
-              ? Number(latestSet.weight) || 0
-              : Math.round((Number(exercise.defaultWeight) || 0) * profileScale * 2) / 2;
-          }
-          renderRows();
-        });
-        preferredLabel.append(preferredSelect);
-        selectors.append(preferredLabel);
-        card.append(selectors);
-
-        if (row.preferredExerciseId) {
-          const targetFields = createElement('div', 'builder-exercise-targets');
-          [['sets', 'מספר סטים', 1, 20, 1], ['reps', 'חזרות לסט', 1, 1000, 1], ['weight', 'משקל (ק״ג)', 0, 1000, 0.5]].forEach(([key, label, min, max, step]) => {
-            const field = createElement('label', '', label);
-            const input = document.createElement('input');
-            input.type = 'number';
-            input.min = String(min);
-            input.max = String(max);
-            input.step = String(step);
-            input.value = String(row[key]);
-            input.addEventListener('input', () => { row[key] = Number(input.value); });
-            field.append(input);
-            targetFields.append(field);
+        if (exercise) {
+          const tableWrap = createElement('div', 'hevy-table-container');
+          const table = createElement('table', 'hevy-set-table');
+          table.innerHTML = '<thead><tr><th>סט</th><th>קודם</th><th>משקל (kg)</th><th>חזרות</th><th></th></tr></thead>';
+          const tbody = document.createElement('tbody');
+          prescriptions.forEach((setRow, setIndex) => {
+            const tr = createElement('tr', 'hevy-set-row');
+            const setCell = document.createElement('td');
+            setCell.append(createElement('span', 'hevy-set-type-badge', String(setIndex + 1)));
+            const prevCell = document.createElement('td');
+            const ghost = createElement('span', 'hevy-ghost-cell', previousSets[setIndex]
+              ? `${previousSets[setIndex].weight} × ${previousSets[setIndex].reps}` : '—');
+            ghost.dir = 'ltr';
+            prevCell.append(ghost);
+            const weightCell = document.createElement('td');
+            const weightInput = document.createElement('input');
+            weightInput.className = 'hevy-num-input';
+            weightInput.type = 'number';
+            weightInput.min = '0';
+            weightInput.max = '1000';
+            weightInput.step = '0.5';
+            weightInput.dir = 'ltr';
+            weightInput.value = String(setRow.weight ?? 0);
+            weightInput.addEventListener('input', () => {
+              setRow.weight = Number(weightInput.value);
+              row.weight = Number(prescriptions[0]?.weight) || 0;
+            });
+            weightCell.append(weightInput);
+            const repsCell = document.createElement('td');
+            const repsInput = document.createElement('input');
+            repsInput.className = 'hevy-num-input';
+            repsInput.type = 'number';
+            repsInput.min = '1';
+            repsInput.max = '1000';
+            repsInput.step = '1';
+            repsInput.dir = 'ltr';
+            repsInput.value = String(setRow.reps ?? 10);
+            repsInput.addEventListener('input', () => {
+              setRow.reps = Number(repsInput.value);
+              row.reps = Number(prescriptions[0]?.reps) || 10;
+            });
+            repsCell.append(repsInput);
+            const removeCell = document.createElement('td');
+            const removeSet = createIconButton('icon-btn icon-btn-tiny', 'הסרת סט', 'close');
+            removeSet.disabled = prescriptions.length <= 1;
+            removeSet.addEventListener('click', () => {
+              if (prescriptions.length <= 1) return;
+              prescriptions.splice(setIndex, 1);
+              row.sets = prescriptions.length;
+              renderRows();
+            });
+            removeCell.append(removeSet);
+            tr.append(setCell, prevCell, weightCell, repsCell, removeCell);
+            tbody.append(tr);
           });
-          card.append(targetFields);
-        }
-        const orderActions = createElement('div', 'builder-row-actions');
-        [['↑', -1], ['↓', 1]].forEach(([label, delta]) => {
-          const button = createElement('button', 'icon-button builder-reorder-button', label);
-          button.type = 'button';
-          button.disabled = index + delta < 0 || index + delta >= rows.length;
-          button.setAttribute('aria-label', `${label === '↑' ? 'העברה למעלה' : 'העברה למטה'} · תרגיל ${index + 1}`);
-          button.addEventListener('click', () => {
-            const destination = index + delta;
-            [rows[index], rows[destination]] = [rows[destination], rows[index]];
+          table.append(tbody);
+          tableWrap.append(table);
+          const footer = createElement('div', 'hevy-card-footer');
+          const addSet = createElement('button', 'hevy-add-set-btn', '＋ הוספת סט');
+          addSet.type = 'button';
+          addSet.addEventListener('click', () => {
+            if (prescriptions.length >= 20) return;
+            const last = prescriptions[prescriptions.length - 1] || { weight: row.weight, reps: row.reps };
+            prescriptions.push({ weight: Number(last.weight) || 0, reps: Number(last.reps) || 10 });
+            row.sets = prescriptions.length;
             renderRows();
           });
-          orderActions.append(button);
-        });
-        card.append(orderActions);
+          footer.append(addSet);
+          card.append(tableWrap, footer);
+        }
         exerciseList.append(card);
       });
     };
@@ -2085,9 +2362,13 @@
     const addExercise = createElement('button', 'btn-action-secondary builder-add-exercise', '＋ הוספת תרגיל');
     addExercise.type = 'button';
     addExercise.addEventListener('click', () => {
-      rows.push({ muscleGroup: 'chest', subgroup: '', preferredExerciseId: '', sets: 3, reps: 10, weight: 0 });
-      renderRows();
-      exerciseList.lastElementChild?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      pickExerciseFromLibrary(exerciseId => {
+        const row = { muscleGroup: '', subgroup: '', preferredExerciseId: '', sets: 3, reps: 10, weight: 0 };
+        applyExerciseToBuilderRow(row, exerciseId);
+        rows.push(row);
+        renderRows();
+        exerciseList.lastElementChild?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      });
     });
 
     const durationLabel = createElement('label', '', 'משך משוער (דקות)');
@@ -2134,16 +2415,25 @@
         return;
       }
       if (!rows.length || rows.some(row => !row.preferredExerciseId)) {
-        alert('הוסיפו לפחות תרגיל אחד ובחרו לכל תרגיל קבוצת שריר, תת־קבוצה ותרגיל מועדף.');
+        alert('הוסיפו לפחות תרגיל אחד ובחרו תרגיל לכל כרטיס.');
         return;
       }
-      const exercises = rows.map(row => ({
-        exerciseId: row.preferredExerciseId,
-        preferredExerciseId: row.preferredExerciseId,
-        muscleGroup: row.muscleGroup,
-        subgroup: row.subgroup,
-        sets: Number(row.sets), reps: Number(row.reps), weight: Number(row.weight)
-      }));
+      const exercises = rows.map(row => {
+        const prescriptions = ensureBuilderPrescriptions(row);
+        return {
+          exerciseId: row.preferredExerciseId,
+          preferredExerciseId: row.preferredExerciseId,
+          muscleGroup: row.muscleGroup,
+          subgroup: row.subgroup,
+          sets: prescriptions.length,
+          reps: Number(prescriptions[0]?.reps) || Number(row.reps),
+          weight: Number(prescriptions[0]?.weight) || Number(row.weight),
+          setPrescriptions: prescriptions.map(item => ({
+            weight: Number(item.weight) || 0,
+            reps: Number(item.reps) || 1
+          }))
+        };
+      });
       if (exercises.some(entry => !Number.isInteger(entry.sets) || entry.sets < 1 || entry.sets > 20 ||
         !Number.isInteger(entry.reps) || entry.reps < 1 || entry.reps > 1000 ||
         !Number.isFinite(entry.weight) || entry.weight < 0 || entry.weight > 1000) ||
@@ -2227,8 +2517,7 @@
     const header = createElement('div', 'dialog-header');
     const heading = createElement('h2', '', 'הכנה לאימון');
     heading.id = 'workoutSetupTitle';
-    const close = createElement('button', 'icon-button', 'סגירה');
-    close.type = 'button';
+    const close = createIconButton('icon-button icon-button-ghost', 'סגירה', 'close');
     close.addEventListener('click', () => overlay.remove());
     header.append(heading, close);
     dialog.append(header,
@@ -2354,240 +2643,231 @@
     state.activeSession.timer = window.setInterval(updateWorkoutTimer, 1000);
   }
 
+  function ensureSessionSetLog(session, exerciseIndex, setNumber) {
+    const entry = session.plan.exercises[exerciseIndex];
+    const key = `${exerciseIndex}-${setNumber}`;
+    if (!session.setLogs[key]) {
+      const prescription = entry.setPrescriptions?.[setNumber - 1];
+      session.setLogs[key] = {
+        exerciseId: entry.exerciseId,
+        weight: Number(prescription?.weight ?? entry.weight) || 0,
+        reps: Number(prescription?.reps ?? entry.reps) || 0,
+        rir: entry.targetRir ?? '',
+        setType: 'working'
+      };
+    }
+    return session.setLogs[key];
+  }
+
+  function replaceSessionExercise(exerciseIndex, exerciseId) {
+    const session = state.activeSession;
+    const entry = session?.plan.exercises[exerciseIndex];
+    const replacement = getExercise(exerciseId);
+    if (!session || !entry || !replacement) return;
+    entry.exerciseId = replacement.id;
+    entry.preferredExerciseId = replacement.id;
+    entry.muscleGroup = replacement.muscle;
+    entry.subgroup = getExerciseSubgroup(replacement);
+    const previous = getPreviousSets(replacement.id);
+    const setCount = Math.max(1, Number(entry.sets) || 1);
+    for (let setNumber = 1; setNumber <= setCount; setNumber += 1) {
+      const key = `${exerciseIndex}-${setNumber}`;
+      const log = session.setLogs[key] || ensureSessionSetLog(session, exerciseIndex, setNumber);
+      log.exerciseId = replacement.id;
+      if (!session.completed.has(key)) {
+        log.weight = previous[setNumber - 1]?.weight ?? suggestedWeightForExercise(replacement);
+        log.reps = previous[setNumber - 1]?.reps ?? (Number(replacement.defaultReps) || Number(entry.reps) || 10);
+      }
+    }
+    renderActiveExercises();
+  }
+
+  function removeSessionExercise(exerciseIndex) {
+    const session = state.activeSession;
+    if (!session || session.plan.exercises.length <= 1) {
+      alert('חייבים להשאיר לפחות תרגיל אחד באימון.');
+      return;
+    }
+    const nextLogs = {};
+    const nextCompleted = new Set();
+    Object.entries(session.setLogs).forEach(([key, log]) => {
+      const [oldIndex, setNumber] = key.split('-').map(Number);
+      if (oldIndex === exerciseIndex) return;
+      const nextIndex = oldIndex > exerciseIndex ? oldIndex - 1 : oldIndex;
+      const nextKey = `${nextIndex}-${setNumber}`;
+      nextLogs[nextKey] = log;
+      if (session.completed.has(key)) nextCompleted.add(nextKey);
+    });
+    session.plan.exercises.splice(exerciseIndex, 1);
+    session.setLogs = nextLogs;
+    session.completed = nextCompleted;
+    session.sequence = createSetSequence(session.plan, session.timeCrunch);
+    renderActiveExercises();
+  }
+
   function renderActiveExercises() {
     const list = byId('activeExercisesList');
     const session = state.activeSession;
     if (!list || !session) return;
     list.replaceChildren();
-    const renderedAnimations = new Set();
-    session.sequence.forEach(({ exerciseIndex, setNumber }, sequenceIndex) => {
-      const entry = session.plan.exercises[exerciseIndex];
-      const key = `${exerciseIndex}-${setNumber}`;
-      if (!session.setLogs[key]) {
-        const defaultWeight = Number(entry.weight) || 0;
-        session.setLogs[key] = {
-          exerciseId: entry.exerciseId,
-          weight: defaultWeight,
-          reps: Number(entry.reps) || 0,
-          rir: entry.targetRir ?? ''
-        };
+    session.plan.exercises.forEach((entry, exerciseIndex) => {
+      const setCount = Math.max(1, Number(entry.sets) || 1);
+      for (let setNumber = 1; setNumber <= setCount; setNumber += 1) {
+        ensureSessionSetLog(session, exerciseIndex, setNumber);
       }
-      const log = session.setLogs[key];
-      const exercise = getExercise(log.exerciseId) || getExercise(entry.exerciseId);
-      const item = createElement('article', `active-exercise-card set-log-card${session.completed.has(key) ? ' completed' : ''}`);
-      item.dataset.setKey = key;
-      const disclosure = document.createElement('details');
-      disclosure.className = 'active-set-disclosure';
-      disclosure.open = session.expandedSetKey === key;
-      disclosure.addEventListener('toggle', () => {
-        if (disclosure.open) session.expandedSetKey = key;
-        else if (session.expandedSetKey === key) session.expandedSetKey = null;
-      });
-      const titleRow = document.createElement('summary');
-      titleRow.className = 'exercise-heading active-set-summary';
-      const setTypeClass = log.setType === 'warmup' ? 'type-warmup' : log.setType === 'drop' ? 'type-drop' : log.setType === 'failure' ? 'type-failure' : 'type-working';
-      titleRow.append(
-        createElement('span', 'exercise-number', `סט ${setNumber}/${entry.sets}`),
-        createElement('strong', '', exercise?.name || 'Exercise'),
-        createElement('span', `set-type-summary ${setTypeClass}`, log.setType === 'warmup' ? 'W · חימום' : log.setType === 'drop' ? 'D · דרופ' : log.setType === 'failure' ? 'F · כשל' : 'סט עבודה')
-      );
-      const expandedContent = createElement('div', 'active-set-expanded-content');
-      disclosure.append(titleRow, expandedContent);
-      item.append(disclosure);
+      const firstLog = session.setLogs[`${exerciseIndex}-1`];
+      const exercise = getExercise(firstLog?.exerciseId) || getExercise(entry.exerciseId);
+      const previousSets = getPreviousSets(exercise?.id);
+      const item = createElement('article', 'hevy-exercise-card active-exercise-card');
+      const heading = createElement('div', 'hevy-card-header');
+      const titleArea = createElement('div', 'hevy-title-area');
+      const nameRow = createElement('div', 'hevy-exercise-name');
+      nameRow.append(createElement('span', 'hevy-exercise-index', `${exerciseIndex + 1}`));
+      const name = createElement('strong', 'exercise-name-en', exercise?.name || 'Exercise');
+      name.dir = 'ltr';
+      nameRow.append(name);
+      titleArea.append(nameRow);
       if (exercise) {
-        const prevPerf = getPreviousExercisePerformance(exercise.id);
-        if (prevPerf) {
-          expandedContent.append(createElement('div', 'previous-performance-ghost',
-            `📊 ביצוע באימון קודם: ${formatNumber(prevPerf.weight)} ק״ג × ${formatNumber(prevPerf.reps)} חזרות`));
-        }
-        const exercisePickerLabel = createElement('label', 'set-exercise-picker', 'תרגיל מועדף או שקול · ציוד זמין');
-        const exercisePicker = document.createElement('select');
-        exercisePicker.setAttribute('aria-label', `בחירת תרגיל שקול לסט ${setNumber}`);
+        const tags = createElement('div', 'hevy-meta-tags');
+        tags.append(
+          createElement('span', 'hevy-tag hevy-tag-primary', muscleLabel(exercise.muscle)),
+          createElement('span', 'hevy-tag hevy-tag-equipment', exercise.equipment)
+        );
+        titleArea.append(tags);
+      }
+      const actions = createElement('div', 'hevy-card-actions');
+      const swap = createIconButton('icon-btn', 'החלפת תרגיל', 'swap');
+      swap.addEventListener('click', () => {
         const sessionEquipment = new Set(session.plan.availableEquipment || []);
-        const focusMuscle = entry.muscleGroup || exercise.muscle;
-        const allowedIds = new Set(getRoutineCandidateExerciseIds(entry));
-        const alternatives = FIT_DATA.exercises.filter(candidate =>
-          allowedIds.has(candidate.id) && candidate.muscle === focusMuscle && sessionEquipment.has(candidate.equipment));
-        if (!alternatives.some(candidate => candidate.id === exercise.id)) alternatives.unshift(exercise);
-        alternatives.forEach(candidate => {
-          const option = document.createElement('option');
-          option.value = candidate.id;
-          option.textContent = `${candidate.name}${sessionEquipment.has(candidate.equipment) ? '' : ' · ציוד לא זמין'}`;
-          exercisePicker.append(option);
+        openExerciseSwap({
+          currentId: exercise?.id,
+          muscle: entry.muscleGroup || exercise?.muscle,
+          allowedIds: new Set(getRoutineCandidateExerciseIds(entry)),
+          sessionEquipment,
+          onSelect: exerciseId => replaceSessionExercise(exerciseIndex, exerciseId)
         });
-        exercisePicker.value = exercise.id;
-        exercisePicker.addEventListener('change', () => {
-          const replacement = getExercise(exercisePicker.value);
-          if (!replacement || !allowedIds.has(replacement.id) ||
-            replacement.muscle !== focusMuscle || !sessionEquipment.has(replacement.equipment)) return;
-          log.exerciseId = replacement.id;
-          log.weight = replacement.defaultWeight;
-          log.reps = replacement.defaultReps;
-          renderActiveExercises();
-        });
-        exercisePickerLabel.append(exercisePicker);
-        expandedContent.append(exercisePickerLabel, renderMuscleActivation(exercise));
-          const suggestion = getProgressiveOverloadSuggestion(exercise.id, Number(entry.reps) || 0);
-          if (suggestion && setNumber === 1) {
-            expandedContent.append(createElement('p', 'progressive-overload-note',
-              `הצעת עומס לאימון הבא: ${formatNumber(suggestion.weight)} ק״ג (+${formatNumber(suggestion.increase)} ק״ג), לאחר השלמת כל חזרות היעד באימון הקודם.`));
-          }
-          if (entry.muscleGroup && entry.muscleGroup !== exercise.muscle) {
-          expandedContent.append(createElement('p', 'muscle-focus-label', `קבוצת מיקוד בתוכנית: ${muscleLabel(entry.muscleGroup)}`));
-        }
-      }
-      if (exercise && !renderedAnimations.has(exercise.id)) {
-        expandedContent.append(createExerciseAnimation(exercise, true));
-        renderedAnimations.add(exercise.id);
-      }
-      const fields = createElement('div', 'set-input-grid');
-      const setTypePicker = createElement('div', 'set-type-picker');
-      setTypePicker.setAttribute('role', 'group');
-      setTypePicker.setAttribute('aria-label', 'סוג הסט');
-      [
-        ['warmup', 'W · חימום'],
-        ['working', 'סט עבודה'],
-        ['drop', 'D · דרופ'],
-        ['failure', 'F · כשל']
-      ].forEach(([value, label]) => {
-        const option = createElement('button', `set-type-chip${(log.setType || 'working') === value ? ' active' : ''}`, label);
-        option.type = 'button';
-        option.dataset.type = value;
-        option.setAttribute('aria-pressed', String((log.setType || 'working') === value));
-        option.addEventListener('click', () => {
-          log.setType = value;
-          setTypePicker.querySelectorAll('button').forEach(button => {
-            const active = button === option;
-            button.classList.toggle('active', active);
-            button.setAttribute('aria-pressed', String(active));
-          });
-          const summaryBadge = titleRow.querySelector('.set-type-summary');
-          if (summaryBadge) {
-            summaryBadge.className = `set-type-summary type-${value}`;
-            summaryBadge.textContent = value === 'warmup' ? 'W · חימום' : value === 'drop' ? 'D · דרופ' : value === 'failure' ? 'F · כשל' : 'סט עבודה';
-          }
-        });
-        setTypePicker.append(option);
       });
-      fields.append(setTypePicker);
-      [
-        ['weight', 'משקל (ק״ג)', 0, 1000, 0.5],
-        ['reps', 'חזרות', 0, 1000, 1]
-      ].forEach(([field, label, min, max, step]) => {
-        const fieldLabel = createElement('label', '', label);
-        const adjuster = createElement('div', 'set-field-adjuster');
-        const input = document.createElement('input');
-        input.type = 'number';
-        input.min = String(min);
-        input.max = String(max);
-        input.step = String(step);
-        input.value = String(log[field]);
-        adjuster.append(input);
-        input.addEventListener('change', () => {
-          const value = Number(input.value);
-          const validStep = field === 'weight' ? Number.isInteger(value * 2) : Number.isInteger(value);
-          if (!Number.isFinite(value) || !validStep || value < Number(min) || value > Number(max)) {
-            input.value = String(log[field]);
+      const remove = createIconButton('icon-btn icon-btn-danger', 'הסרת תרגיל', 'trash');
+      remove.addEventListener('click', () => removeSessionExercise(exerciseIndex));
+      actions.append(swap, remove);
+      heading.append(titleArea, actions);
+      item.append(heading);
+      const suggestion = exercise ? getProgressiveOverloadSuggestion(exercise.id, Number(entry.reps) || 0) : null;
+      if (suggestion) {
+        item.append(createElement('p', 'hevy-overload-banner',
+          `הצעת עומס: ${formatNumber(suggestion.weight)} ק״ג (+${formatNumber(suggestion.increase)})`));
+      }
+      const tableWrap = createElement('div', 'hevy-table-container');
+      const table = createElement('table', 'hevy-set-table');
+      table.innerHTML = '<thead><tr><th>סט</th><th>קודם</th><th>משקל (kg)</th><th>חזרות</th><th>✓</th></tr></thead>';
+      const tbody = document.createElement('tbody');
+      for (let setNumber = 1; setNumber <= setCount; setNumber += 1) {
+        const key = `${exerciseIndex}-${setNumber}`;
+        const log = session.setLogs[key];
+        const completed = session.completed.has(key);
+        const tr = createElement('tr', `hevy-set-row${completed ? ' completed' : ''}`);
+        const setCell = document.createElement('td');
+        const setType = log.setType || 'working';
+        const badge = createElement('button', `hevy-set-type-badge type-${setType}`,
+          setType === 'warmup' ? 'W' : setType === 'drop' ? 'D' : setType === 'failure' ? 'F' : String(setNumber));
+        badge.type = 'button';
+        badge.title = 'לחיצה מחליפה סוג סט';
+        badge.addEventListener('click', () => {
+          const order = ['working', 'warmup', 'drop', 'failure'];
+          const next = order[(order.indexOf(log.setType || 'working') + 1) % order.length];
+          log.setType = next;
+          badge.className = `hevy-set-type-badge type-${next}`;
+          badge.textContent = next === 'warmup' ? 'W' : next === 'drop' ? 'D' : next === 'failure' ? 'F' : String(setNumber);
+        });
+        setCell.append(badge);
+        const prevCell = document.createElement('td');
+        const ghost = createElement('span', 'hevy-ghost-cell', previousSets[setNumber - 1]
+          ? `${previousSets[setNumber - 1].weight} × ${previousSets[setNumber - 1].reps}` : '—');
+        ghost.dir = 'ltr';
+        prevCell.append(ghost);
+        const weightCell = document.createElement('td');
+        const weightInput = document.createElement('input');
+        weightInput.className = 'hevy-num-input';
+        weightInput.type = 'number';
+        weightInput.min = '0';
+        weightInput.max = '1000';
+        weightInput.step = '0.5';
+        weightInput.dir = 'ltr';
+        weightInput.value = String(log.weight ?? 0);
+        weightInput.addEventListener('change', () => {
+          const value = Number(weightInput.value);
+          if (!Number.isFinite(value) || value < 0 || value > 1000) {
+            weightInput.value = String(log.weight);
             return;
           }
-          log[field] = value;
+          log.weight = Math.round(value * 2) / 2;
+          weightInput.value = String(log.weight);
         });
-        const adjustments = field === 'reps'
-          ? [['−1', -1], ['+1', 1]]
-          : [['−2.5 kg', -2.5], ['+2.5 kg', 2.5], ['+5 kg', 5]];
-        adjustments.forEach(([text, delta]) => {
-          const adjust = createElement('button', 'set-adjust-button', text);
-          adjust.type = 'button';
-          adjust.addEventListener('click', () => {
-            const next = Math.max(Number(min), Math.min(Number(max), Number(log[field]) + delta));
-            log[field] = Math.round(next * 2) / 2;
-            input.value = String(log[field]);
-          });
-          adjuster.append(adjust);
+        weightCell.append(weightInput);
+        const repsCell = document.createElement('td');
+        const repsInput = document.createElement('input');
+        repsInput.className = 'hevy-num-input';
+        repsInput.type = 'number';
+        repsInput.min = '0';
+        repsInput.max = '1000';
+        repsInput.step = '1';
+        repsInput.dir = 'ltr';
+        repsInput.value = String(log.reps ?? 0);
+        repsInput.addEventListener('change', () => {
+          const value = Number(repsInput.value);
+          if (!Number.isInteger(value) || value < 0 || value > 1000) {
+            repsInput.value = String(log.reps);
+            return;
+          }
+          log.reps = value;
         });
-        fieldLabel.append(adjuster);
-        fields.append(fieldLabel);
-      });
-      const rirLabel = createElement('label', 'rir-field', 'RIR · חזרות שנותרו');
-      const rirSelect = document.createElement('select');
-      rirSelect.setAttribute('aria-label', 'RIR, כמה חזרות נשארו לפני כשל טכני');
-      rirSelect.innerHTML = '<option value="">לא חובה</option><option value="0">0 · כשל</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4+</option>';
-      rirSelect.value = log.rir === '' || log.rir == null ? '' : String(log.rir);
-      rirSelect.addEventListener('change', () => {
-        log.rir = rirSelect.value === '' ? '' : Number(rirSelect.value);
-      });
-      const rirHelp = createElement('span', 'rir-help', 'ⓘ');
-      rirHelp.title = 'RIR הוא מספר החזרות הנוספות שהערכתם שהייתם יכולים לבצע בטכניקה תקינה. 0 = כשל טכני; 1–2 = נותרו חזרה או שתיים.';
-      rirHelp.setAttribute('aria-label', rirHelp.title);
-      rirLabel.append(rirSelect, rirHelp);
-      fields.append(rirLabel);
-      expandedContent.append(fields);
-      const actions = createElement('div', 'set-log-actions');
-      const done = createElement('button', 'set-done-button', session.completed.has(key) ? 'הושלם ✓' : 'סיום סט');
-      done.type = 'button';
-      done.setAttribute('aria-pressed', String(session.completed.has(key)));
-      done.addEventListener('click', () => {
-        if (session.completed.has(key)) session.completed.delete(key);
-        else session.completed.add(key);
-        const completed = session.completed.has(key);
-        if (completed) log.completedAt = new Date().toISOString();
-        else delete log.completedAt;
-        item.classList.toggle('completed', completed);
-        done.textContent = completed ? 'הושלם ✓' : 'סיום סט';
-        done.setAttribute('aria-pressed', String(completed));
-        const nextRestButton = list.querySelector(`[data-rest-after="${key}"]`);
-        if (nextRestButton) nextRestButton.disabled = !completed;
-        if (!completed && session.restTimer?.key === key) {
-          if (session.restInterval) window.clearInterval(session.restInterval);
-          session.restInterval = null;
-          session.restTimer = null;
-        }
-        if (completed && nextRestButton && session.restSeconds > 0) {
-          startRestTimer(session.restSeconds, nextRestButton);
-        }
-      });
-      actions.append(done);
-      expandedContent.append(actions);
-      const isLastSetForExercise = !session.sequence.slice(sequenceIndex + 1)
-        .some(next => next.exerciseIndex === exerciseIndex);
-      if (isLastSetForExercise && Number(entry.sets) < 20) {
-        const addSetButton = createElement('button', 'btn-add-set active-add-set', '＋ הוספת סט');
-        addSetButton.type = 'button';
-        addSetButton.addEventListener('click', () => {
-          const previous = session.setLogs[`${exerciseIndex}-${Number(entry.sets)}`] || log;
-          entry.sets = Math.min(20, Number(entry.sets) + 1);
-          const nextSetNumber = Number(entry.sets);
-          session.setLogs[`${exerciseIndex}-${nextSetNumber}`] = {
-            exerciseId: previous.exerciseId || entry.exerciseId,
-            weight: Number(previous.weight) || 0,
-            reps: Number(previous.reps) || Number(entry.reps) || 0,
-            rir: previous.rir ?? '',
-            setType: previous.setType || 'working'
-          };
-          session.expandedSetKey = `${exerciseIndex}-${nextSetNumber}`;
-          session.sequence = createSetSequence(session.plan, session.timeCrunch);
-          renderActiveExercises();
-          byId('activeExercisesList')?.querySelector(`[data-set-key="${session.expandedSetKey}"]`)
-            ?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        repsCell.append(repsInput);
+        const checkCell = document.createElement('td');
+        const check = createElement('button', `hevy-check-btn${completed ? ' checked' : ''}`, completed ? '✓' : '');
+        check.type = 'button';
+        check.setAttribute('aria-label', completed ? 'בטל השלמת סט' : 'סמן סט כהושלם');
+        check.setAttribute('aria-pressed', String(completed));
+        check.addEventListener('click', () => {
+          if (session.completed.has(key)) {
+            session.completed.delete(key);
+            delete log.completedAt;
+          } else {
+            session.completed.add(key);
+            log.completedAt = new Date().toISOString();
+            if (session.restSeconds > 0) startRestTimer(session.restSeconds, key);
+          }
+          const isDone = session.completed.has(key);
+          tr.classList.toggle('completed', isDone);
+          check.classList.toggle('checked', isDone);
+          check.textContent = isDone ? '✓' : '';
+          check.setAttribute('aria-pressed', String(isDone));
         });
-        item.append(addSetButton);
+        checkCell.append(check);
+        tr.append(setCell, prevCell, weightCell, repsCell, checkCell);
+        tbody.append(tr);
       }
+      table.append(tbody);
+      tableWrap.append(table);
+      const footer = createElement('div', 'hevy-card-footer');
+      const addSet = createElement('button', 'hevy-add-set-btn', '＋ הוספת סט');
+      addSet.type = 'button';
+      addSet.disabled = setCount >= 20;
+      addSet.addEventListener('click', () => {
+        const previous = session.setLogs[`${exerciseIndex}-${setCount}`];
+        entry.sets = Math.min(20, setCount + 1);
+        session.setLogs[`${exerciseIndex}-${entry.sets}`] = {
+          exerciseId: previous?.exerciseId || entry.exerciseId,
+          weight: Number(previous?.weight) || 0,
+          reps: Number(previous?.reps) || Number(entry.reps) || 0,
+          rir: previous?.rir ?? '',
+          setType: previous?.setType || 'working'
+        };
+        session.sequence = createSetSequence(session.plan, session.timeCrunch);
+        renderActiveExercises();
+      });
+      footer.append(addSet);
+      item.append(tableWrap, footer);
       list.append(item);
-      if (sequenceIndex < session.sequence.length - 1) {
-        const restSlot = createElement('div', 'between-set-rest');
-        restSlot.append(createElement('span', '', 'מנוחה עד הסט הבא'));
-        const restButton = createElement('button', 'btn-action-secondary', `התחלת מנוחה · ${session.restSeconds} שנ׳`);
-        restButton.type = 'button';
-        restButton.disabled = !session.completed.has(key);
-        restButton.dataset.restAfter = key;
-        restButton.addEventListener('click', () => startRestTimer(session.restSeconds, restButton));
-        if (session.restTimer?.key === key) {
-          session.restTimer.button = restButton;
-          updateRestTimer(session);
-        }
-        restSlot.append(restButton);
-        list.append(restSlot);
-      }
     });
   }
 
@@ -2601,9 +2881,9 @@
     state.activeSession.normalRestSeconds = requestedValue;
     state.activeSession.restSeconds = value;
     event.currentTarget.value = String(value);
-    document.querySelectorAll('.between-set-rest button').forEach(button => {
-      if (!button.dataset.remaining) button.textContent = `התחלת מנוחה · ${value} שנ׳`;
-    });
+    if (state.activeSession.restTimer && !state.activeSession.restTimer.completed) {
+      updateRestTimer(state.activeSession);
+    }
   }
 
   function createSetSequence(plan, timeCrunch) {
@@ -2652,46 +2932,66 @@
     return sequence;
   }
 
-  function startRestTimer(seconds, button) {
+  function formatRestClock(seconds) {
+    const minutes = String(Math.floor(seconds / 60)).padStart(2, '0');
+    const remainder = String(seconds % 60).padStart(2, '0');
+    return `${minutes}:${remainder}`;
+  }
+
+  function hideRestHud() {
+    const banner = byId('activeWorkoutRestBanner');
+    if (banner) banner.style.display = 'none';
+  }
+
+  function startRestTimer(seconds, key) {
     const session = state.activeSession;
-    if (session?.restInterval) window.clearInterval(session.restInterval);
-    let remaining = Math.max(0, Number(seconds) || 0);
+    if (!session) return;
+    if (session.restInterval) window.clearInterval(session.restInterval);
+    const remaining = Math.max(0, Number(seconds) || 0);
     if (remaining === 0) {
-      if (session) session.restTimer = null;
-      button.textContent = 'אין מנוחה מתוכננת ✓';
+      session.restTimer = null;
+      hideRestHud();
       return;
     }
-    if (!session) return;
     session.restTimer = {
-      key: button.dataset.restAfter,
+      key,
       endsAt: Date.now() + remaining * 1000,
-      button,
       completed: false
     };
+    const banner = byId('activeWorkoutRestBanner');
+    if (banner) banner.style.display = 'flex';
     updateRestTimer(session);
     session.restInterval = window.setInterval(() => updateRestTimer(session), 250);
   }
 
+  function skipRestTimer() {
+    const session = state.activeSession;
+    if (!session) return;
+    if (session.restInterval) window.clearInterval(session.restInterval);
+    session.restInterval = null;
+    session.restTimer = null;
+    hideRestHud();
+  }
+
+  function adjustRestTimer(deltaSeconds) {
+    const session = state.activeSession;
+    if (!session?.restTimer || session.restTimer.completed) return;
+    session.restTimer.endsAt = Math.max(Date.now(), session.restTimer.endsAt + deltaSeconds * 1000);
+    updateRestTimer(session);
+  }
+
   function updateRestTimer(session) {
     const timer = session?.restTimer;
-    const button = timer?.button;
-    if (!timer || !button) return;
-    if (timer.completed) {
-      delete button.dataset.remaining;
-      button.textContent = 'המנוחה הסתיימה ✓';
-      return;
-    }
+    const countdown = byId('activeRestCountdown');
+    if (!timer || !countdown) return;
     const remaining = Math.max(0, Math.ceil((timer.endsAt - Date.now()) / 1000));
+    countdown.textContent = formatRestClock(remaining);
     if (remaining === 0) {
       if (session.restInterval) window.clearInterval(session.restInterval);
       session.restInterval = null;
       timer.completed = true;
-      delete button.dataset.remaining;
-      button.textContent = 'המנוחה הסתיימה ✓';
-      return;
+      hideRestHud();
     }
-    button.dataset.remaining = 'true';
-    button.textContent = `מנוחה · ${remaining} שנ׳`;
   }
 
   function updateWorkoutTimer() {
@@ -2740,6 +3040,7 @@
     state.workoutLogs[state.currentDate] = [...todayWorkouts(), workout];
     const saved = writeStorage(STORAGE_KEYS.workouts, state.workoutLogs);
     state.activeSession = null;
+    hideRestHud();
     const modal = byId('activeWorkoutModal');
     modal?.classList.remove('active');
     modal?.setAttribute('aria-hidden', 'true');
@@ -2939,13 +3240,40 @@
         byId('barcodeScannerDialog').hidden = true;
       }
     });
-    byId('closeExerciseLibraryBtn')?.addEventListener('click', () => {
-      byId('exerciseLibraryDialog').hidden = true;
-    });
+    byId('closeExerciseLibraryBtn')?.addEventListener('click', closeExerciseLibrary);
     byId('exerciseLibraryDoneBtn')?.addEventListener('click', () => {
       state.exerciseLibraryOnDone?.(state.exerciseLibrarySelection);
-      byId('exerciseLibraryDialog').hidden = true;
+      closeExerciseLibrary();
     });
+    byId('closeExerciseSwapBtn')?.addEventListener('click', closeExerciseSwap);
+    byId('exerciseSwapDialog')?.addEventListener('click', event => {
+      if (event.target === byId('exerciseSwapDialog')) closeExerciseSwap();
+    });
+    byId('exerciseSwapSearch')?.addEventListener('input', event => {
+      if (!exerciseSwapContext) return;
+      exerciseSwapContext.query = event.currentTarget.value;
+      renderExerciseSwapList();
+    });
+    byId('exerciseSwapEquipmentFilter')?.addEventListener('change', event => {
+      if (!exerciseSwapContext) return;
+      exerciseSwapContext.equipment = event.currentTarget.value;
+      renderExerciseSwapList();
+    });
+    byId('swapTabEquiv')?.addEventListener('click', () => {
+      setExerciseSwapTab('equiv');
+      renderExerciseSwapList();
+    });
+    byId('swapTabMuscle')?.addEventListener('click', () => {
+      setExerciseSwapTab('muscle');
+      renderExerciseSwapList();
+    });
+    byId('swapTabAll')?.addEventListener('click', () => {
+      setExerciseSwapTab('all');
+      renderExerciseSwapList();
+    });
+    byId('restHudAdd30Btn')?.addEventListener('click', () => adjustRestTimer(30));
+    byId('restHudSub15Btn')?.addEventListener('click', () => adjustRestTimer(-15));
+    byId('restHudSkipBtn')?.addEventListener('click', skipRestTimer);
     byId('exerciseLibrarySearch')?.addEventListener('input', event => {
       state.exerciseQuery = event.currentTarget.value;
       if (state.exerciseLibrarySelection && state.exerciseLibraryOnToggle) {
@@ -2962,7 +3290,7 @@
       }
     });
     byId('exerciseLibraryDialog')?.addEventListener('click', event => {
-      if (event.target === byId('exerciseLibraryDialog')) byId('exerciseLibraryDialog').hidden = true;
+      if (event.target === byId('exerciseLibraryDialog')) closeExerciseLibrary();
     });
     document.addEventListener('keydown', event => {
       if (event.key === 'Escape') {
@@ -2970,7 +3298,8 @@
           stopBarcodeScanner();
           byId('barcodeScannerDialog').hidden = true;
         }
-        if (byId('exerciseLibraryDialog')) byId('exerciseLibraryDialog').hidden = true;
+        closeExerciseLibrary();
+        closeExerciseSwap();
         byId('createWorkoutDialog')?.remove();
       }
     });

@@ -226,6 +226,7 @@
       <div class="workout-template-toolbar" aria-label="חיפוש וסינון תוכניות אימון">
         <label class="workout-template-search"><span aria-hidden="true">⌕</span><input id="workoutTemplateSearch" type="search" placeholder="חיפוש תוכנית או תרגיל..." autocomplete="off" aria-label="חיפוש תוכניות ותרגילים"></label>
         <div class="workout-template-filters" id="workoutTemplateFilters" role="group" aria-label="סינון לפי קבוצת שרירים"></div>
+        <div class="workout-category-tabs" id="workoutCategoryTabs" role="group" aria-label="סינון לפי עמודות וסוגי אימון"></div>
         <p id="workoutTemplateStatus" class="food-search-status" aria-live="polite"></p>
       </div>
 
@@ -241,15 +242,12 @@
         <div class="weekly-muscle-volume-grid" id="weeklyMuscleVolumeGrid"></div>
       </section>
 
-      <!-- SECTION A: WEEKLY PROGRAM SPLITS -->
-      <div class="workouts-section">
-        <h3 style="font-size: 1.2rem; color: var(--accent-primary); margin-bottom: 12px;">תוכניות אימון שבועיות (Weekly Program Splits)</h3>
-        <div class="preset-workouts-grid" id="weeklySplitsGrid"></div>
-      </div>
+      <!-- Dedicated Workout Columns/Categories (עמודות נפרדות לכל סוג אימון: פוש, פול, רגליים וכו') -->
+      <div class="workout-categories-columns" id="workoutCategoriesColumns"></div>
 
-      <!-- SECTION B: INDIVIDUAL WORKOUT SESSIONS -->
-      <div class="workouts-section sessions">
-        <h3 style="font-size: 1.2rem; color: var(--accent-blue); margin-bottom: 12px;">אימונים בודדים (Individual Workout Sessions)</h3>
+      <!-- Backward-compatible legacy containers -->
+      <div class="legacy-grids-container" style="display: none;" aria-hidden="true">
+        <div class="preset-workouts-grid" id="weeklySplitsGrid"></div>
         <div class="preset-workouts-grid" id="individualSessionsGrid"></div>
       </div>
     </section>
@@ -279,7 +277,13 @@
       <div class="nutrition-search-sticky">
         <div class="nutrition-search-row">
           <label class="food-search-field"><span aria-hidden="true">⌕</span><input id="foodSearchInput" type="search" placeholder="חיפוש מאכל, קטגוריה או רכיב..." autocomplete="off" aria-label="חיפוש מאכלים"></label>
+          <button class="btn-action-secondary voice-record-btn" id="voiceNutritionBtn" type="button" title="הקלטת מזון קולית (Speech-to-Text)">🎙️ הקלטה קולית</button>
           <button class="btn-action-secondary barcode-open-btn" id="openBarcodeScannerBtn" type="button">📷 סרוק ברקוד</button>
+        </div>
+        <div id="voiceNutritionStatus" class="voice-nutrition-status" hidden>
+          <span class="voice-pulse-dot" aria-hidden="true"></span>
+          <span id="voiceNutritionStatusText">מקשיב... אמרו שם מאכל וכמות (למשל: "חזה עוף 200 גרם")</span>
+          <button type="button" id="voiceNutritionStopBtn" class="voice-stop-btn">עצירה</button>
         </div>
         <div class="food-category-filters" id="foodCategoryFilters" role="group" aria-label="סינון לפי קטגוריה"></div>
         <p id="foodSearchStatus" class="food-search-status" aria-live="polite"></p>
@@ -339,6 +343,20 @@
       </div>
     </div>
 
+    <!-- HEVY-STYLE FLOATING REST TIMER HUD -->
+    <div id="activeWorkoutRestBanner" class="active-workout-rest-hud" style="display: none;">
+      <div class="rest-hud-info">
+        <span class="rest-hud-icon">⏱️</span>
+        <span class="rest-hud-label">זמן מנוחה:</span>
+        <strong id="activeRestCountdown" class="rest-hud-time">01:30</strong>
+      </div>
+      <div class="rest-hud-controls">
+        <button id="restHudAdd30Btn" class="rest-hud-btn" type="button" title="הוסף 30 שניות">+30 שנ׳</button>
+        <button id="restHudSub15Btn" class="rest-hud-btn" type="button" title="הורד 15 שניות">-15 שנ׳</button>
+        <button id="restHudSkipBtn" class="rest-hud-btn rest-hud-skip" type="button" title="דלג על המנוחה">דלג ✓</button>
+      </div>
+    </div>
+
     <!-- Time Crunch Instructions Banner -->
     <div id="timeCrunchBanner" class="time-crunch-banner" style="display: none;">
       ⚡ <strong>הנחיות "קצר בזמן" (Rotation Protocol):</strong> בצע סט 1 לכל קבוצת שריר בסבב מתחלף (חזה -> כתפיים -> יד אחורית) לקבלת מקסימום סטים ראשונים איכותיים במינימום מנוחה!
@@ -367,6 +385,49 @@
       <p id="exerciseLibraryStatus" class="food-search-status" aria-live="polite"></p>
       <div class="exercise-library-list" id="exerciseLibraryList"></div>
       <button class="btn-action-primary library-done-btn" id="exerciseLibraryDoneBtn" type="button">סיום בחירה</button>
+    </section>
+  </div>
+
+  <!-- EXERCISE SWAP MODAL (HEVY-INSPIRED INSTANT SUBSTITUTION) -->
+  <div class="dialog-backdrop" id="exerciseSwapDialog" hidden>
+    <section class="dialog-card exercise-swap-dialog" role="dialog" aria-modal="true" aria-labelledby="exerciseSwapTitle">
+      <div class="dialog-header">
+        <div>
+          <span class="eyebrow">החלפת תרגיל מהירה · Instant Exercise Swap</span>
+          <h2 id="exerciseSwapTitle">החלפת תרגיל באימון</h2>
+        </div>
+        <button class="icon-button" id="closeExerciseSwapBtn" type="button">סגירה ✕</button>
+      </div>
+      <div class="swap-target-box" id="swapTargetBox">
+        <span class="swap-target-label">מחליף כעת את:</span>
+        <strong id="swapTargetExerciseName" class="swap-target-name">-</strong>
+        <span id="swapTargetExerciseBadge" class="swap-target-badge">-</span>
+      </div>
+      <label class="food-search-field exercise-search-field">
+        <span aria-hidden="true">⌕</span>
+        <input id="exerciseSwapSearch" type="search" placeholder="חיפוש מהיר לפי שם תרגיל (אנגלית/עברית)..." autocomplete="off" aria-label="חיפוש תרגיל חלופי">
+      </label>
+      <div class="exercise-swap-tabs" role="tablist">
+        <button id="swapTabEquiv" class="category-chip active" type="button" role="tab" aria-selected="true">🔥 שקולים מומלצים</button>
+        <button id="swapTabMuscle" class="category-chip" type="button" role="tab" aria-selected="false">🎯 אותה קבוצת שריר</button>
+        <button id="swapTabAll" class="category-chip" type="button" role="tab" aria-selected="false">📚 כל המאגר</button>
+      </div>
+      <div class="exercise-swap-equipment-bar">
+        <label class="exercise-equipment-filter">סינון לפי ציוד:
+          <select id="exerciseSwapEquipmentFilter">
+            <option value="all">כל סוגי הציוד</option>
+            <option value="Barbell">Barbell (מוט)</option>
+            <option value="Dumbbell">Dumbbell (משקולות יד)</option>
+            <option value="Cable">Cable (כבלים / פולי)</option>
+            <option value="Machine">Machine (מכונות)</option>
+            <option value="Bodyweight">Bodyweight (משקל גוף)</option>
+            <option value="Smith Machine">Smith Machine (סמית' משין)</option>
+            <option value="Resistance Band">Resistance Band (גומיות)</option>
+          </select>
+        </label>
+      </div>
+      <p id="exerciseSwapStatus" class="food-search-status" aria-live="polite"></p>
+      <div class="exercise-swap-list" id="exerciseSwapList"></div>
     </section>
   </div>
 

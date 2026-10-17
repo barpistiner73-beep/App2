@@ -60,6 +60,7 @@
     foodQuery: '',
     foodCategory: 'all',
     workoutFilter: 'all',
+    workoutCategory: 'all',
     workoutQuery: '',
     exerciseQuery: '',
     exerciseMuscle: 'all',
@@ -96,30 +97,53 @@
   const numberFormat = new Intl.NumberFormat('he-IL', { maximumFractionDigits: 1 });
   let exerciseAnimationId = 0;
   const WORKOUT_CARD_LABELS = {
-    session_push: 'פוס',
-    session_pull: 'פול',
-    session_legs: 'לגס',
-    session_upper: 'אפפר',
-    session_lower: 'לוואר',
-    split_ppl: 'פוס,פול,לגס',
-    split_upper_lower: 'אפפר לוואר',
-    split_full_body: 'פול באדי',
-    session_shoulders_arms: 'כתפיים ידיים',
-    session_chest_back: 'חזה גב',
-    session_chest_arms: 'חזה ידיים',
-    session_back_shoulders: 'גב כתפיים',
-    session_legs_hebrew: 'רגליים'
+    session_push: 'אימון פוש (דחיפה)',
+    session_pull: 'אימון פול (משיכה)',
+    session_legs: 'אימון רגליים (Legs)',
+    session_upper: 'אימון פלג גוף עליון (Upper)',
+    session_lower: 'אימון פלג גוף תחתון (Lower)',
+    session_full_body: 'אימון גוף מלא (Full Body)',
+    session_chest_back: 'אימון חזה וגב',
+    session_shoulders_arms: 'אימון כתפיים וידיים',
+    session_back_shoulders: 'אימון גב וכתפיים',
+    session_chest_arms: 'אימון חזה וידיים',
+    // Fallbacks for legacy/stored logs
+    split_ppl: 'אימון פוש-פול-רגליים (ישן)',
+    split_upper_lower: 'אימון עליון-תחתון (ישן)',
+    split_full_body: 'אימון גוף מלא (ישן)',
+    session_legs_hebrew: 'אימון רגליים'
   };
   const WORKOUT_CARD_ORDER = [
-    'split_ppl', 'split_upper_lower', 'split_full_body',
-    'session_push', 'session_pull', 'session_legs', 'session_upper', 'session_lower',
-    'session_shoulders_arms', 'session_chest_back', 'session_chest_arms',
-    'session_back_shoulders', 'session_legs_hebrew'
+    'session_push', 'session_pull', 'session_legs',
+    'session_upper', 'session_lower', 'session_full_body',
+    'session_chest_back', 'session_shoulders_arms',
+    'session_back_shoulders', 'session_chest_arms'
   ];
   const WORKOUT_FILTERS = [
-    ['all', 'הכל'], ['chest', 'Chest'], ['back', 'Back'], ['legs', 'Legs'],
-    ['shoulders', 'Shoulders'], ['arms', 'Arms'], ['core', 'Core']
+    ['all', 'כל השרירים'], ['chest', 'חזה (Chest)'], ['back', 'גב (Back)'], ['legs', 'רגליים (Legs)'],
+    ['shoulders', 'כתפיים (Shoulders)'], ['arms', 'זרועות (Arms)'], ['core', 'ליבה (Core)']
   ];
+
+  function getPreviousExercisePerformance(exerciseId) {
+    if (!exerciseId) return null;
+    const allWorkouts = Object.values(state.workoutLogs || {})
+      .flatMap(workouts => Array.isArray(workouts) ? workouts : [])
+      .sort((a, b) => String(b.completedAt || '').localeCompare(String(a.completedAt || '')));
+
+    for (const workout of allWorkouts) {
+      if (!Array.isArray(workout.setLogs)) continue;
+      const matchingSets = workout.setLogs.filter(set => set.exerciseId === exerciseId && set.completed);
+      if (matchingSets.length > 0) {
+        const bestSet = matchingSets.reduce((prev, curr) => (Number(curr.weight) > Number(prev.weight) ? curr : prev), matchingSets[0]);
+        return {
+          weight: Number(bestSet.weight) || 0,
+          reps: Number(bestSet.reps) || 0,
+          completedAt: workout.completedAt
+        };
+      }
+    }
+    return null;
+  }
   state.customRoutines = Array.isArray(state.customRoutines)
     ? state.customRoutines.filter(validateRoutine)
     : [];
@@ -435,8 +459,12 @@
 
   function renderWorkoutCard(plan) {
     const card = createElement('article', 'workout-plan-card');
-    card.append(createElement('span', 'plan-duration', `⏱️ ${plan.durationMinutes || 0} דק׳`),
-      createElement('h3', 'plan-title', WORKOUT_CARD_LABELS[plan.id] || plan.name));
+    const badgeRow = createElement('div', 'plan-badge-row');
+    if (plan.badge) {
+      badgeRow.append(createElement('span', 'plan-badge', plan.badge));
+    }
+    badgeRow.append(createElement('span', 'plan-duration', `⏱️ ${plan.durationMinutes || 0} דק׳`));
+    card.append(badgeRow, createElement('h3', 'plan-title', WORKOUT_CARD_LABELS[plan.id] || plan.hebrewName || plan.name));
     if (plan.subtitle) card.append(createElement('p', 'plan-sub', plan.subtitle));
 
     const details = createElement('p', 'plan-meta', `${plan.level || 'כל הרמות'} · ${plan.exercises.length} תרגילים`);
@@ -525,15 +553,57 @@
   }
 
   function renderWorkoutsTab() {
+    const columnsContainer = byId('workoutCategoriesColumns');
     const weeklyGrid = byId('weeklySplitsGrid');
     const sessionGrid = byId('individualSessionsGrid');
     const recentGrid = byId('recentWorkoutGrid');
     const recentSection = byId('recentWorkoutsSection');
-    if (!weeklyGrid || !sessionGrid) return;
-    weeklyGrid.replaceChildren();
-    sessionGrid.replaceChildren();
+
+    if (columnsContainer) columnsContainer.replaceChildren();
+    if (weeklyGrid) weeklyGrid.replaceChildren();
+    if (sessionGrid) sessionGrid.replaceChildren();
+
     const search = byId('workoutTemplateSearch');
     if (search && search.value !== state.workoutQuery) search.value = state.workoutQuery;
+
+    // Render Workout Category Tabs (Push, Pull, Legs, Upper, Lower, Full Body, Specialized)
+    const categoryTabsContainer = byId('workoutCategoryTabs');
+    if (categoryTabsContainer && (!categoryTabsContainer.childElementCount || categoryTabsContainer.dataset.rendered !== 'true')) {
+      categoryTabsContainer.replaceChildren();
+      const categories = FIT_DATA.workoutCategories || [
+        { id: 'all', name: 'כל האימונים', icon: '⚡' },
+        { id: 'push', name: 'אימוני דחיפה (Push)', icon: '🏋️‍♂️' },
+        { id: 'pull', name: 'אימוני משיכה (Pull)', icon: '🦅' },
+        { id: 'legs', name: 'אימוני רגליים (Legs)', icon: '🦵' },
+        { id: 'upper', name: 'פלג גוף עליון (Upper)', icon: '💪' },
+        { id: 'lower', name: 'פלג גוף תחתון (Lower)', icon: '🦿' },
+        { id: 'full_body', name: 'גוף מלא (Full Body)', icon: '🔥' },
+        { id: 'specialized', name: 'שילובים ממוקדים (Splits)', icon: '🎯' }
+      ];
+      categories.forEach(cat => {
+        const chip = createElement('button', `workout-category-chip${state.workoutCategory === cat.id ? ' active' : ''}`);
+        chip.type = 'button';
+        chip.dataset.categoryId = cat.id;
+        chip.append(
+          createElement('span', 'chip-icon', cat.icon || '⚡'),
+          createElement('span', 'chip-name', cat.name)
+        );
+        chip.setAttribute('aria-pressed', String(state.workoutCategory === cat.id));
+        chip.addEventListener('click', () => {
+          state.workoutCategory = cat.id;
+          renderWorkoutsTab();
+        });
+        categoryTabsContainer.append(chip);
+      });
+      categoryTabsContainer.dataset.rendered = 'true';
+    }
+    categoryTabsContainer?.querySelectorAll('[data-category-id]').forEach(chip => {
+      const active = chip.dataset.categoryId === state.workoutCategory;
+      chip.classList.toggle('active', active);
+      chip.setAttribute('aria-pressed', String(active));
+    });
+
+    // Render Muscle Filters
     const filterContainer = byId('workoutTemplateFilters');
     if (filterContainer && !filterContainer.childElementCount) {
       WORKOUT_FILTERS.forEach(([id, label]) => {
@@ -553,6 +623,7 @@
       button.classList.toggle('active', active);
       button.setAttribute('aria-pressed', String(active));
     });
+
     const demoTraineeId = state.profile.demoTraineeId || FIT_DATA.coachTrainees[0]?.id;
     const plans = FIT_DATA.presetWorkouts.filter(plan =>
       !plan.audienceTraineeId || isTrainerRole() || plan.audienceTraineeId === demoTraineeId
@@ -574,6 +645,8 @@
       if (rightIndex < 0) return -1;
       return leftIndex - rightIndex;
     });
+
+    // Recent workouts
     if (recentGrid && recentSection) {
       recentGrid.replaceChildren();
       const latestWorkouts = Object.values(state.workoutLogs || {})
@@ -593,7 +666,7 @@
         const card = createElement('article', 'recent-workout-card');
         const date = workout.completedAt ? new Date(workout.completedAt) : null;
         card.append(
-          createElement('strong', '', WORKOUT_CARD_LABELS[plan.id] || plan.name),
+          createElement('strong', '', WORKOUT_CARD_LABELS[plan.id] || plan.hebrewName || plan.name),
           createElement('span', '', date && !Number.isNaN(date.getTime())
             ? `אימון אחרון · ${date.toLocaleDateString()}`
             : 'אימון שבוצע לאחרונה')
@@ -604,36 +677,109 @@
         card.append(start);
         recentGrid.append(card);
       });
-      recentSection.hidden = !recentPlans.length || Boolean(state.workoutQuery.trim()) || state.workoutFilter !== 'all';
+      recentSection.hidden = !recentPlans.length || Boolean(state.workoutQuery.trim()) || state.workoutFilter !== 'all' || state.workoutCategory !== 'all';
     }
+
+    // Filter plans by Search, Muscle filter, and Category filter
     const query = state.workoutQuery.trim().toLocaleLowerCase();
     const filteredPlans = plans.filter(plan => {
       const matchingExercises = plan.exercises.map(entry => getExercise(entry.exerciseId)).filter(Boolean);
       const muscleMatches = state.workoutFilter === 'all' || matchingExercises.some(exercise =>
         (plan.exercises.find(entry => entry.exerciseId === exercise.id)?.muscleGroup || exercise.muscle) === state.workoutFilter ||
         exercise.muscle === state.workoutFilter);
+
+      const categoryMatches = state.workoutCategory === 'all' ||
+        plan.category === state.workoutCategory ||
+        (state.workoutCategory === 'specialized' && !['push', 'pull', 'legs', 'upper', 'lower', 'full_body'].includes(plan.category));
+
       const searchableText = [
-        WORKOUT_CARD_LABELS[plan.id] || plan.name, plan.name, plan.subtitle || '',
+        WORKOUT_CARD_LABELS[plan.id] || plan.name, plan.hebrewName || '', plan.name, plan.subtitle || '',
         ...matchingExercises.flatMap(exercise => [exercise.name, exercise.category, exercise.muscle])
       ].join(' ').toLocaleLowerCase();
-      return muscleMatches && (!query || searchableText.includes(query));
+
+      return muscleMatches && categoryMatches && (!query || searchableText.includes(query));
     });
-    filteredPlans.forEach(plan => {
-      if (plan.id.startsWith('custom-') &&
-        FIT_DATA.presetWorkouts.some(preset => WORKOUT_CARD_LABELS[preset.id] && preset.name === plan.name)) return;
-      const grid = plan.section === 'weekly_split' ? weeklyGrid : sessionGrid;
-      grid.append(renderWorkoutCard(plan));
+
+    // Render into dedicated columns / categories in columnsContainer
+    const categoriesToRender = (FIT_DATA.workoutCategories || []).filter(cat => cat.id !== 'all');
+    let totalRendered = 0;
+
+    categoriesToRender.forEach(cat => {
+      if (state.workoutCategory !== 'all' && state.workoutCategory !== cat.id) return;
+      const plansInCat = filteredPlans.filter(plan => {
+        if (cat.id === 'specialized') {
+          return plan.category === 'specialized' || (!['push', 'pull', 'legs', 'upper', 'lower', 'full_body'].includes(plan.category) && !plan.id.startsWith('custom-'));
+        }
+        return plan.category === cat.id;
+      });
+
+      if (!plansInCat.length && (state.workoutCategory === 'all' || query)) return;
+
+      const column = createElement('section', 'workout-category-column');
+      column.dataset.category = cat.id;
+
+      const header = createElement('div', 'workout-category-header');
+      const titleGroup = createElement('div', 'workout-category-title-group');
+      titleGroup.append(
+        createElement('span', 'workout-category-icon', cat.icon || '⚡'),
+        createElement('div', '', '')
+      );
+      titleGroup.lastChild.append(
+        createElement('h3', 'workout-category-title', cat.name),
+        createElement('p', 'workout-category-desc', cat.desc || '')
+      );
+
+      const badge = createElement('span', 'workout-category-count-badge', `${plansInCat.length} אימונים`);
+      header.append(titleGroup, badge);
+      column.append(header);
+
+      const grid = createElement('div', 'preset-workouts-grid');
+      plansInCat.forEach(plan => {
+        grid.append(renderWorkoutCard(plan));
+        totalRendered++;
+      });
+      column.append(grid);
+      columnsContainer?.append(column);
     });
-    const count = weeklyGrid.childElementCount + sessionGrid.childElementCount;
-    if (byId('workoutTemplateStatus')) {
-      byId('workoutTemplateStatus').textContent = count
-        ? `${count} תוכניות · מסננים תרגילים לפי שם וקבוצת שרירים`
-        : 'לא נמצאו תוכניות מתאימות. נסו לשנות את החיפוש או המסנן.';
+
+    // Custom routines section if any
+    const customPlans = filteredPlans.filter(plan => plan.id.startsWith('custom-'));
+    if (customPlans.length && (state.workoutCategory === 'all' || state.workoutCategory === 'specialized')) {
+      const customCol = createElement('section', 'workout-category-column custom-workouts-column');
+      const header = createElement('div', 'workout-category-header');
+      const titleGroup = createElement('div', 'workout-category-title-group');
+      titleGroup.append(
+        createElement('span', 'workout-category-icon', '⭐'),
+        createElement('div', '', '')
+      );
+      titleGroup.lastChild.append(
+        createElement('h3', 'workout-category-title', 'אימונים מותאמים אישית (Custom)'),
+        createElement('p', 'workout-category-desc', 'שגרות שנבנו או יובאו על ידך')
+      );
+      header.append(titleGroup, createElement('span', 'workout-category-count-badge', `${customPlans.length} אימונים`));
+      customCol.append(header);
+      const grid = createElement('div', 'preset-workouts-grid');
+      customPlans.forEach(plan => {
+        grid.append(renderWorkoutCard(plan));
+        totalRendered++;
+      });
+      customCol.append(grid);
+      columnsContainer?.append(customCol);
     }
-    document.querySelectorAll('.workouts-section').forEach(section => {
-      const grid = section.querySelector('.preset-workouts-grid');
-      section.hidden = !grid?.childElementCount;
+
+    // Populate legacy grids if present
+    filteredPlans.forEach(plan => {
+      const grid = plan.section === 'weekly_split' ? weeklyGrid : sessionGrid;
+      grid?.append(renderWorkoutCard(plan));
     });
+
+    const status = byId('workoutTemplateStatus');
+    if (status) {
+      status.textContent = totalRendered
+        ? `${totalRendered} תוכניות אימון מחולקות לעמודות ייעודיות ונפרדות · Push, Pull, Legs וכל סוגי האימון בנפרד`
+        : 'לא נמצאו תוכניות מתאימות. נסו לשנות את החיפוש, קבוצת השרירים או עמודת האימון.';
+    }
+
     renderWeeklyMuscleVolume();
   }
 
@@ -813,6 +959,145 @@
       list.append(item);
     });
     container.append(list);
+  }
+
+  let nutritionSpeechRecognition = null;
+  let isListeningNutrition = false;
+
+  function parseVoiceMealText(text) {
+    if (!text || typeof text !== 'string') return { foodName: '', grams: null };
+    const cleaned = text.trim();
+
+    let grams = null;
+    let foodName = cleaned;
+
+    const gramsRegex1 = /(\d+(?:\.\d+)?)\s*(?:גרם|גר['״]|ג['״]|grams?|g\b)/i;
+    const gramsRegex2 = /\s+(\d+(?:\.\d+)?)$/;
+    const gramsRegex3 = /^(\d+(?:\.\d+)?)\s+/;
+
+    let match = cleaned.match(gramsRegex1);
+    if (match) {
+      grams = parseFloat(match[1]);
+      foodName = cleaned.replace(match[0], ' ').trim();
+    } else {
+      match = cleaned.match(gramsRegex2);
+      if (match) {
+        grams = parseFloat(match[1]);
+        foodName = cleaned.replace(match[0], ' ').trim();
+      } else {
+        match = cleaned.match(gramsRegex3);
+        if (match && parseFloat(match[1]) > 5) {
+          grams = parseFloat(match[1]);
+          foodName = cleaned.replace(match[0], ' ').trim();
+        }
+      }
+    }
+
+    foodName = foodName
+      .replace(/^(אכלתי|תוסיף|הוסף|תרשום|רשום|דיאטה|ארוחה)\s+/i, '')
+      .replace(/\s+במשקל\s*$/i, '')
+      .replace(/[.,!?]/g, '')
+      .trim();
+
+    return { foodName: foodName || cleaned, grams };
+  }
+
+  function startVoiceNutritionRecording() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const voiceBtn = byId('voiceNutritionBtn');
+    const statusBanner = byId('voiceNutritionStatus');
+    const statusText = byId('voiceNutritionStatusText');
+
+    if (!SpeechRecognition) {
+      alert('הדפדפן שלך אינו תומך בזיהוי קולי (Web Speech API). מומלץ להשתמש ב-Google Chrome, Microsoft Edge או Safari.');
+      return;
+    }
+
+    if (isListeningNutrition && nutritionSpeechRecognition) {
+      nutritionSpeechRecognition.stop();
+      return;
+    }
+
+    try {
+      nutritionSpeechRecognition = new SpeechRecognition();
+      nutritionSpeechRecognition.lang = 'he-IL';
+      nutritionSpeechRecognition.interimResults = true;
+      nutritionSpeechRecognition.maxAlternatives = 3;
+
+      nutritionSpeechRecognition.onstart = () => {
+        isListeningNutrition = true;
+        if (voiceBtn) {
+          voiceBtn.classList.add('recording');
+          voiceBtn.innerHTML = '⏹️ מקשיב...';
+        }
+        if (statusBanner) statusBanner.hidden = false;
+        if (statusText) statusText.textContent = 'מקשיב... אמרו שם מאכל וכמות (לדוגמה: "חזה עוף 200 גרם")';
+      };
+
+      nutritionSpeechRecognition.onresult = event => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          transcript += event.results[i][0].transcript;
+        }
+        if (statusText) statusText.textContent = `נקלט: "${transcript}"`;
+
+        if (event.results[event.results.length - 1].isFinal) {
+          const parsed = parseVoiceMealText(transcript);
+          if (parsed.foodName) {
+            state.foodQuery = parsed.foodName;
+            const searchInput = byId('foodSearchInput');
+            if (searchInput) searchInput.value = parsed.foodName;
+            searchRemoteFoods(parsed.foodName);
+            renderNutrition();
+
+            if (parsed.grams && parsed.grams > 0) {
+              const form = byId('nutritionForm');
+              const gramsInput = form?.querySelector('input[name="grams"]');
+              if (gramsInput) gramsInput.value = String(parsed.grams);
+            }
+            if (statusText) {
+              statusText.textContent = `זוהה: "${parsed.foodName}"${parsed.grams ? ` (${parsed.grams} גרם)` : ''} - נבחר בטופס!`;
+            }
+          }
+        }
+      };
+
+      nutritionSpeechRecognition.onerror = event => {
+        console.warn('Speech recognition error:', event.error);
+        if (statusText) {
+          if (event.error === 'not-allowed') {
+            statusText.textContent = 'הגישה למיקרופון נדחתה. יש לאשר הרשאת מיקרופון בדפדפן.';
+          } else if (event.error === 'no-speech') {
+            statusText.textContent = 'לא נקלט דיבור. נסו שוב ודברו בקול ברור ליד המיקרופון.';
+          } else {
+            statusText.textContent = `שגיאת זיהוי קולי: ${event.error}`;
+          }
+        }
+        stopVoiceNutritionRecording();
+      };
+
+      nutritionSpeechRecognition.onend = () => {
+        stopVoiceNutritionRecording();
+      };
+
+      nutritionSpeechRecognition.start();
+    } catch (err) {
+      console.error('Could not start speech recognition:', err);
+      stopVoiceNutritionRecording();
+    }
+  }
+
+  function stopVoiceNutritionRecording() {
+    isListeningNutrition = false;
+    const voiceBtn = byId('voiceNutritionBtn');
+    if (voiceBtn) {
+      voiceBtn.classList.remove('recording');
+      voiceBtn.innerHTML = '🎙️ הקלטה קולית';
+    }
+    if (nutritionSpeechRecognition) {
+      try { nutritionSpeechRecognition.abort(); } catch (e) {}
+      nutritionSpeechRecognition = null;
+    }
   }
 
   function normalizeScannedProduct(barcode, product) {
@@ -2100,15 +2385,21 @@
       });
       const titleRow = document.createElement('summary');
       titleRow.className = 'exercise-heading active-set-summary';
+      const setTypeClass = log.setType === 'warmup' ? 'type-warmup' : log.setType === 'drop' ? 'type-drop' : log.setType === 'failure' ? 'type-failure' : 'type-working';
       titleRow.append(
         createElement('span', 'exercise-number', `סט ${setNumber}/${entry.sets}`),
         createElement('strong', '', exercise?.name || 'Exercise'),
-        createElement('span', 'set-type-summary', log.setType === 'warmup' ? 'W' : log.setType === 'drop' ? 'D' : log.setType === 'failure' ? 'F' : 'Working')
+        createElement('span', `set-type-summary ${setTypeClass}`, log.setType === 'warmup' ? 'W · חימום' : log.setType === 'drop' ? 'D · דרופ' : log.setType === 'failure' ? 'F · כשל' : 'סט עבודה')
       );
       const expandedContent = createElement('div', 'active-set-expanded-content');
       disclosure.append(titleRow, expandedContent);
       item.append(disclosure);
       if (exercise) {
+        const prevPerf = getPreviousExercisePerformance(exercise.id);
+        if (prevPerf) {
+          expandedContent.append(createElement('div', 'previous-performance-ghost',
+            `📊 ביצוע באימון קודם: ${formatNumber(prevPerf.weight)} ק״ג × ${formatNumber(prevPerf.reps)} חזרות`));
+        }
         const exercisePickerLabel = createElement('label', 'set-exercise-picker', 'תרגיל מועדף או שקול · ציוד זמין');
         const exercisePicker = document.createElement('select');
         exercisePicker.setAttribute('aria-label', `בחירת תרגיל שקול לסט ${setNumber}`);
@@ -2161,6 +2452,7 @@
       ].forEach(([value, label]) => {
         const option = createElement('button', `set-type-chip${(log.setType || 'working') === value ? ' active' : ''}`, label);
         option.type = 'button';
+        option.dataset.type = value;
         option.setAttribute('aria-pressed', String((log.setType || 'working') === value));
         option.addEventListener('click', () => {
           log.setType = value;
@@ -2169,7 +2461,11 @@
             button.classList.toggle('active', active);
             button.setAttribute('aria-pressed', String(active));
           });
-          titleRow.querySelector('.set-type-summary').textContent = value === 'warmup' ? 'W' : value === 'drop' ? 'D' : value === 'failure' ? 'F' : 'Working';
+          const summaryBadge = titleRow.querySelector('.set-type-summary');
+          if (summaryBadge) {
+            summaryBadge.className = `set-type-summary type-${value}`;
+            summaryBadge.textContent = value === 'warmup' ? 'W · חימום' : value === 'drop' ? 'D · דרופ' : value === 'failure' ? 'F · כשל' : 'סט עבודה';
+          }
         });
         setTypePicker.append(option);
       });
@@ -2198,7 +2494,7 @@
         });
         const adjustments = field === 'reps'
           ? [['−1', -1], ['+1', 1]]
-          : [['+2.5 kg', 2.5], ['+5 kg', 5]];
+          : [['−2.5 kg', -2.5], ['+2.5 kg', 2.5], ['+5 kg', 5]];
         adjustments.forEach(([text, delta]) => {
           const adjust = createElement('button', 'set-adjust-button', text);
           adjust.type = 'button';
@@ -2630,6 +2926,8 @@
       if (dialog) dialog.hidden = false;
       if (byId('barcodeScannerStatus')) byId('barcodeScannerStatus').textContent = 'המצלמה עדיין לא הופעלה.';
     });
+    byId('voiceNutritionBtn')?.addEventListener('click', startVoiceNutritionRecording);
+    byId('voiceNutritionStopBtn')?.addEventListener('click', stopVoiceNutritionRecording);
     byId('closeBarcodeScannerBtn')?.addEventListener('click', () => {
       stopBarcodeScanner();
       if (byId('barcodeScannerDialog')) byId('barcodeScannerDialog').hidden = true;

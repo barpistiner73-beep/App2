@@ -1,18 +1,567 @@
-rules_version='2'
+rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // =========================================================================
+    // Assumed Data Model & Architecture Specification
+    // =========================================================================
+    //
+    // Application: "Trainers & Trainees" Fitness & Nutrition Platform (FitPulse)
+    //
+    // Core Collections & Sub-collections:
+    //
+    // 1. users/{userId}
+    //    Document ID: Firebase Auth UID (`userId`).
+    //    Fields:
+    //      - userId: string (required, immutable, matches document ID and auth UID)
+    //      - fullName: string (required, 1-100 characters)
+    //      - email: string (required, valid email address format, max 150 chars)
+    //      - isTrainer: bool (required, toggles trainer persona capabilities)
+    //      - profileImageUrl: string (optional, valid http/https URL or empty string, max 1000 chars)
+    //      - createdAt: timestamp (required, immutable, recent timestamp on creation)
+    //
+    // 2. trainerships/{relationId}
+    //    Document ID: Deterministic pattern `${trainerId}_${traineeId}`.
+    //    Architectural Note: Deterministic keys allow O(1) existence and permission
+    //    lookups via exists() and get() without performing expensive collection queries.
+    //    Fields:
+    //      - relationId: string (optional, if present matches `${trainerId}_${traineeId}`)
+    //      - trainerId: string (required, immutable, UID of coach)
+    //      - traineeId: string (required, immutable, UID of trainee)
+    //      - status: string (required, enum: 'pending' | 'active' | 'rejected' | 'terminated')
+    //      - permissions: map (required, keys: canViewSleep, canViewNutrition, canViewWorkouts, canViewDailyLogs)
+    //      - createdAt: timestamp (required, immutable, recent timestamp on creation)
+    //      - updatedAt: timestamp (optional, server timestamp)
+    //    Self-Training Invariant: When trainerId == traineeId, status MUST be 'active'
+    //    and all 4 permission flags MUST be strictly true.
+    //
+    // 3. users/{userId}/dailyLogs/{logId}
+    //    Document ID: Date key (e.g., 'YYYY-MM-DD') or auto-generated ID.
+    //    Fields:
+    //      - logId: string (optional, max 100 chars)
+    //      - userId: string (optional, if present matches parent {userId})
+    //      - logDate: string or timestamp (required, immutable, date format 'YYYY-MM-DD' or timestamp)
+    //      - sleepHours: number (required, range 0 to 24)
+    //      - waterIntakeMl: number (required, range >= 0 and <= 20000)
+    //      - dailyNotes: string (required, max 2000 chars)
+    //      - updatedAt: timestamp (required, recent timestamp on creation/update)
+    //
+    // 4. workoutTemplates/{templateId}
+    //    Document ID: Unique template identifier.
+    //    Fields:
+    //      - templateId: string (optional, max 100 chars)
+    //      - creatorId: string (required, immutable, UID of coach or self-trainee)
+    //      - assignedToId: string (required, immutable, UID of recipient trainee)
+    //      - title: string (required, 1-100 chars)
+    //      - description: string (required, max 1000 chars)
+    //      - scheduledDay: string or number (required, weekday name or 0-6 index)
+    //      - createdAt: timestamp (required, immutable, recent timestamp on creation)
+    //      - updatedAt: timestamp (optional)
+    //
+    // 5. workoutTemplates/{templateId}/exercises/{exerciseId}
+    //    Document ID: Unique exercise identifier.
+    //    Fields:
+    //      - exerciseId: string (optional, max 100 chars)
+    //      - templateId: string (optional, immutable, matches parent {templateId})
+    //      - exerciseName: string (required, 1-100 chars)
+    //      - targetSets: number (required, integer > 0 and <= 100)
+    //      - targetReps: string (required, 1-50 chars, e.g., '8-10', '12', 'AMRAP')
+    //      - targetWeight: number (optional, range >= 0 and <= 1000)
+    //      - notes: string (required, max 1000 chars)
+    //      - orderIndex: number (optional, range >= 0 and <= 500)
+    //
+    // 6. workoutLogs/{workoutLogId}
+    //    Document ID: Unique workout execution log identifier.
+    //    Fields:
+    //      - workoutLogId: string (optional, max 100 chars)
+    //      - userId: string (required, immutable, UID of user executing workout)
+    //      - templateId: string (optional, max 100 chars)
+    //      - completedAt: timestamp (required, immutable, valid completion timestamp)
+    //      - healthFeelingScore: number (required, range 1 to 10)
+    //      - perceivedExertionRpe: number (required, range 1 to 10)
+    //      - completionNotes: string (required, max 2000 chars)
+    //
+    // 7. nutritionGoals/{goalId}
+    //    Document ID: Unique nutrition target identifier.
+    //    Fields:
+    //      - goalId: string (optional, max 100 chars)
+    //      - traineeId: string (required, immutable, UID of trainee)
+    //      - trainerId: string (optional, immutable, UID of trainer setting goal)
+    //      - targetCalories: number (required, range > 0 and <= 15000)
+    //      - targetProteinGrams: number (required, range >= 0 and <= 1000)
+    //      - targetCarbsGrams: number (required, range >= 0 and <= 2000)
+    //      - targetFatsGrams: number (required, range >= 0 and <= 1000)
+    //      - startDate: timestamp (required, immutable)
+    //      - isActive: bool (required, active status toggle)
+    //
+    // =========================================================================
+
+    // =========================================================================
+    // Core Helper Functions
+    // =========================================================================
+
+    // Check if user is authenticated via Firebase Auth
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if current authenticated user matches given UID
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Verify timestamp was generated recently (within 5 minutes, allowing 1 minute forward clock skew)
+    function isRecent(time) {
+      return time is timestamp &&
+        time > request.time - duration.value(5, 'm') &&
+        time <= request.time + duration.value(1, 'm');
+    }
+
+    // Verify required fields exist in incoming data
+    function hasRequiredFields(data, fields) {
+      return data.keys().hasAll(fields);
+    }
+
+    // Verify no undeclared/unauthorized fields exist in incoming data
+    function hasOnlyAllowedFields(data, fields) {
+      return data.keys().hasOnly(fields);
+    }
+
+    // Verify specified immutable fields have not been modified during an update
+    function areImmutableFieldsUnchanged(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    // RFC-compliant email string format check
+    function isValidEmail(email) {
+      return email is string &&
+        email.matches('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$');
+    }
+
+    // Web URL format check (HTTP / HTTPS)
+    function isValidUrl(url) {
+      return url is string &&
+        (url.matches('^https://.*') || url.matches('^http://.*'));
+    }
+
+    // =========================================================================
+    // Relationship & Trainership Access Helpers
+    // =========================================================================
+
+    // Returns true if an active trainership exists between trainer and trainee
+    function hasActiveTrainership(trainerId, traineeId) {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/trainerships/$(trainerId + '_' + traineeId)) &&
+        get(/databases/$(database)/documents/trainerships/$(trainerId + '_' + traineeId)).data.status == 'active';
+    }
+
+    // Safely retrieves trainership document data
+    function getTrainership(trainerId, traineeId) {
+      return get(/databases/$(database)/documents/trainerships/$(trainerId + '_' + traineeId)).data;
+    }
+
+    // Permission checks for active trainership
+    function trainerCanViewDailyLogs(trainerId, traineeId) {
+      return hasActiveTrainership(trainerId, traineeId) &&
+        getTrainership(trainerId, traineeId).permissions.canViewDailyLogs == true;
+    }
+
+    function trainerCanViewWorkouts(trainerId, traineeId) {
+      return hasActiveTrainership(trainerId, traineeId) &&
+        getTrainership(trainerId, traineeId).permissions.canViewWorkouts == true;
+    }
+
+    function trainerCanViewNutrition(trainerId, traineeId) {
+      return hasActiveTrainership(trainerId, traineeId) &&
+        getTrainership(trainerId, traineeId).permissions.canViewNutrition == true;
+    }
+
+    function trainerCanViewSleep(trainerId, traineeId) {
+      return hasActiveTrainership(trainerId, traineeId) &&
+        getTrainership(trainerId, traineeId).permissions.canViewSleep == true;
+    }
+
+    // Check if authenticated user and target user share an active or pending trainership
+    function isConnectedUser(otherUserId) {
+      return isAuthenticated() && (
+        exists(/databases/$(database)/documents/trainerships/$(request.auth.uid + '_' + otherUserId)) ||
+        exists(/databases/$(database)/documents/trainerships/$(otherUserId + '_' + request.auth.uid))
+      );
+    }
+
+    // Helper to verify full permissions map for self-training
+    function hasFullPermissions(perms) {
+      return perms.canViewSleep == true &&
+        perms.canViewNutrition == true &&
+        perms.canViewWorkouts == true &&
+        perms.canViewDailyLogs == true;
+    }
+
+    // =========================================================================
+    // Domain Validator Functions (Used on BOTH Create and Update)
+    // =========================================================================
+
+    // 1. User Profile Validator
+    function isValidUser(data) {
+      return hasRequiredFields(data, ['userId', 'fullName', 'email', 'isTrainer', 'createdAt']) &&
+        hasOnlyAllowedFields(data, ['userId', 'fullName', 'email', 'isTrainer', 'profileImageUrl', 'createdAt']) &&
+        data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        data.fullName is string && data.fullName.size() >= 1 && data.fullName.size() <= 100 &&
+        data.email is string && data.email.size() <= 150 && isValidEmail(data.email) &&
+        data.isTrainer is bool &&
+        data.createdAt is timestamp &&
+        (!('profileImageUrl' in data) || (data.profileImageUrl is string && data.profileImageUrl.size() <= 1000 && (data.profileImageUrl == '' || isValidUrl(data.profileImageUrl))));
+    }
+
+    // 2. Trainership Permissions Map Validator
+    function isValidTrainershipPermissions(perms) {
+      return perms is map &&
+        perms.keys().hasAll(['canViewSleep', 'canViewNutrition', 'canViewWorkouts', 'canViewDailyLogs']) &&
+        perms.keys().hasOnly(['canViewSleep', 'canViewNutrition', 'canViewWorkouts', 'canViewDailyLogs']) &&
+        perms.canViewSleep is bool &&
+        perms.canViewNutrition is bool &&
+        perms.canViewWorkouts is bool &&
+        perms.canViewDailyLogs is bool;
+    }
+
+    // 2. Trainership Document Validator
+    function isValidTrainership(data) {
+      return hasRequiredFields(data, ['trainerId', 'traineeId', 'status', 'permissions', 'createdAt']) &&
+        hasOnlyAllowedFields(data, ['relationId', 'trainerId', 'traineeId', 'status', 'permissions', 'createdAt', 'updatedAt']) &&
+        data.trainerId is string && data.trainerId.size() >= 1 && data.trainerId.size() <= 128 &&
+        data.traineeId is string && data.traineeId.size() >= 1 && data.traineeId.size() <= 128 &&
+        data.status in ['pending', 'active', 'rejected', 'terminated'] &&
+        isValidTrainershipPermissions(data.permissions) &&
+        data.createdAt is timestamp &&
+        (!('updatedAt' in data) || data.updatedAt is timestamp) &&
+        (!('relationId' in data) || (data.relationId is string && data.relationId == (data.trainerId + '_' + data.traineeId)));
+    }
+
+    // 3. Daily Log Validator
+    function isValidDailyLog(data, userId) {
+      return hasRequiredFields(data, ['logDate', 'sleepHours', 'waterIntakeMl', 'dailyNotes', 'updatedAt']) &&
+        hasOnlyAllowedFields(data, ['logId', 'userId', 'logDate', 'sleepHours', 'waterIntakeMl', 'dailyNotes', 'updatedAt']) &&
+        ((data.logDate is string && data.logDate.size() >= 1 && data.logDate.size() <= 30) || (data.logDate is timestamp)) &&
+        data.sleepHours is number && data.sleepHours >= 0 && data.sleepHours <= 24 &&
+        data.waterIntakeMl is number && data.waterIntakeMl >= 0 && data.waterIntakeMl <= 20000 &&
+        data.dailyNotes is string && data.dailyNotes.size() <= 2000 &&
+        data.updatedAt is timestamp &&
+        (!('userId' in data) || (data.userId is string && data.userId == userId)) &&
+        (!('logId' in data) || (data.logId is string && data.logId.size() <= 100));
+    }
+
+    // 4. Workout Template Validator
+    function isValidWorkoutTemplate(data) {
+      return hasRequiredFields(data, ['creatorId', 'assignedToId', 'title', 'description', 'scheduledDay', 'createdAt']) &&
+        hasOnlyAllowedFields(data, ['templateId', 'creatorId', 'assignedToId', 'title', 'description', 'scheduledDay', 'createdAt', 'updatedAt']) &&
+        data.creatorId is string && data.creatorId.size() >= 1 && data.creatorId.size() <= 128 &&
+        data.assignedToId is string && data.assignedToId.size() >= 1 && data.assignedToId.size() <= 128 &&
+        data.title is string && data.title.size() >= 1 && data.title.size() <= 100 &&
+        data.description is string && data.description.size() <= 1000 &&
+        ((data.scheduledDay is string && data.scheduledDay.size() >= 1 && data.scheduledDay.size() <= 50) || (data.scheduledDay is number && data.scheduledDay >= 0 && data.scheduledDay <= 6)) &&
+        data.createdAt is timestamp &&
+        (!('updatedAt' in data) || data.updatedAt is timestamp) &&
+        (!('templateId' in data) || (data.templateId is string && data.templateId.size() <= 100));
+    }
+
+    // 5. Workout Exercise Sub-collection Validator
+    function isValidWorkoutExercise(data, templateId) {
+      return hasRequiredFields(data, ['exerciseName', 'targetSets', 'targetReps', 'notes']) &&
+        hasOnlyAllowedFields(data, ['exerciseId', 'templateId', 'exerciseName', 'targetSets', 'targetReps', 'targetWeight', 'notes', 'orderIndex']) &&
+        data.exerciseName is string && data.exerciseName.size() >= 1 && data.exerciseName.size() <= 100 &&
+        data.targetSets is number && data.targetSets > 0 && data.targetSets <= 100 &&
+        data.targetReps is string && data.targetReps.size() >= 1 && data.targetReps.size() <= 50 &&
+        (!('targetWeight' in data) || (data.targetWeight is number && data.targetWeight >= 0 && data.targetWeight <= 1000)) &&
+        data.notes is string && data.notes.size() <= 1000 &&
+        (!('orderIndex' in data) || (data.orderIndex is number && data.orderIndex >= 0 && data.orderIndex <= 500)) &&
+        (!('exerciseId' in data) || (data.exerciseId is string && data.exerciseId.size() <= 100)) &&
+        (!('templateId' in data) || (data.templateId is string && data.templateId == templateId));
+    }
+
+    // Parent Template Access Helpers for Exercises Sub-collection
+    function canReadWorkoutTemplate(templateId) {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/workoutTemplates/$(templateId)) &&
+        (
+          request.auth.uid == get(/databases/$(database)/documents/workoutTemplates/$(templateId)).data.creatorId ||
+          (
+            request.auth.uid == get(/databases/$(database)/documents/workoutTemplates/$(templateId)).data.assignedToId &&
+            (
+              get(/databases/$(database)/documents/workoutTemplates/$(templateId)).data.creatorId == get(/databases/$(database)/documents/workoutTemplates/$(templateId)).data.assignedToId ||
+              trainerCanViewWorkouts(
+                get(/databases/$(database)/documents/workoutTemplates/$(templateId)).data.creatorId,
+                get(/databases/$(database)/documents/workoutTemplates/$(templateId)).data.assignedToId
+              )
+            )
+          )
+        );
+    }
+
+    function isTemplateCreator(templateId) {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/workoutTemplates/$(templateId)) &&
+        request.auth.uid == get(/databases/$(database)/documents/workoutTemplates/$(templateId)).data.creatorId;
+    }
+
+    // 6. Workout Log Validator
+    function isValidWorkoutLog(data) {
+      return hasRequiredFields(data, ['userId', 'completedAt', 'healthFeelingScore', 'perceivedExertionRpe', 'completionNotes']) &&
+        hasOnlyAllowedFields(data, ['workoutLogId', 'userId', 'templateId', 'completedAt', 'healthFeelingScore', 'perceivedExertionRpe', 'completionNotes']) &&
+        data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        data.completedAt is timestamp &&
+        data.completedAt <= request.time + duration.value(5, 'm') &&
+        data.completedAt >= request.time - duration.value(365, 'd') &&
+        data.healthFeelingScore is number && data.healthFeelingScore >= 1 && data.healthFeelingScore <= 10 &&
+        data.perceivedExertionRpe is number && data.perceivedExertionRpe >= 1 && data.perceivedExertionRpe <= 10 &&
+        data.completionNotes is string && data.completionNotes.size() <= 2000 &&
+        (!('templateId' in data) || (data.templateId is string && data.templateId.size() <= 100)) &&
+        (!('workoutLogId' in data) || (data.workoutLogId is string && data.workoutLogId.size() <= 100));
+    }
+
+    // 7. Nutrition Goal Validator
+    function isValidNutritionGoal(data) {
+      return hasRequiredFields(data, ['traineeId', 'targetCalories', 'targetProteinGrams', 'targetCarbsGrams', 'targetFatsGrams', 'startDate', 'isActive']) &&
+        hasOnlyAllowedFields(data, ['goalId', 'traineeId', 'trainerId', 'targetCalories', 'targetProteinGrams', 'targetCarbsGrams', 'targetFatsGrams', 'startDate', 'isActive']) &&
+        data.traineeId is string && data.traineeId.size() >= 1 && data.traineeId.size() <= 128 &&
+        (!('trainerId' in data) || (data.trainerId is string && data.trainerId.size() >= 1 && data.trainerId.size() <= 128)) &&
+        data.targetCalories is number && data.targetCalories > 0 && data.targetCalories <= 15000 &&
+        data.targetProteinGrams is number && data.targetProteinGrams >= 0 && data.targetProteinGrams <= 1000 &&
+        data.targetCarbsGrams is number && data.targetCarbsGrams >= 0 && data.targetCarbsGrams <= 2000 &&
+        data.targetFatsGrams is number && data.targetFatsGrams >= 0 && data.targetFatsGrams <= 1000 &&
+        data.startDate is timestamp &&
+        data.startDate <= request.time + duration.value(30, 'd') &&
+        data.startDate >= request.time - duration.value(365, 'd') &&
+        data.isActive is bool &&
+        (!('goalId' in data) || (data.goalId is string && data.goalId.size() <= 100));
+    }
+
+    // =========================================================================
+    // Security Rules by Collection
+    // =========================================================================
+
+    // -------------------------------------------------------------------------
+    // 1. Users Collection
+    // -------------------------------------------------------------------------
+    match /users/{userId} {
+      // Document owner can read their profile; connected users/coaches can view profiles;
+      // coaches with isTrainer==true can be viewed by authenticated users.
+      // Blanket listing is disallowed to prevent bulk user scraping and PII exposure.
+      allow get: if isOwner(userId) ||
+                    isConnectedUser(userId) ||
+                    (isAuthenticated() && resource.data.isTrainer == true);
+      allow list: if false;
+
+      // Only the user themselves can create their profile.
+      allow create: if isOwner(userId) &&
+                       request.resource.data.userId == userId &&
+                       isValidUser(request.resource.data) &&
+                       isRecent(request.resource.data.createdAt);
+
+      // Only the user themselves can update their profile.
+      // Protects against spoofing UID or modifying immutable createdAt.
+      allow update: if isOwner(userId) &&
+                       isValidUser(request.resource.data) &&
+                       request.resource.data.userId == resource.data.userId &&
+                       request.resource.data.createdAt == resource.data.createdAt;
+
+      // Raw client-side document deletion disallowed.
+      allow delete: if false;
+
+      // -----------------------------------------------------------------------
+      // 3. Daily Logs Sub-collection
+      // Path: users/{userId}/dailyLogs/{logId}
+      // -----------------------------------------------------------------------
+      match /dailyLogs/{logId} {
+        // Trainee owner can read; Coach with active trainership and canViewDailyLogs can read.
+        allow read: if isOwner(userId) || trainerCanViewDailyLogs(request.auth.uid, userId);
+
+        // Trainee owner creates their own daily log.
+        allow create: if isOwner(userId) &&
+                         isValidDailyLog(request.resource.data, userId) &&
+                         isRecent(request.resource.data.updatedAt);
+
+        // Trainee owner updates their daily log. Date and userId cannot be rewritten.
+        allow update: if isOwner(userId) &&
+                         isValidDailyLog(request.resource.data, userId) &&
+                         areImmutableFieldsUnchanged(['userId', 'logDate']);
+
+        // Trainee owner can remove an erroneous log entry.
+        allow delete: if isOwner(userId);
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 2. Trainerships Collection
+    // Path: trainerships/{relationId}
+    // -------------------------------------------------------------------------
+    match /trainerships/{relationId} {
+      // Both the trainer and trainee can read their relationship document.
+      allow read: if isAuthenticated() &&
+                     (request.auth.uid == resource.data.trainerId ||
+                      request.auth.uid == resource.data.traineeId);
+
+      // Creation allowed if caller is trainer or trainee.
+      // Must use deterministic ID `${trainerId}_${traineeId}`.
+      // Self-training (trainerId == traineeId) automatically activates with full permissions.
+      // External coach invite must initiate in 'pending' status to prevent unauthorized access grants.
+      allow create: if isAuthenticated() &&
+                       (request.auth.uid == request.resource.data.trainerId ||
+                        request.auth.uid == request.resource.data.traineeId) &&
+                       relationId == (request.resource.data.trainerId + '_' + request.resource.data.traineeId) &&
+                       isValidTrainership(request.resource.data) &&
+                       isRecent(request.resource.data.createdAt) &&
+                       (
+                         (request.resource.data.trainerId == request.resource.data.traineeId &&
+                          request.resource.data.status == 'active' &&
+                          hasFullPermissions(request.resource.data.permissions)) ||
+                         (request.resource.data.trainerId != request.resource.data.traineeId &&
+                          request.resource.data.status == 'pending')
+                       );
+
+      // Updates allowed for trainer or trainee.
+      // Core relationship identities and creation timestamp are immutable.
+      // Prevents trainers from unilaterally escalating permissions or activating pending invites.
+      allow update: if isAuthenticated() &&
+                       (request.auth.uid == resource.data.trainerId ||
+                        request.auth.uid == resource.data.traineeId) &&
+                       isValidTrainership(request.resource.data) &&
+                       request.resource.data.trainerId == resource.data.trainerId &&
+                       request.resource.data.traineeId == resource.data.traineeId &&
+                       request.resource.data.createdAt == resource.data.createdAt &&
+                       (!('relationId' in request.resource.data) || request.resource.data.relationId == resource.data.relationId) &&
+                       (
+                         // Self-training relationship remains locked in 'active' state with full permissions
+                         (resource.data.trainerId == resource.data.traineeId &&
+                          request.resource.data.status == 'active' &&
+                          hasFullPermissions(request.resource.data.permissions)) ||
+                         // Non-self trainership rules:
+                         (resource.data.trainerId != resource.data.traineeId && (
+                           // Trainee (data owner) can accept, reject, terminate, and adjust permission flags
+                           (request.auth.uid == resource.data.traineeId) ||
+                           // Trainer can terminate or update status, but cannot alter permissions or self-activate
+                           (request.auth.uid == resource.data.trainerId &&
+                            request.resource.data.permissions == resource.data.permissions &&
+                            (resource.data.status == 'pending' ? request.resource.data.status != 'active' : true))
+                         ))
+                       );
+
+      // Deletions disallowed; state transitions should use 'terminated' status
+      allow delete: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // 4. Workout Templates Collection & Exercises Sub-collection
+    // Path: workoutTemplates/{templateId}
+    // -------------------------------------------------------------------------
+    match /workoutTemplates/{templateId} {
+      // Readable by creator OR assigned trainee (if trainership has canViewWorkouts enabled or self-assigned)
+      allow read: if isAuthenticated() &&
+                     (request.auth.uid == resource.data.creatorId ||
+                      (request.auth.uid == resource.data.assignedToId &&
+                       (resource.data.creatorId == resource.data.assignedToId ||
+                        trainerCanViewWorkouts(resource.data.creatorId, resource.data.assignedToId))));
+
+      // Creator only. If assigning to another user, creator must have an active trainership with workout permission.
+      allow create: if isAuthenticated() &&
+                       request.auth.uid == request.resource.data.creatorId &&
+                       isValidWorkoutTemplate(request.resource.data) &&
+                       (request.resource.data.assignedToId == request.auth.uid ||
+                        trainerCanViewWorkouts(request.auth.uid, request.resource.data.assignedToId)) &&
+                       isRecent(request.resource.data.createdAt);
+
+      // Creator only. creatorId, assignedToId, and createdAt are immutable.
+      allow update: if isAuthenticated() &&
+                       request.auth.uid == resource.data.creatorId &&
+                       isValidWorkoutTemplate(request.resource.data) &&
+                       request.resource.data.creatorId == resource.data.creatorId &&
+                       request.resource.data.assignedToId == resource.data.assignedToId &&
+                       request.resource.data.createdAt == resource.data.createdAt;
+
+      // Creator only.
+      allow delete: if isAuthenticated() && request.auth.uid == resource.data.creatorId;
+
+      // -----------------------------------------------------------------------
+      // 5. Workout Exercises Sub-collection
+      // Path: workoutTemplates/{templateId}/exercises/{exerciseId}
+      // -----------------------------------------------------------------------
+      match /exercises/{exerciseId} {
+        // Read allowed if user has permission to read the parent template
+        allow read: if canReadWorkoutTemplate(templateId);
+
+        // Write allowed only by the creator of the parent workout template
+        allow create: if isTemplateCreator(templateId) &&
+                         isValidWorkoutExercise(request.resource.data, templateId);
+
+        allow update: if isTemplateCreator(templateId) &&
+                         isValidWorkoutExercise(request.resource.data, templateId) &&
+                         areImmutableFieldsUnchanged(['templateId', 'exerciseId']);
+
+        allow delete: if isTemplateCreator(templateId);
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 6. Workout Logs Collection
+    // Path: workoutLogs/{workoutLogId}
+    // -------------------------------------------------------------------------
+    match /workoutLogs/{workoutLogId} {
+      // Readable by the workout owner OR coach with canViewWorkouts permission
+      allow read: if isOwner(resource.data.userId) ||
+                     trainerCanViewWorkouts(request.auth.uid, resource.data.userId);
+
+      // Written only by the athlete performing the workout
+      allow create: if isOwner(request.resource.data.userId) &&
+                       isValidWorkoutLog(request.resource.data);
+
+      // Update allowed by owner only; userId and completedAt timestamp are immutable
+      allow update: if isOwner(resource.data.userId) &&
+                       isValidWorkoutLog(request.resource.data) &&
+                       request.resource.data.userId == resource.data.userId &&
+                       request.resource.data.completedAt == resource.data.completedAt;
+
+      // Delete allowed by owner only
+      allow delete: if isOwner(resource.data.userId);
+    }
+
+    // -------------------------------------------------------------------------
+    // 7. Nutrition Goals Collection
+    // Path: nutritionGoals/{goalId}
+    // -------------------------------------------------------------------------
+    match /nutritionGoals/{goalId} {
+      // Trainee owner can read; Coach with active trainership and canViewNutrition can read
+      allow read: if isOwner(resource.data.traineeId) ||
+                     trainerCanViewNutrition(request.auth.uid, resource.data.traineeId);
+
+      // Trainee (for self) OR Trainer with active trainership and canViewNutrition permission
+      allow create: if isAuthenticated() &&
+                       (
+                         request.auth.uid == request.resource.data.traineeId ||
+                         (trainerCanViewNutrition(request.auth.uid, request.resource.data.traineeId) &&
+                          (!('trainerId' in request.resource.data) || request.resource.data.trainerId == request.auth.uid))
+                       ) &&
+                       isValidNutritionGoal(request.resource.data);
+
+      // Trainee (for self) OR Trainer with active trainership can update targets or toggle isActive
+      allow update: if isAuthenticated() &&
+                       (
+                         request.auth.uid == resource.data.traineeId ||
+                         trainerCanViewNutrition(request.auth.uid, resource.data.traineeId)
+                       ) &&
+                       isValidNutritionGoal(request.resource.data) &&
+                       request.resource.data.traineeId == resource.data.traineeId &&
+                       request.resource.data.startDate == resource.data.startDate &&
+                       (!('trainerId' in resource.data) || request.resource.data.trainerId == resource.data.trainerId);
+
+      // Trainee owner can delete goals
+      allow delete: if isOwner(resource.data.traineeId);
+    }
+
+    // -------------------------------------------------------------------------
+    // Default Deny Root Fallback
+    // -------------------------------------------------------------------------
     match /{document=**} {
-      // This rule allows anyone with your database reference to view, edit,
-      // and delete all data in your database. It is useful for getting
-      // started, but it is configured to expire after 30 days because it
-      // leaves your app open to attackers. At that time, all client
-      // requests to your database will be denied.
-      //
-      // Make sure to write security rules for your app before that time, or
-      // else all client requests to your database will be denied until you
-      // update your rules.
-      allow read, write: if request.time < timestamp.date(2026, 11, 17);
+      allow read, write: if false;
     }
   }
 }

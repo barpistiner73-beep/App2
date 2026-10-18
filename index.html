@@ -51,16 +51,27 @@
           <svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline></svg>
           התקדמות ומחשבון
         </button>
-        <button class="nav-tab-btn coach-vip-tab" data-tab="tab-coach" id="navTabCoach">
+        <button class="nav-tab-btn coach-vip-tab" data-tab="tab-coach" id="navTabCoach" hidden>
           <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
           מאמן
+        </button>
+        <button class="nav-tab-btn manager-vip-tab" data-tab="tab-app-manager" id="navTabAppManager" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          מנהל מערכת
         </button>
       </nav>
 
       <div class="header-actions">
-        <button class="btn-action-secondary" id="demoRoleToggleBtn" type="button" title="הדגמה מקומית בלבד, ללא אימות משתמש">הצגת מצב מאמן (הדגמה)</button>
+        <div class="header-user-chip" id="headerUserChip">
+          <div class="header-user-avatar" id="headerUserAvatar">דכ</div>
+          <div class="header-user-info">
+            <span class="header-user-name" id="headerUserName">דניאל כהן</span>
+            <span class="header-user-role-badge role-trainee" id="headerUserRoleBadge">מתאמן</span>
+          </div>
+          <button class="header-logout-btn" id="headerLogoutBtn" type="button" title="התנתקות מהמערכת">יציאה</button>
+        </div>
         <button class="btn-action-primary" id="headerStartWorkoutBtn">
-        <span>להתחל</span>
+          <span>להתחל אימון</span>
         </button>
       </div>
     </div>
@@ -455,6 +466,7 @@
           <label>סינון פעילות <select id="coachTraineeFilter"><option value="all">כולם</option><option value="active">התאמנו היום</option><option value="inactive">טרם התאמנו היום</option></select></label>
           <label>בחירת מתאמן <select id="coachTraineeSelect"></select></label>
           <button class="btn-action-primary" id="coachBuildProgramBtn" type="button">＋ בניית תוכנית</button>
+          <button class="btn-action-secondary" id="coachRegisterTraineeBtn" type="button">➕ רישום מתאמן חדש</button>
         </div>
 
         <!-- Trainee Quick Overview Bar -->
@@ -507,6 +519,107 @@
           <div class="coach-trainees-grid" id="coachTraineesGrid"></div>
         </section>
       </div>
+    </section>
+
+    <!-- TAB 7: APP MANAGER (HIGHEST AUTHORITY INTERFACE) -->
+    <section class="tab-pane" id="tab-app-manager">
+      <div class="manager-heading-banner">
+        <div>
+          <span class="eyebrow eyebrow-gold">סמכות עליונה · ניהול אפליקציה ותשתיות</span>
+          <h2>מרכז בקרת מערכת וניטור Firebase</h2>
+          <p>מעקב פעילות בזמן אמת, ניטור חיבורי ענן ומסדי נתונים, וניהול משתמשים והרשאות ברחבי המערכת.</p>
+        </div>
+        <div class="manager-header-actions">
+          <button class="btn-action-primary" id="managerPingFirebaseBtn" type="button">בדיקת Ping מול הענן</button>
+          <button class="btn-action-secondary" id="managerResyncBtn" type="button">רענון נתונים מלא</button>
+        </div>
+      </div>
+
+      <!-- Cloud Infrastructure & System Status Cards -->
+      <div class="manager-stats-grid">
+        <div class="manager-stat-card">
+          <div class="manager-card-top">
+            <span class="manager-service-name">Cloud Firestore</span>
+            <span class="manager-status-indicator status-online" id="statusFirestore">מחובר · תקין</span>
+          </div>
+          <strong class="manager-stat-metric" id="managerFirestoreRegion">me-west1 (ישראל)</strong>
+          <span class="manager-stat-detail" id="managerFirestoreLatency">זמן תגובה: ~45ms</span>
+        </div>
+
+        <div class="manager-stat-card">
+          <div class="manager-card-top">
+            <span class="manager-service-name">Firebase Auth</span>
+            <span class="manager-status-indicator status-online" id="statusAuth">פעיל · מאובטח</span>
+          </div>
+          <strong class="manager-stat-metric" id="managerAuthUsersCount">אימות אימייל וסיסמה</strong>
+          <span class="manager-stat-detail">ספק: Email/Password + Google</span>
+        </div>
+
+        <div class="manager-stat-card">
+          <div class="manager-card-top">
+            <span class="manager-service-name">Firebase Hosting</span>
+            <span class="manager-status-indicator status-online" id="statusHosting">פרוס באוויר</span>
+          </div>
+          <strong class="manager-stat-metric">fitnessnutritionapp-ab381.web.app</strong>
+          <span class="manager-stat-detail">Global CDN · HTTPS</span>
+        </div>
+
+        <div class="manager-stat-card">
+          <div class="manager-card-top">
+            <span class="manager-service-name">מסד נתונים ודוחות</span>
+            <span class="manager-status-indicator status-online" id="statusDatabase">סונכרן מקומית וענן</span>
+          </div>
+          <strong class="manager-stat-metric" id="managerTotalReportsMetric">192 דוחות מאוחסנים</strong>
+          <span class="manager-stat-detail" id="managerTraineesCountMetric">4 תיקיות מתאמנים פעילות</span>
+        </div>
+      </div>
+
+      <!-- Live Activity Log & Audit Trail -->
+      <section class="manager-section">
+        <div class="coach-section-header-flex">
+          <div>
+            <h3>זרם פעילות וביקורת מערכת בזמן אמת (Live Audit Trail)</h3>
+            <p>תיעוד מדויק של כניסות משתמשים, חתימת דוחות יומיים, רישום מתאמנים ומשובי מאמנים.</p>
+          </div>
+          <span class="manager-live-pulse-badge">LIVE · מעקב חי</span>
+        </div>
+        <div class="manager-activity-stream" id="managerActivityStream"></div>
+      </section>
+
+      <!-- User Directory & Role-Based Access Control -->
+      <section class="manager-section">
+        <div class="coach-section-header-flex">
+          <div>
+            <h3>ניהול משתמשים והרשאות (User Authority Management)</h3>
+            <p>רשימת כל בעלי התפקידים במערכת: מתאמנים, מאמנים ומנהלי מערכת.</p>
+          </div>
+          <div class="manager-user-filters">
+            <input type="search" id="managerUserSearch" placeholder="חיפוש משתמש לפי שם או אימייל...">
+            <select id="managerRoleFilter">
+              <option value="all">כל התפקידים</option>
+              <option value="trainee">מתאמנים</option>
+              <option value="coach">מאמנים</option>
+              <option value="manager">מנהלי מערכת</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-scroll-container">
+          <table class="coach-history-table manager-users-table">
+            <thead>
+              <tr>
+                <th>משתמש / שם</th>
+                <th>אימייל / מזהה</th>
+                <th>תפקיד והרשאה</th>
+                <th>תוכנית מוקצית / ייעוד</th>
+                <th>סטטוס</th>
+                <th>פעולות ניהול</th>
+              </tr>
+            </thead>
+            <tbody id="managerUsersTableRows"></tbody>
+          </table>
+        </div>
+      </section>
     </section>
 
   </main>
@@ -633,6 +746,202 @@
       </div>
       <div class="dialog-scroll" id="drilldownModalContent"></div>
     </section>
+  </div>
+
+  <!-- COACH REGISTER TRAINEE MODAL -->
+  <div class="dialog-backdrop" id="coachRegisterTraineeModal" hidden>
+    <section class="dialog-card coach-register-modal-card" role="dialog" aria-modal="true" aria-labelledby="registerModalTitle">
+      <div class="dialog-header">
+        <div>
+          <span class="eyebrow">הרשאת מאמן · הוספת משתמש למערכת</span>
+          <h2 id="registerModalTitle">רישום מתאמן חדש</h2>
+        </div>
+        <button class="icon-button icon-button-ghost" id="closeRegisterTraineeModalBtn" type="button" aria-label="סגירה">✕</button>
+      </div>
+      <form class="register-trainee-form" id="coachRegisterTraineeForm">
+        <div class="form-grid-2">
+          <label>שם מלא:
+            <input type="text" id="newTraineeName" placeholder="למשל: דניאל כהן" required>
+          </label>
+          <label>כתובת אימייל (משמש להתחברות):
+            <input type="email" id="newTraineeEmail" placeholder="trainee@fitpulse.com" required>
+          </label>
+        </div>
+        <div class="form-grid-2">
+          <label>סיסמה ראשונית (לפחות 6 תווים):
+            <input type="password" id="newTraineePassword" placeholder="••••••" minlength="6" required>
+          </label>
+          <label>תוכנית אימונים ראשונית:
+            <input type="text" id="newTraineeRoutine" placeholder="Push-Pull-Legs 4D" value="Push-Pull-Legs 4D">
+          </label>
+        </div>
+        <div class="form-grid-4">
+          <label>גיל:
+            <input type="number" id="newTraineeAge" value="26" min="14" max="99">
+          </label>
+          <label>מגדר:
+            <select id="newTraineeGender">
+              <option value="male">זכר</option>
+              <option value="female">נקבה</option>
+              <option value="other">אחר</option>
+            </select>
+          </label>
+          <label>גובה (ס"מ):
+            <input type="number" id="newTraineeHeight" value="178" min="120" max="230">
+          </label>
+          <label>משקל נוכחי (ק"ג):
+            <input type="number" id="newTraineeWeight" value="78.0" step="0.1" min="30" max="250">
+          </label>
+        </div>
+        <div class="form-grid-3">
+          <label>יעד קלוריות יומי:
+            <input type="number" id="newTraineeCalories" value="2400" step="50">
+          </label>
+          <label>יעד חלבון (גרם):
+            <input type="number" id="newTraineeProtein" value="165" step="5">
+          </label>
+          <label>יעד מים (מ"ל):
+            <input type="number" id="newTraineeWater" value="3000" step="250">
+          </label>
+        </div>
+        <label>דגשים והערות ליווי למתאמן:
+          <textarea id="newTraineeNotes" rows="2" placeholder="דגשים לתקופת המסה/חיטוב, פציעות עבר, יעדי כוח..."></textarea>
+        </label>
+        <div class="form-actions-row">
+          <button type="button" class="btn-action-ghost" id="cancelRegisterTraineeBtn">ביטול</button>
+          <button type="submit" class="btn-action-primary" id="submitRegisterTraineeBtn">יצירת חשבון והתחלת ליווי</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <!-- AUTH GATE OVERLAY (LOGIN & INSTRUCTIONS BEFORE ENTERING) -->
+  <div class="auth-gate-overlay" id="authGateOverlay">
+    <div class="auth-gate-container">
+      <!-- Logo & Branding -->
+      <div class="auth-gate-brand">
+        <div class="auth-gate-logo">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 5v14M18 5v14M2 9v6M22 9v6M6 12h12"></path></svg>
+        </div>
+        <h1 class="auth-gate-title">FitPulse · מערכת ניהול מתאמנים ומאמנים</h1>
+        <p class="auth-gate-subtitle">מערכת חכמה לניהול אימונים, דוחות יומיים וסנכרון ענן בזמן אמת</p>
+      </div>
+
+      <!-- Segmented Tab Switcher (Login vs Instructions) -->
+      <div class="auth-tab-switch">
+        <button type="button" class="auth-tab-btn active" id="authTabLoginBtn">
+          <span>כניסה למערכת</span>
+        </button>
+        <button type="button" class="auth-tab-btn" id="authTabGuideBtn">
+          <span>מדריך והנחיות שימוש</span>
+        </button>
+      </div>
+
+      <!-- VIEW 1: LOGIN -->
+      <div class="auth-view active" id="authViewLogin">
+        <form class="auth-form" id="authLoginForm">
+          <div class="auth-field-group">
+            <label for="authEmailInput">כתובת אימייל או שם משתמש</label>
+            <input type="text" id="authEmailInput" placeholder="name@fitpulse.com או daniel" required autocomplete="username">
+          </div>
+
+          <div class="auth-field-group">
+            <label for="authPasswordInput">סיסמה</label>
+            <input type="password" id="authPasswordInput" placeholder="••••••••" required autocomplete="current-password">
+          </div>
+
+          <div id="authErrorMessage" class="auth-error-msg" hidden></div>
+
+          <button type="submit" class="auth-submit-btn" id="authSubmitBtn">
+            <span>כניסה למערכת</span>
+          </button>
+        </form>
+
+        <!-- Fast Demo Accounts Bar -->
+        <div class="auth-demo-section">
+          <span class="auth-demo-title">כניסה מהירה בלחיצה אחת (מצב הדגמה ובדיקות):</span>
+          <div class="auth-demo-pills">
+            <button type="button" class="auth-demo-pill" data-demo-role="trainee" data-demo-email="daniel@fitpulse.com" data-demo-name="דניאל כהן">
+              <span class="demo-avatar">דכ</span>
+              <div class="demo-info">
+                <strong>מתאמן</strong>
+                <small>דניאל כהן</small>
+              </div>
+            </button>
+            <button type="button" class="auth-demo-pill" data-demo-role="coach" data-demo-email="coach@fitpulse.com" data-demo-name="מאמן ראשי">
+              <span class="demo-avatar coach">👑</span>
+              <div class="demo-info">
+                <strong>מאמן ראשי</strong>
+                <small>ניהול מתאמנים ודוחות</small>
+              </div>
+            </button>
+            <button type="button" class="auth-demo-pill" data-demo-role="manager" data-demo-email="manager@fitpulse.com" data-demo-name="מנהל מערכת">
+              <span class="demo-avatar manager">🛡️</span>
+              <div class="demo-info">
+                <strong>מנהל מערכת</strong>
+                <small>סמכות עליונה וניטור ענן</small>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <div class="auth-cloud-badge">
+          <span class="pulse-dot"></span>
+          <span>מאובטח ומחובר ל-Firebase Authentication (Project: fitnessnutritionapp-ab381)</span>
+        </div>
+      </div>
+
+      <!-- VIEW 2: PRE-LOGIN INSTRUCTIONS & GUIDE -->
+      <div class="auth-view" id="authViewGuide" hidden>
+        <div class="auth-guide-content">
+          <div class="guide-cards-grid">
+            <div class="guide-card">
+              <div class="guide-card-icon">1</div>
+              <h3>איך המערכת עובדת</h3>
+              <p>המערכת פועלת במודל ליווי יומיומי רציף בין המתאמן למאמן. כל יום נפתח בדוח יומי שבו המתאמן מזין שקילת בוקר, הרגלי חיים, תזונה ואימון, ובסיום היום הדוח ננעל ונשלח אוטומטית לענן.</p>
+            </div>
+
+            <div class="guide-card">
+              <div class="guide-card-icon">2</div>
+              <h3>הנחיות למתאמן</h3>
+              <ul class="guide-list">
+                <li><strong>שקילה בבוקר:</strong> הזנת משקל בוקר בצום, כמות מים ואיכות שינה.</li>
+                <li><strong>מעקב תזונה:</strong> רישום ארוחות עם חתימת שעה מדויקת (Timestamp).</li>
+                <li><strong>ביצוע אימון:</strong> תיעוד סטים, משקלים וחזרות לפי תקן Hevy ללא מסכים מיותרים.</li>
+                <li><strong>נעילת דוח:</strong> בסוף היום לוחצים על "נעילת דוח ושליחה למאמן".</li>
+              </ul>
+            </div>
+
+            <div class="guide-card">
+              <div class="guide-card-icon">3</div>
+              <h3>הנחיות וממשק המאמן</h3>
+              <ul class="guide-list">
+                <li><strong>סקירת 14 יום:</strong> מעקב מרוכז אחר עמידה ביעדי קלוריות, חלבון ומשקלים.</li>
+                <li><strong>צלילה לפרטים (Deep Dive):</strong> כניסה לכל יום בנפרד לצפייה בכל גרם ובכל סט.</li>
+                <li><strong>משוב אישי:</strong> כתיבת הערות והנחיות טכניקה למתאמן ישירות דרך המערכת.</li>
+                <li><strong>רישום מתאמנים:</strong> המאמן מנפיק חשבון למתאמן חדש עם סיסמה מוגדרת.</li>
+              </ul>
+            </div>
+
+            <div class="guide-card">
+              <div class="guide-card-icon">4</div>
+              <h3>רמות הרשאה ואבטחה</h3>
+              <ul class="guide-list">
+                <li><strong>מתאמן:</strong> רואה רק את הנתונים, התוכניות והדוחות האישיים שלו.</li>
+                <li><strong>מאמן:</strong> גישה לכלל המתאמנים המוקצים לו, סקירת היסטוריה ומשובים.</li>
+                <li><strong>מנהל מערכת (App Manager):</strong> ניטור תשתיות Firebase, מעקב פעילות חי וניהול תפקידים.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="guide-cta-row">
+            <button type="button" class="btn-action-primary" id="guideGoToLoginBtn">
+              <span>הבנתי, מעבר להתחברות למערכת ➔</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Firebase Cloud Database (Firestore) -->

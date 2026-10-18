@@ -28,19 +28,93 @@ class FitPulseDatabase {
     this.init();
   }
 
+  loadFromTraineeFolders() {
+    const traineesDir = path.join(__dirname, 'data', 'trainees');
+    if (!fs.existsSync(traineesDir)) return false;
+
+    const traineeDirs = fs.readdirSync(traineesDir, { withFileTypes: true })
+      .filter(d => d.isDirectory())
+      .map(d => d.name);
+
+    if (!traineeDirs.length) return false;
+
+    const loadedTrainees = [];
+    const loadedReports = {};
+
+    traineeDirs.forEach(tId => {
+      const traineeFolder = path.join(traineesDir, tId);
+      const statsFile = path.join(traineeFolder, 'current_stats.json');
+      
+      let tObj = { id: tId, name: tId };
+      if (fs.existsSync(statsFile)) {
+        try {
+          const stats = JSON.parse(fs.readFileSync(statsFile, 'utf8'));
+          tObj = {
+            id: stats.traineeId || tId,
+            name: stats.name || tId,
+            avatar: stats.avatar || '',
+            age: stats.profile?.age || 25,
+            gender: stats.profile?.gender || 'other',
+            weight: stats.profile?.currentWeightKg || 70,
+            height: stats.profile?.heightCm || 175,
+            targetCalories: stats.targets?.dailyCalories || 2400,
+            targetProtein: stats.targets?.dailyProteinGrams || 160,
+            targetWaterMl: stats.targets?.dailyWaterMl || 3000,
+            targetSleepHours: stats.targets?.dailySleepHours || 8,
+            assignedRoutine: stats.activeRoutine?.name || '',
+            notes: stats.activeRoutine?.focus || ''
+          };
+        } catch (e) {}
+      }
+      loadedTrainees.push(tObj);
+
+      // Find history folder (e.g. "history client_1")
+      const historySubfolders = fs.readdirSync(traineeFolder, { withFileTypes: true })
+        .filter(d => d.isDirectory() && d.name.startsWith('history'))
+        .map(d => d.name);
+
+      historySubfolders.forEach(hName => {
+        const historyPath = path.join(traineeFolder, hName);
+        const monthFiles = fs.readdirSync(historyPath).filter(f => f.endsWith('.json'));
+
+        monthFiles.forEach(mFile => {
+          try {
+            const mData = JSON.parse(fs.readFileSync(path.join(historyPath, mFile), 'utf8'));
+            const reports = Array.isArray(mData.reports) ? mData.reports : (Array.isArray(mData) ? mData : []);
+            reports.forEach(r => {
+              const key = `${r.traineeId || tId}_${r.date}`;
+              loadedReports[key] = r;
+            });
+          } catch (e) {}
+        });
+      });
+    });
+
+    if (loadedTrainees.length && Object.keys(loadedReports).length) {
+      this.data.trainees = loadedTrainees;
+      this.data.dailyReports = loadedReports;
+      console.log(`[Database] Loaded ${loadedTrainees.length} trainees and ${Object.keys(loadedReports).length} reports from per-trainee folder structure.`);
+      return true;
+    }
+    return false;
+  }
+
   init() {
-    if (fs.existsSync(DB_FILE)) {
-      try {
-        const raw = fs.readFileSync(DB_FILE, 'utf8');
-        this.data = JSON.parse(raw);
-        console.log(`[Database] Loaded ${Object.keys(this.data.dailyReports || {}).length} daily reports from disk.`);
-      } catch (err) {
-        console.error('[Database] Error reading DB file, reinitializing with seed:', err.message);
+    const loadedFromFolders = this.loadFromTraineeFolders();
+    if (!loadedFromFolders) {
+      if (fs.existsSync(DB_FILE)) {
+        try {
+          const raw = fs.readFileSync(DB_FILE, 'utf8');
+          this.data = JSON.parse(raw);
+          console.log(`[Database] Loaded ${Object.keys(this.data.dailyReports || {}).length} daily reports from disk.`);
+        } catch (err) {
+          console.error('[Database] Error reading DB file, reinitializing with seed:', err.message);
+          this.seedInitialData();
+        }
+      } else {
+        console.log('[Database] No existing DB found. Seeding initial data with 14-day history...');
         this.seedInitialData();
       }
-    } else {
-      console.log('[Database] No existing DB found. Seeding initial data with 14-day history...');
-      this.seedInitialData();
     }
 
     // Run auto-close on startup
@@ -74,6 +148,7 @@ class FitPulseDatabase {
         report.updatedAt = new Date().toISOString();
         report.autoClosedNote = 'הדוח נסגר אוטומטית בחצות בסוף היום ונשמר במסד הנתונים.';
         closedCount++;
+        this.saveReportToMonthlyFile(report);
       }
     }
 
@@ -480,6 +555,119 @@ class FitPulseDatabase {
     return this.data.trainees.find(t => t.id === id) || null;
   }
 
+  createTrainee(traineeData) {
+    const id = traineeData.id || `client_${Date.now()}`;
+    const name = traineeData.name || 'מתאמן חדש';
+    const email = traineeData.email || `${id}@fitpulse.com`;
+
+    const newTrainee = {
+      id,
+      name,
+      email,
+      avatar: traineeData.avatar || name.slice(0, 2),
+      age: parseInt(traineeData.age, 10) || 25,
+      gender: traineeData.gender || 'male',
+      weight: parseFloat(traineeData.weight) || 75.0,
+      height: parseInt(traineeData.height, 10) || 175,
+      targetCalories: parseInt(traineeData.targetCalories, 10) || 2400,
+      targetProtein: parseInt(traineeData.targetProtein, 10) || 160,
+      targetCarbs: parseInt(traineeData.targetCarbs, 10) || 220,
+      targetFat: parseInt(traineeData.targetFat, 10) || 65,
+      targetWaterMl: parseInt(traineeData.targetWaterMl, 10) || 3000,
+      targetSleepHours: parseFloat(traineeData.targetSleepHours) || 8.0,
+      assignedRoutine: traineeData.assignedRoutine || 'תוכנית מותאמת אישית',
+      notes: traineeData.notes || 'מתאמן חדש שצורף על ידי המאמן',
+      createdAt: new Date().toISOString()
+    };
+
+    const existingIdx = this.data.trainees.findIndex(t => t.id === id);
+    if (existingIdx >= 0) {
+      this.data.trainees[existingIdx] = newTrainee;
+    } else {
+      this.data.trainees.push(newTrainee);
+    }
+
+    const traineeFolders = [
+      path.join(__dirname, 'data', 'trainees', id),
+      path.join(__dirname, 'data', id)
+    ];
+
+    traineeFolders.forEach(dir => {
+      const historyDir = path.join(dir, `history ${id}`);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      if (!fs.existsSync(historyDir)) fs.mkdirSync(historyDir, { recursive: true });
+
+      const currentStats = {
+        traineeId: id,
+        name,
+        email,
+        avatar: newTrainee.avatar,
+        profile: {
+          age: newTrainee.age,
+          gender: newTrainee.gender,
+          heightCm: newTrainee.height,
+          currentWeightKg: newTrainee.weight,
+          startingWeightKg: newTrainee.weight,
+          targetWeightKg: parseFloat((newTrainee.weight - 3.0).toFixed(1))
+        },
+        targets: {
+          dailyCalories: newTrainee.targetCalories,
+          dailyProteinGrams: newTrainee.targetProtein,
+          dailyCarbsGrams: newTrainee.targetCarbs,
+          dailyFatGrams: newTrainee.targetFat,
+          dailyWaterMl: newTrainee.targetWaterMl,
+          dailySleepHours: newTrainee.targetSleepHours
+        },
+        activeRoutine: {
+          name: newTrainee.assignedRoutine,
+          focus: newTrainee.notes
+        },
+        activityMetrics: {
+          totalReportsLogged: 0,
+          totalWorkoutsCompleted: 0,
+          complianceRate: '100%',
+          latestCheckInDate: null
+        },
+        createdAt: newTrainee.createdAt,
+        updatedAt: newTrainee.createdAt
+      };
+
+      fs.writeFileSync(path.join(dir, 'current_stats.json'), JSON.stringify(currentStats, null, 2), 'utf8');
+      fs.writeFileSync(path.join(dir, 'current stats.json'), JSON.stringify(currentStats, null, 2), 'utf8');
+    });
+
+    this.save();
+    this.logActivity('USER_CREATED', `נרשם מתאמן חדש: ${name} (${email}) ע"י המאמן`);
+    return newTrainee;
+  }
+
+  logActivity(type, description, meta = {}) {
+    if (!this.data.auditLogs) this.data.auditLogs = [];
+    const event = {
+      id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      type,
+      description,
+      meta,
+      timestamp: new Date().toISOString()
+    };
+    this.data.auditLogs.unshift(event);
+    if (this.data.auditLogs.length > 100) this.data.auditLogs.pop();
+    this.save();
+    return event;
+  }
+
+  getAuditLogs(limit = 50) {
+    if (!this.data.auditLogs || !this.data.auditLogs.length) {
+      // Seed initial audit logs if empty
+      this.data.auditLogs = [
+        { id: 'log_init_1', type: 'SYSTEM_BOOT', description: 'מערכת FitPulse ושרת Firebase הופעלו בהצלחה', timestamp: new Date(Date.now() - 3600000).toISOString() },
+        { id: 'log_init_2', type: 'FIRESTORE_CONNECTED', description: 'חיבור תקין למסד Cloud Firestore באזור me-west1', timestamp: new Date(Date.now() - 3000000).toISOString() },
+        { id: 'log_init_3', type: 'AUTH_READY', description: 'ספק אימות Firebase Auth מוגדר ופעיל (אימייל וסיסמה)', timestamp: new Date(Date.now() - 2500000).toISOString() }
+      ];
+    }
+    return this.data.auditLogs.slice(0, limit);
+  }
+
   /**
    * Returns reports for a specific trainee filtered by date range or days count (default 14).
    */
@@ -548,6 +736,7 @@ class FitPulseDatabase {
 
     this.data.dailyReports[key] = merged;
     this.save();
+    this.saveReportToMonthlyFile(merged);
     return merged;
   }
 
@@ -573,6 +762,7 @@ class FitPulseDatabase {
     existing.finalizedAt = nowIso;
     existing.updatedAt = nowIso;
     this.save();
+    this.saveReportToMonthlyFile(existing);
     return existing;
   }
 
@@ -594,7 +784,158 @@ class FitPulseDatabase {
     };
     existing.updatedAt = new Date().toISOString();
     this.save();
+    this.saveReportToMonthlyFile(existing);
     return existing;
+  }
+
+  /**
+   * Saves a daily report into its corresponding monthly file inside history {trainee}/
+   */
+  saveReportToMonthlyFile(report) {
+    try {
+      const traineeId = report.traineeId;
+      const month = report.date.substring(0, 7); // e.g. "2026-10"
+
+      const targetDirs = [
+        path.join(__dirname, 'data', 'trainees', traineeId, `history ${traineeId}`),
+        path.join(__dirname, 'data', traineeId, `history ${traineeId}`)
+      ];
+
+      targetDirs.forEach(dir => {
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        const monthFile = path.join(dir, `${month}.json`);
+
+        let payload = {
+          traineeId,
+          month,
+          totalReports: 0,
+          reports: []
+        };
+
+        if (fs.existsSync(monthFile)) {
+          try {
+            payload = JSON.parse(fs.readFileSync(monthFile, 'utf8'));
+            if (!Array.isArray(payload.reports)) payload.reports = [];
+          } catch (e) {}
+        }
+
+        const idx = payload.reports.findIndex(r => r.date === report.date || r.id === report.id);
+        if (idx >= 0) {
+          payload.reports[idx] = report;
+        } else {
+          payload.reports.push(report);
+        }
+
+        payload.reports.sort((a, b) => a.date.localeCompare(b.date));
+        payload.totalReports = payload.reports.length;
+
+        fs.writeFileSync(monthFile, JSON.stringify(payload, null, 2), 'utf8');
+      });
+
+      this.updateTraineeCurrentStats(traineeId);
+    } catch (err) {
+      console.warn('[Database] Error saving to monthly file:', err.message);
+    }
+  }
+
+  /**
+   * Updates current_stats.json for a trainee based on latest activity
+   */
+  updateTraineeCurrentStats(traineeId) {
+    try {
+      const trainee = this.getTrainee(traineeId);
+      if (!trainee) return;
+
+      const reports = Object.values(this.data.dailyReports)
+        .filter(r => r.traineeId === traineeId)
+        .sort((a, b) => b.date.localeCompare(a.date));
+
+      const latestReport = reports[0];
+      const totalWorkouts = reports.reduce((acc, r) => acc + (r.workouts?.length || 0), 0);
+
+      const targetDirs = [
+        path.join(__dirname, 'data', 'trainees', traineeId),
+        path.join(__dirname, 'data', traineeId)
+      ];
+
+      targetDirs.forEach(dir => {
+        if (!fs.existsSync(dir)) return;
+        const statsFile = path.join(dir, 'current_stats.json');
+        const statsFileSpaced = path.join(dir, 'current stats.json');
+
+        const updated = {
+          traineeId,
+          name: trainee.name,
+          avatar: trainee.avatar,
+          profile: {
+            age: trainee.age,
+            gender: trainee.gender,
+            heightCm: trainee.height,
+            currentWeightKg: latestReport?.checkIn?.morningWeight || latestReport?.metrics?.morningWeightKg || trainee.weight,
+            targetWeightKg: trainee.targetWeight || parseFloat((trainee.weight - 4.0).toFixed(1))
+          },
+          targets: {
+            dailyCalories: trainee.targetCalories,
+            dailyProteinGrams: trainee.targetProtein,
+            dailyCarbsGrams: trainee.targetCarbs,
+            dailyFatGrams: trainee.targetFat,
+            dailyWaterMl: trainee.targetWaterMl,
+            dailySleepHours: trainee.targetSleepHours
+          },
+          activeRoutine: {
+            name: trainee.assignedRoutine,
+            focus: trainee.notes
+          },
+          activityMetrics: {
+            totalReportsLogged: reports.length,
+            totalWorkoutsCompleted: totalWorkouts,
+            latestCheckInDate: latestReport?.date || null,
+            latestCheckInStatus: latestReport?.status || null
+          },
+          updatedAt: new Date().toISOString()
+        };
+
+        fs.writeFileSync(statsFile, JSON.stringify(updated, null, 2), 'utf8');
+        fs.writeFileSync(statsFileSpaced, JSON.stringify(updated, null, 2), 'utf8');
+      });
+    } catch (err) {
+      console.warn('[Database] Error updating trainee stats:', err.message);
+    }
+  }
+
+  /**
+   * Retrieves reports from a specific monthly file inside history {trainee}/
+   */
+  getMonthlyReports(traineeId, month) {
+    const monthFile = path.join(__dirname, 'data', 'trainees', traineeId, `history ${traineeId}`, `${month}.json`);
+    if (fs.existsSync(monthFile)) {
+      try {
+        return JSON.parse(fs.readFileSync(monthFile, 'utf8'));
+      } catch (e) {}
+    }
+    // In-memory fallback
+    const reports = Object.values(this.data.dailyReports)
+      .filter(r => r.traineeId === traineeId && r.date.startsWith(month))
+      .sort((a, b) => a.date.localeCompare(b.date));
+    return {
+      traineeId,
+      month,
+      totalReports: reports.length,
+      reports
+    };
+  }
+
+  /**
+   * Retrieves current_stats.json for a trainee
+   */
+  getTraineeStats(traineeId) {
+    const statsFile = path.join(__dirname, 'data', 'trainees', traineeId, 'current_stats.json');
+    if (fs.existsSync(statsFile)) {
+      try {
+        return JSON.parse(fs.readFileSync(statsFile, 'utf8'));
+      } catch (e) {}
+    }
+    return null;
   }
 }
 

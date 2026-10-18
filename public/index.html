@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FitPulse | אימונים, תזונה ומאגר מאמן</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <canvas id="confettiCanvas"></canvas>
+
+  <!-- Header & Navigation -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-wrapper" id="brandHomeBtn" role="button" tabindex="0">
+        <div class="logo-badge">
+          <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+        </div>
+        <div class="brand-text">
+          <h1>FitPulse</h1>
+          <span>פיטפולס • כושר ותזונה מתקדמת</span>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs (Renamed Icons/Tabs as requested) -->
+      <nav class="nav-tab-container" aria-label="ניווט ראשי">
+        <button class="nav-tab-btn active" data-tab="tab-dashboard" id="navTabDashboard">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+          לוח בקרה
+        </button>
+        <button class="nav-tab-btn" data-tab="tab-workouts" id="navTabWorkouts">
+          <svg viewBox="0 0 24 24"><path d="M6 5v14M18 5v14M2 9v6M22 9v6M6 12h12"></path></svg>
+          אימונים
+        </button>
+        <button class="nav-tab-btn trainer-vip-tab" data-tab="tab-equivalents" id="navTabEquivalents" hidden>
+          תרגילים שקולים
+        </button>
+        <button class="nav-tab-btn" data-tab="tab-nutrition" id="navTabNutrition">
+          <svg viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path></svg>
+          תזונה
+        </button>
+        <button class="nav-tab-btn" data-tab="tab-daily-report" id="navTabDailyReport">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          דוח יומי
+        </button>
+        <button class="nav-tab-btn" data-tab="tab-progress" id="navTabProgress">
+          <svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline></svg>
+          התקדמות ומחשבון
+        </button>
+        <button class="nav-tab-btn coach-vip-tab" data-tab="tab-coach" id="navTabCoach" hidden>
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
+          מאמן
+        </button>
+        <button class="nav-tab-btn manager-vip-tab" data-tab="tab-app-manager" id="navTabAppManager" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          מנהל מערכת
+        </button>
+      </nav>
+
+      <div class="header-actions">
+        <div class="header-user-chip" id="headerUserChip">
+          <div class="header-user-avatar" id="headerUserAvatar">דכ</div>
+          <div class="header-user-info">
+            <span class="header-user-name" id="headerUserName">דניאל כהן</span>
+            <span class="header-user-role-badge role-trainee" id="headerUserRoleBadge">מתאמן</span>
+          </div>
+          <button class="header-logout-btn" id="headerLogoutBtn" type="button" title="התנתקות מהמערכת">יציאה</button>
+        </div>
+        <button class="btn-action-primary" id="headerStartWorkoutBtn">
+          <span>להתחל אימון</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="app-main">
+
+    <!-- TAB 1: DASHBOARD -->
+    <section class="tab-pane active" id="tab-dashboard">
+      <div class="dashboard-heading">
+        <div>
+          <span class="eyebrow">התוכנית שלך, במבט אחד</span>
+          <h2 id="dashboardGreeting">שלום, מתאמן</h2>
+          <p id="dashboardDate"></p>
+        </div>
+        <button class="btn-action-primary" id="dashboardAddMealBtn" type="button">＋ הוספת ארוחה</button>
+      </div>
+      <div class="hero-dashboard-grid">
+        <div class="glass-card energy-overview-card">
+          <div class="card-header-flex">
+            <div>
+              <span class="eyebrow">התקדמות יומית</span>
+              <h2>מאזן קלוריות</h2>
+            </div>
+            <span class="dashboard-icon">◉</span>
+          </div>
+          <div class="calorie-overview">
+            <div class="apple-rings-svg-container">
+              <svg viewBox="0 0 160 160">
+                <circle class="ring-bg" cx="80" cy="80" r="65"></circle>
+                <circle class="ring-bar calories" id="ringCalories" cx="80" cy="80" r="65" stroke-dasharray="408.4" stroke-dashoffset="408.4"></circle>
+              </svg>
+              <div class="rings-center-text">
+                <div class="rings-center-val" id="ringConsumedCals">0</div>
+                <div class="rings-center-sub">קלוריות נאכלו</div>
+              </div>
+            </div>
+            <div class="calorie-details">
+              <div><span class="calorie-dot"></span><span>יעד יומי</span><strong><span id="calorieTarget">0</span> קל׳</strong></div>
+              <div><span class="calorie-dot consumed"></span><span>נצרכו</span><strong><span id="calorieConsumed">0</span> קל׳</strong></div>
+              <div><span class="calorie-dot remaining"></span><span>נותרו</span><strong><span id="ringRemainingCals">0</span> קל׳</strong></div>
+            </div>
+          </div>
+          <p id="calorieBalanceNotice" class="calorie-balance-notice" role="status" aria-live="polite" hidden></p>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-header-flex macro-heading">
+            <div>
+              <span class="eyebrow">היעדים שלך להיום</span>
+              <h2>מאקרו־נוטריאנטים</h2>
+            </div>
+            <span class="dashboard-icon">◈</span>
+          </div>
+          <div class="macro-progress-list">
+            <div class="macro-progress-item protein">
+              <div class="macro-progress-label"><span class="macro-symbol">✦</span><strong>חלבון</strong><span class="macro-amounts" dir="ltr"><b id="dashProteinCurrent">0</b> / <span id="dashProteinTarget">0</span> גרם</span></div>
+              <div class="macro-track"><span id="proteinProgress"></span></div>
+            </div>
+            <div class="macro-progress-item carbs">
+              <div class="macro-progress-label"><span class="macro-symbol">◆</span><strong>פחמימות</strong><span class="macro-amounts" dir="ltr"><b id="dashCarbsCurrent">0</b> / <span id="dashCarbsTarget">0</span> גרם</span></div>
+              <div class="macro-track"><span id="carbsProgress"></span></div>
+            </div>
+            <div class="macro-progress-item fat">
+              <div class="macro-progress-label"><span class="macro-symbol">●</span><strong>שומנים</strong><span class="macro-amounts" dir="ltr"><b id="dashFatCurrent">0</b> / <span id="dashFatTarget">0</span> גרם</span></div>
+              <div class="macro-track"><span id="fatProgress"></span></div>
+            </div>
+          </div>
+          <form id="dailyTargetsForm" class="daily-targets-form" aria-label="עריכת יעדי הצריכה היומיים">
+            <label>קלוריות <input name="targetCalories" type="number" min="500" max="10000" step="50" required></label>
+            <label>חלבון (גרם) <input name="targetProtein" type="number" min="0" max="1000" step="1" required></label>
+            <label>פחמימות (גרם) <input name="targetCarbs" type="number" min="0" max="1500" step="1" required></label>
+            <label>שומן (גרם) <input name="targetFat" type="number" min="0" max="1000" step="1" required></label>
+            <button class="btn-action-secondary" type="submit">שמירת יעדי צריכה</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="dashboard-section-heading">
+        <div>
+          <span class="eyebrow">עקביות היא המפתח</span>
+          <h2>היום שלך</h2>
+        </div>
+        <span class="dashboard-date-chip" id="todayDateChip"></span>
+      </div>
+      <div class="daily-cards-grid">
+        <article class="daily-card workout-daily-card">
+          <div class="daily-card-heading"><span class="daily-card-icon">⌁</span><span>אימוני השבוע</span></div>
+          <div class="daily-card-main"><div class="mini-ring workout-mini-ring"><span id="weeklyWorkoutCount">0/5</span></div><div><strong id="weeklyWorkoutHeadline">0 מתוך 5 אימונים</strong><span>ממשיכים בקצב שלך</span></div></div>
+          <button class="text-action" type="button" data-open-tab="tab-workouts">צפייה באימונים <span aria-hidden="true">←</span></button>
+        </article>
+        <article class="daily-card meals-daily-card">
+          <div class="daily-card-heading"><span class="daily-card-icon">☕</span><span>ארוחות היום</span></div>
+          <div class="daily-card-main"><div class="mini-ring meals-mini-ring"><span id="todayMealCount">0/4</span></div><div><strong id="mealProgressHeadline">0 מתוך 4 ארוחות</strong><span>תכנון תזונתי יומי</span></div></div>
+          <button class="text-action" type="button" data-open-tab="tab-nutrition">צפייה בתזונה <span aria-hidden="true">←</span></button>
+        </article>
+        <article class="daily-card water-daily-card">
+          <div class="daily-card-heading"><span class="daily-card-icon">◉</span><span>מאזן מים יומי</span></div>
+          <div class="daily-card-main water-main"><div><strong><span id="waterProgressText" dir="ltr">0 / 2,800</span> מ״ל</strong><span>יעד השתייה היומי</span></div><span class="water-drop" aria-hidden="true">💧</span></div>
+          <div class="daily-progress-track"><span id="waterProgressBar"></span></div>
+          <button class="text-action" id="addWaterBtn" type="button">＋ כוס מים (250 מ״ל)</button>
+        </article>
+        <article class="daily-card sleep-daily-card">
+          <div class="daily-card-heading"><span class="daily-card-icon">☾</span><span>מעקב שינה</span></div>
+          <div class="daily-card-main sleep-main"><div><strong><span id="sleepHoursValue">7.5</span> שעות</strong><span id="sleepGoalText">יעד 8 שעות</span></div><span class="sleep-icon" aria-hidden="true">✦</span></div>
+          <form id="sleepForm" class="sleep-form">
+            <label for="sleepHoursInput">עדכון שעות שינה</label>
+            <input id="sleepHoursInput" type="number" name="hours" min="0" max="24" step="0.5" value="7.5" required>
+            <button type="submit" aria-label="שמירת שעות שינה">שמירה</button>
+          </form>
+        </article>
+      </div>
+
+      <!-- Omega 3 to Omega 6 Ratio Tracking Component -->
+      <div class="glass-card" style="margin-bottom: 24px;">
+        <div class="card-header-flex">
+          <h2>יחס אומגה 6:אומגה 3 (Omega-6 to Omega-3)</h2>
+          <span id="omegaRatioBadge" class="micro-status-pill good">יחס אופטימלי ✓</span>
+        </div>
+        <div style="display: flex; gap: 20px; align-items: center; justify-content: space-around;">
+          <div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">אומגה 3 (Omega-3)</div>
+            <div style="font-size: 1.4rem; font-weight: 800; color: #38bdf8;" id="omega3Val">1.2g</div>
+          </div>
+          <div style="font-size: 1.5rem; font-weight: 800; color: var(--text-dim);">:</div>
+          <div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">אומגה 6 (Omega-6)</div>
+            <div style="font-size: 1.4rem; font-weight: 800; color: #f43f5e;" id="omega6Val">4.8g</div>
+          </div>
+          <div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">יחס נוכחי</div>
+            <div style="font-size: 1.4rem; font-weight: 800; color: var(--accent-primary);" id="calculatedOmegaRatio">1 : 4.0</div>
+          </div>
+        </div>
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 10px;" id="omegaAdviceNote">
+          אומדן יחסי חומצות השומן במזונות שנרשמו. יחס אומגה 3:6 אינו ערך ייחוס רפואי או מדד להתאוששות.
+        </p>
+        <p class="today-summary" id="todaySummary"></p>
+      </div>
+      <section class="micronutrient-card" aria-labelledby="micronutrientHeading">
+        <div class="card-header-flex">
+          <div><span class="eyebrow">מעקב תזונתי יומי</span><h2 id="micronutrientHeading">מיקרו־נוטריאנטים ותובנות</h2></div>
+          <span class="dashboard-icon">✦</span>
+        </div>
+        <div class="micro-grid">
+          <article class="micro-item"><span>נתרן</span><strong><span id="sodiumValue">0</span> <small>מ״ג</small></strong><div class="micro-track"><span id="sodiumProgress"></span></div><small>עד 2,300 מ״ג</small></article>
+          <article class="micro-item"><span>סוכר כולל</span><strong><span id="sugarValue">0</span> <small>גרם</small></strong><div class="micro-track"><span id="sugarProgress"></span></div><small id="sugarReferenceLabel">יעד סוכר מוסף: 50 גרם</small></article>
+          <article class="micro-item"><span>אשלגן</span><strong><span id="potassiumValue">0</span> <small>מ״ג</small></strong><div class="micro-track"><span id="potassiumProgress"></span></div><small>ערך יומי: 4,700 מ״ג</small></article>
+          <article class="micro-item"><span>סיבים תזונתיים</span><strong><span id="fiberValue">0</span> <small>גרם</small></strong><div class="micro-track"><span id="fiberProgress"></span></div><small>ערך יומי: 28 גרם</small></article>
+        </div>
+        <p id="nutritionInsight" class="nutrition-insight" role="status"></p>
+        <p class="nutrition-disclaimer">ערכי ייחוס כלליים למבוגרים, לא המלצה רפואית אישית. סוכר כולל אינו זהה לסוכר מוסף; יחסי אומגה הם אומדן מהמזונות שדווחו ואינם יעד רפואי.</p>
+      </section>
+    </section>
+
+    <!-- TAB 2: WORKOUTS (עם הפרדה ומצב "קצר בזמן") -->
+    <section class="tab-pane" id="tab-workouts">
+      <div class="card-header-flex">
+        <h2>אימונים ותוכניות</h2>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn-action-secondary" id="importRoutineCodeBtn">ייבוא תוכנית (קוד/קישור)</button>
+          <button class="btn-action-secondary trainer-equivalents-link" id="manageEquivalentExercisesBtn" type="button" hidden>ניהול תרגילים שקולים</button>
+          <button class="btn-action-primary" id="openCreateWorkoutModalBtn">+ בנה אימון חדש</button>
+        </div>
+      </div>
+      <div class="workout-template-toolbar" aria-label="חיפוש וסינון תוכניות אימון">
+        <label class="workout-template-search"><span aria-hidden="true">⌕</span><input id="workoutTemplateSearch" type="search" placeholder="חיפוש תוכנית או תרגיל..." autocomplete="off" aria-label="חיפוש תוכניות ותרגילים"></label>
+        <div class="workout-template-filters" id="workoutTemplateFilters" role="group" aria-label="סינון לפי קבוצת שרירים"></div>
+        <div class="workout-category-tabs" id="workoutCategoryTabs" role="group" aria-label="סינון לפי עמודות וסוגי אימון"></div>
+        <p id="workoutTemplateStatus" class="food-search-status" aria-live="polite"></p>
+      </div>
+
+      <section class="recent-workouts-section" id="recentWorkoutsSection" aria-labelledby="recentWorkoutsTitle" hidden>
+        <h3 id="recentWorkoutsTitle">האימונים האחרונים שלך</h3>
+        <div class="recent-workout-grid" id="recentWorkoutGrid"></div>
+      </section>
+      <section class="workout-volume-section" aria-labelledby="weeklyMuscleVolumeTitle">
+        <div class="volume-section-heading">
+          <div><span class="eyebrow">סטים שהושלמו · 7 ימים אחרונים</span><h3 id="weeklyMuscleVolumeTitle">נפח שבועי לפי שריר ראשי</h3></div>
+          <span>כל סט נספר פעם אחת בלבד לפי השריר הראשי בתוכנית.</span>
+        </div>
+        <div class="weekly-muscle-volume-grid" id="weeklyMuscleVolumeGrid"></div>
+      </section>
+
+      <!-- Dedicated Workout Columns/Categories (עמודות נפרדות לכל סוג אימון: פוש, פול, רגליים וכו') -->
+      <div class="workout-categories-columns" id="workoutCategoriesColumns"></div>
+
+      <!-- Backward-compatible legacy containers -->
+      <div class="legacy-grids-container" style="display: none;" aria-hidden="true">
+        <div class="preset-workouts-grid" id="weeklySplitsGrid"></div>
+        <div class="preset-workouts-grid" id="individualSessionsGrid"></div>
+      </div>
+    </section>
+
+    <section class="tab-pane" id="tab-equivalents">
+      <div class="card-header-flex equivalent-page-heading">
+        <div><span class="eyebrow">כלי מאמן · נשמר בדפדפן זה</span><h2>ניהול תרגילים שקולים</h2></div>
+        <button class="btn-action-secondary" id="equivalentsBackBtn" type="button">חזרה לאימונים</button>
+      </div>
+      <p class="equivalent-page-note">סמנו אילו תרגילים יכולים להחליף תרגיל מועדף עבור אותה קבוצת שריר ותת־קבוצה. באימון יוצגו רק התרגיל המועדף והשקולים שסומנו, שמתאימים לציוד שנבחר.</p>
+      <form id="equivalentExerciseForm" class="equivalent-exercise-form">
+        <label>קבוצת שריר ראשית<select id="equivalentMuscleSelect" required></select></label>
+        <label>תת־קבוצה<select id="equivalentSubgroupSelect" required></select></label>
+        <label>תרגיל מועדף<select id="equivalentPreferredSelect" required></select></label>
+        <label>תרגילים שקולים<select id="equivalentAlternativesSelect" multiple size="6" aria-describedby="equivalentAlternativesHelp"></select><small id="equivalentAlternativesHelp">אפשר לבחור כמה חלופות מאותה קבוצת שריר ותת־קבוצה; Ctrl/⌘ מאפשר בחירה מרובה.</small></label>
+        <div class="equivalent-form-actions">
+          <button class="btn-action-primary" id="saveEquivalentGroupBtn" type="submit">שמירת שקילות</button>
+          <button class="btn-action-secondary" id="cancelEquivalentEditBtn" type="button" hidden>ביטול עריכה</button>
+        </div>
+      </form>
+      <div class="equivalent-groups-list" id="equivalentGroupsList"></div>
+    </section>
+
+    <!-- TAB 3: NUTRITION -->
+    <section class="tab-pane" id="tab-nutrition">
+      <h2>יומן תזונה ומאגר מאכלים מורחב</h2>
+      <div class="nutrition-search-sticky">
+        <div class="nutrition-search-row">
+          <label class="food-search-field"><span aria-hidden="true">⌕</span><input id="foodSearchInput" type="search" placeholder="חיפוש מאכל, קטגוריה או רכיב..." autocomplete="off" aria-label="חיפוש מאכלים"></label>
+          <button class="btn-action-secondary voice-record-btn" id="voiceNutritionBtn" type="button" title="הקלטת מזון קולית (Speech-to-Text)">🎙️ הקלטה קולית</button>
+          <button class="btn-action-secondary barcode-open-btn" id="openBarcodeScannerBtn" type="button">📷 סרוק ברקוד</button>
+        </div>
+        <div id="voiceNutritionStatus" class="voice-nutrition-status" hidden>
+          <span class="voice-pulse-dot" aria-hidden="true"></span>
+          <span id="voiceNutritionStatusText">מקשיב... אמרו שם מאכל וכמות (למשל: "חזה עוף 200 גרם")</span>
+          <button type="button" id="voiceNutritionStopBtn" class="voice-stop-btn">עצירה</button>
+        </div>
+        <div class="food-category-filters" id="foodCategoryFilters" role="group" aria-label="סינון לפי קטגוריה"></div>
+        <p id="foodSearchStatus" class="food-search-status" aria-live="polite"></p>
+      </div>
+      <div class="meals-list" id="mealsContainer"></div>
+    </section>
+
+    <!-- TAB: DAILY TRAINEE REPORT (דוח יומי למתאמן) -->
+    <section class="tab-pane" id="tab-daily-report">
+      <div class="daily-report-header">
+        <div class="daily-report-title-row">
+          <div>
+            <span class="eyebrow">דיווח יומי אישי ומעקב מדדים</span>
+            <h2>דוח פעילות יומי למאמן</h2>
+          </div>
+          <div class="daily-report-date-selector">
+            <button class="btn-icon-day" id="dailyReportPrevDayBtn" type="button" title="יום קודם">◀</button>
+            <span class="daily-report-current-date" id="dailyReportDateLabel">היום</span>
+            <input type="date" id="dailyReportDatePicker" class="daily-report-date-input">
+            <button class="btn-icon-day" id="dailyReportNextDayBtn" type="button" title="יום הבא">▶</button>
+          </div>
+        </div>
+
+        <div class="daily-report-status-bar">
+          <div class="status-info">
+            <span class="status-pill status-draft" id="dailyReportStatusBadge">טיוטה פעילה · מסתנכרן אוטומטית</span>
+            <span class="sync-time" id="dailyReportSyncTime">סונכרן למסד הנתונים</span>
+          </div>
+          <div class="report-actions">
+            <button class="btn-action-primary finalize-report-btn" id="dailyReportFinalizeBtn" type="button">
+              נעילה ושליחת דוח יומי למאמן
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Overview -->
+      <div class="daily-report-summary-grid">
+        <div class="summary-card">
+          <div class="card-caption">תזונה יומית</div>
+          <div class="card-metric-val" id="reportCaloriesSummary">0 / 0 קק"ל</div>
+          <div class="card-metric-sub" id="reportMacrosSummary">חלבון: 0g · פחמימות: 0g · שומן: 0g</div>
+          <div class="progress-bar-wrap"><div class="progress-bar-fill" id="reportCalorieProgress" style="width: 0%;"></div></div>
+        </div>
+        <div class="summary-card">
+          <div class="card-caption">אימונים שבוצעו היום</div>
+          <div class="card-metric-val" id="reportWorkoutSummary">טרם בוצע אימון</div>
+          <div class="card-metric-sub" id="reportWorkoutVolume">נפח כולל: 0 ק"ג</div>
+        </div>
+        <div class="summary-card">
+          <div class="card-caption">משקל ומים</div>
+          <div class="card-metric-val" id="reportWeightWaterSummary">-- ק"ג · 0 מ"ל</div>
+          <div class="card-metric-sub" id="reportSleepSummary">שינה: -- שעות</div>
+        </div>
+      </div>
+
+      <!-- Trainee Daily Check-in Form -->
+      <div class="checkin-form-container">
+        <div class="checkin-header">
+          <h3>שאלון מדדים וסגנון חיים</h3>
+          <p>השדות נשמרים אוטומטית ומצורפים ישירות לדוח היומי של המאמן.</p>
+        </div>
+
+        <form id="dailyCheckinForm" class="checkin-grid">
+          <div class="checkin-field">
+            <label for="checkinWeight">משקל בוקר בצום (ק"ג)</label>
+            <input type="number" id="checkinWeight" step="0.1" min="30" max="250" placeholder="למשל: 82.4">
+          </div>
+          <div class="checkin-field">
+            <label for="checkinWater">כמות שתיית מים (מ"ל)</label>
+            <input type="number" id="checkinWater" step="50" min="0" max="10000" placeholder="למשל: 3000">
+          </div>
+          <div class="checkin-field">
+            <label for="checkinSleepHours">שעות שינה בלילה החולף</label>
+            <input type="number" id="checkinSleepHours" step="0.5" min="0" max="24" placeholder="למשל: 7.5">
+          </div>
+          <div class="checkin-field">
+            <label for="checkinSleepQuality">איכות שינה (1-10)</label>
+            <div class="slider-row">
+              <input type="range" id="checkinSleepQuality" min="1" max="10" value="8" class="checkin-slider">
+              <span class="range-display" id="checkinSleepQualityVal">8/10</span>
+            </div>
+          </div>
+          <div class="checkin-field">
+            <label for="checkinSteps">צעדים / פעילות יומית</label>
+            <input type="number" id="checkinSteps" step="100" min="0" max="100000" placeholder="למשל: 10000">
+          </div>
+          <div class="checkin-field">
+            <label for="checkinDigestion">מצב מערכת עיכול ונפיחות</label>
+            <select id="checkinDigestion">
+              <option value="good">תקין ונוח (ללא נפיחות)</option>
+              <option value="bloated">נפיחות קלה / כבדות</option>
+              <option value="irregular">חוסר סדירות / אי-נוחות</option>
+              <option value="neutral">רגיל / סביר</option>
+            </select>
+          </div>
+
+          <!-- Subjective Rating Pills -->
+          <div class="checkin-field full-width">
+            <label>רמת אנרגיה וחיוניות לאורך היום (1-5)</label>
+            <div class="rating-pills" id="energyRatingPills" data-rating="energy">
+              <button type="button" class="rating-pill" data-val="1">1 - ירודה מאוד</button>
+              <button type="button" class="rating-pill" data-val="2">2 - נמוכה</button>
+              <button type="button" class="rating-pill" data-val="3">3 - ממוצעת</button>
+              <button type="button" class="rating-pill active" data-val="4">4 - טובה</button>
+              <button type="button" class="rating-pill" data-val="5">5 - שיא</button>
+            </div>
+          </div>
+
+          <div class="checkin-field full-width">
+            <label>רמת רעב / חשקים למתוק (1-5)</label>
+            <div class="rating-pills" id="hungerRatingPills" data-rating="hunger">
+              <button type="button" class="rating-pill" data-val="1">1 - שבע מאוד</button>
+              <button type="button" class="rating-pill active" data-val="2">2 - רעב נשלט ומותאם</button>
+              <button type="button" class="rating-pill" data-val="3">3 - בינוני</button>
+              <button type="button" class="rating-pill" data-val="4">4 - רעב מוגבר</button>
+              <button type="button" class="rating-pill" data-val="5">5 - התקפי רעב קשים</button>
+            </div>
+          </div>
+
+          <div class="checkin-field full-width">
+            <label>רמת עומס נפשי וסטרס (1-5)</label>
+            <div class="rating-pills" id="stressRatingPills" data-rating="stress">
+              <button type="button" class="rating-pill active" data-val="1">1 - רגוע ונינוח</button>
+              <button type="button" class="rating-pill" data-val="2">2 - סטרס קל</button>
+              <button type="button" class="rating-pill" data-val="3">3 - עומס בינוני</button>
+              <button type="button" class="rating-pill" data-val="4">4 - לחץ גבוה</button>
+              <button type="button" class="rating-pill" data-val="5">5 - שחיקה וסטרס קיצוני</button>
+            </div>
+          </div>
+
+          <div class="checkin-field full-width">
+            <label for="checkinNotes">הערות, שאלות ופירוט תחושות למאמן</label>
+            <textarea id="checkinNotes" rows="3" placeholder="כתבו כאן כל תחושה, כאב, קושי באימון או שאלה שתרצו שהמאמן יראה בדוח שלכם..."></textarea>
+          </div>
+        </form>
+      </div>
+
+      <!-- Time-stamped Activity Stream (ציר זמן פעילות היום) -->
+      <div class="daily-timeline-section">
+        <div class="timeline-header">
+          <h3>ציר זמן ארוחות ואימונים · חותמת שעה מדויקת</h3>
+          <p>כל פריט שנרשם היום מופיע עם השעה המדויקת של התיעוד.</p>
+        </div>
+        <div class="daily-activity-stream" id="dailyReportTimeline"></div>
+      </div>
+    </section>
+
+    <!-- TAB 4: PROGRESS & CALCULATOR -->
+    <section class="tab-pane" id="tab-progress">
+      <h2>מחשבון TDEE ומעקב משקל</h2>
+      <canvas id="weightChart"></canvas>
+    </section>
+
+    <!-- TAB 5: COACH DASHBOARD (עמודת המאמן הבלעדית) -->
+    <section class="tab-pane" id="tab-coach">
+      <div class="coach-header-banner">
+        <h2>לוח בקרה מרכזי למאמן · מעקב דוחות יומיים</h2>
+        <p>סקירה מקיפה של נתוני המתאמנים, היסטוריית דיווחים, ועמידה ביעדי תזונה ואימונים.</p>
+      </div>
+      <div id="coachAccessNotice" class="coach-access-notice" role="status" hidden>לוח המאמן זמין רק בתצוגת trainer_admin המקומית. הגדרת תפקיד בדפדפן אינה RBAC מאובטח.</div>
+      <div id="coachAdminContent" hidden>
+        <div class="coach-tools-row">
+          <label>חיפוש מתאמנים <input id="coachTraineeSearch" type="search" placeholder="שם מתאמן..."></label>
+          <label>סינון פעילות <select id="coachTraineeFilter"><option value="all">כולם</option><option value="active">התאמנו היום</option><option value="inactive">טרם התאמנו היום</option></select></label>
+          <label>בחירת מתאמן <select id="coachTraineeSelect"></select></label>
+          <button class="btn-action-primary" id="coachBuildProgramBtn" type="button">＋ בניית תוכנית</button>
+          <button class="btn-action-secondary" id="coachRegisterTraineeBtn" type="button">➕ רישום מתאמן חדש</button>
+        </div>
+
+        <!-- Trainee Quick Overview Bar -->
+        <div class="coach-trainee-profile-bar" id="coachTraineeProfileBar"></div>
+
+        <!-- Historical Daily Reports Section -->
+        <section class="coach-table-section">
+          <div class="coach-section-header-flex">
+            <div>
+              <h3>היסטוריית דוחות יומיים · מסד נתונים מרכזי</h3>
+              <p>תצוגה מסוכמת כברירת מחדל של 14 הימים האחרונים (שבועיים), עם אפשרות להרחבת טווח וצפייה מעמיקה בכל יום.</p>
+            </div>
+            <div class="coach-range-selector-wrap">
+              <label for="coachRangeFilter">טווח היסטוריה:</label>
+              <select id="coachRangeFilter">
+                <option value="14" selected>14 ימים אחרונים (שבועיים)</option>
+                <option value="30">30 ימים אחרונים (חודש)</option>
+                <option value="60">60 ימים אחרונים (חודשיים)</option>
+                <option value="all">כל ההיסטוריה</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="coach-table-scroll">
+            <table class="coach-reports-history-table">
+              <thead>
+                <tr>
+                  <th>תאריך</th>
+                  <th>סטטוס דוח</th>
+                  <th>שעת הגשה</th>
+                  <th>קלוריות (בפועל / יעד)</th>
+                  <th>חלבון</th>
+                  <th>אימון</th>
+                  <th>מים</th>
+                  <th>שינה</th>
+                  <th>משקל בוקר</th>
+                  <th>אנרגיה / סטרס</th>
+                  <th>פירוט מעמיק</th>
+                </tr>
+              </thead>
+              <tbody id="coachReportsHistoryRows"></tbody>
+            </table>
+          </div>
+          <div id="coachReportsEmptyState" class="empty-state" hidden>לא נמצאו דוחות יומיים עבור טווח זה.</div>
+        </section>
+
+        <!-- General Roster Grid -->
+        <section class="coach-table-section">
+          <h3>סטטוס כללי של כל המתאמנים</h3>
+          <div class="coach-trainees-grid" id="coachTraineesGrid"></div>
+        </section>
+      </div>
+    </section>
+
+    <!-- TAB 7: APP MANAGER (HIGHEST AUTHORITY INTERFACE) -->
+    <section class="tab-pane" id="tab-app-manager">
+      <div class="manager-heading-banner">
+        <div>
+          <span class="eyebrow eyebrow-gold">סמכות עליונה · ניהול אפליקציה ותשתיות</span>
+          <h2>מרכז בקרת מערכת וניטור Firebase</h2>
+          <p>מעקב פעילות בזמן אמת, ניטור חיבורי ענן ומסדי נתונים, וניהול משתמשים והרשאות ברחבי המערכת.</p>
+        </div>
+        <div class="manager-header-actions">
+          <button class="btn-action-primary" id="managerPingFirebaseBtn" type="button">בדיקת Ping מול הענן</button>
+          <button class="btn-action-secondary" id="managerResyncBtn" type="button">רענון נתונים מלא</button>
+        </div>
+      </div>
+
+      <!-- Cloud Infrastructure & System Status Cards -->
+      <div class="manager-stats-grid">
+        <div class="manager-stat-card">
+          <div class="manager-card-top">
+            <span class="manager-service-name">Cloud Firestore</span>
+            <span class="manager-status-indicator status-online" id="statusFirestore">מחובר · תקין</span>
+          </div>
+          <strong class="manager-stat-metric" id="managerFirestoreRegion">me-west1 (ישראל)</strong>
+          <span class="manager-stat-detail" id="managerFirestoreLatency">זמן תגובה: ~45ms</span>
+        </div>
+
+        <div class="manager-stat-card">
+          <div class="manager-card-top">
+            <span class="manager-service-name">Firebase Auth</span>
+            <span class="manager-status-indicator status-online" id="statusAuth">פעיל · מאובטח</span>
+          </div>
+          <strong class="manager-stat-metric" id="managerAuthUsersCount">אימות אימייל וסיסמה</strong>
+          <span class="manager-stat-detail">ספק: Email/Password + Google</span>
+        </div>
+
+        <div class="manager-stat-card">
+          <div class="manager-card-top">
+            <span class="manager-service-name">Firebase Hosting</span>
+            <span class="manager-status-indicator status-online" id="statusHosting">פרוס באוויר</span>
+          </div>
+          <strong class="manager-stat-metric">fitnessnutritionapp-ab381.web.app</strong>
+          <span class="manager-stat-detail">Global CDN · HTTPS</span>
+        </div>
+
+        <div class="manager-stat-card">
+          <div class="manager-card-top">
+            <span class="manager-service-name">מסד נתונים ודוחות</span>
+            <span class="manager-status-indicator status-online" id="statusDatabase">סונכרן מקומית וענן</span>
+          </div>
+          <strong class="manager-stat-metric" id="managerTotalReportsMetric">192 דוחות מאוחסנים</strong>
+          <span class="manager-stat-detail" id="managerTraineesCountMetric">4 תיקיות מתאמנים פעילות</span>
+        </div>
+      </div>
+
+      <!-- Live Activity Log & Audit Trail -->
+      <section class="manager-section">
+        <div class="coach-section-header-flex">
+          <div>
+            <h3>זרם פעילות וביקורת מערכת בזמן אמת (Live Audit Trail)</h3>
+            <p>תיעוד מדויק של כניסות משתמשים, חתימת דוחות יומיים, רישום מתאמנים ומשובי מאמנים.</p>
+          </div>
+          <span class="manager-live-pulse-badge">LIVE · מעקב חי</span>
+        </div>
+        <div class="manager-activity-stream" id="managerActivityStream"></div>
+      </section>
+
+      <!-- User Directory & Role-Based Access Control -->
+      <section class="manager-section">
+        <div class="coach-section-header-flex">
+          <div>
+            <h3>ניהול משתמשים והרשאות (User Authority Management)</h3>
+            <p>רשימת כל בעלי התפקידים במערכת: מתאמנים, מאמנים ומנהלי מערכת.</p>
+          </div>
+          <div class="manager-user-filters">
+            <input type="search" id="managerUserSearch" placeholder="חיפוש משתמש לפי שם או אימייל...">
+            <select id="managerRoleFilter">
+              <option value="all">כל התפקידים</option>
+              <option value="trainee">מתאמנים</option>
+              <option value="coach">מאמנים</option>
+              <option value="manager">מנהלי מערכת</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-scroll-container">
+          <table class="coach-history-table manager-users-table">
+            <thead>
+              <tr>
+                <th>משתמש / שם</th>
+                <th>אימייל / מזהה</th>
+                <th>תפקיד והרשאה</th>
+                <th>תוכנית מוקצית / ייעוד</th>
+                <th>סטטוס</th>
+                <th>פעולות ניהול</th>
+              </tr>
+            </thead>
+            <tbody id="managerUsersTableRows"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+  </main>
+
+  <!-- ACTIVE WORKOUT MODAL WITH TIME-CRUNCH MODE TOGGLE -->
+  <div class="active-workout-modal" id="activeWorkoutModal">
+    <div class="workout-hud-bar">
+      <div>
+        <h2 id="activeWorkoutTitle">Push Session</h2>
+        <span class="workout-time" id="workoutElapsed">00:00</span>
+        <label class="session-rest-setting">מנוחה בין סטים (שניות)
+          <input id="sessionRestSeconds" type="number" min="0" max="900" step="15" value="90">
+        </label>
+        <!-- Time-Crunch Mode Toggle Button -->
+        <button id="timeCrunchToggleBtn" class="time-crunch-btn">
+          מצב קצר בזמן: כבוי
+        </button>
+      </div>
+      <div class="workout-actions-hud">
+        <button class="btn-action-secondary" id="activeExerciseLibraryBtn" type="button">＋ הוספת תרגיל מהמאגר</button>
+        <button class="btn-finish-workout" id="finishWorkoutBtn">סיים אימון ✓</button>
+      </div>
+    </div>
+
+    <!-- HEVY-STYLE FLOATING REST TIMER HUD -->
+    <div id="activeWorkoutRestBanner" class="active-workout-rest-hud" style="display: none;">
+      <div class="rest-hud-info">
+        <span class="rest-hud-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+        <span class="rest-hud-label">זמן מנוחה:</span>
+        <strong id="activeRestCountdown" class="rest-hud-time">01:30</strong>
+      </div>
+      <div class="rest-hud-controls">
+        <button id="restHudAdd30Btn" class="rest-hud-btn" type="button" title="הוסף 30 שניות">+30 שנ׳</button>
+        <button id="restHudSub15Btn" class="rest-hud-btn" type="button" title="הורד 15 שניות">-15 שנ׳</button>
+        <button id="restHudSkipBtn" class="rest-hud-btn rest-hud-skip" type="button" title="דלג על המנוחה">דלג ✓</button>
+      </div>
+    </div>
+
+    <!-- Time Crunch Instructions Banner -->
+    <div id="timeCrunchBanner" class="time-crunch-banner" style="display: none;">
+      <strong>הנחיות "קצר בזמן" (Rotation Protocol):</strong> בצע סט 1 לכל קבוצת שריר בסבב מתחלף (חזה -> כתפיים -> יד אחורית) לקבלת מקסימום סטים ראשונים איכותיים במינימום מנוחה!
+    </div>
+
+    <div class="active-workout-content" id="activeExercisesList"></div>
+  </div>
+
+  <div class="dialog-backdrop" id="barcodeScannerDialog" hidden>
+    <section class="dialog-card scanner-dialog" role="dialog" aria-modal="true" aria-labelledby="barcodeScannerTitle">
+      <div class="dialog-header"><div><span class="eyebrow">סריקה באמצעות מצלמה</span><h2 id="barcodeScannerTitle">סריקת ברקוד מזון</h2></div><button class="icon-button" id="closeBarcodeScannerBtn" type="button">סגירה</button></div>
+      <p class="scanner-hint">הצביעו על ברקוד EAN-13 או UPC. הנתונים ייבדקו מול Open Food Facts ויתווספו ליומן לפי 100 גרם.</p>
+      <video id="barcodeVideo" class="barcode-video" muted playsinline></video>
+      <p id="barcodeScannerStatus" class="scanner-status" role="status">המצלמה עדיין לא הופעלה.</p>
+      <button class="btn-action-primary" id="startBarcodeScannerBtn" type="button">הפעלת מצלמה</button>
+    </section>
+  </div>
+
+  <div class="dialog-backdrop" id="exerciseLibraryDialog" hidden>
+    <section class="dialog-card exercise-library-dialog" role="dialog" aria-modal="true" aria-labelledby="exerciseLibraryTitle">
+      <div class="dialog-header"><div><span class="eyebrow">Exercise Library · Local</span><h2 id="exerciseLibraryTitle">מאגר תרגילים לבחירה</h2></div><button class="icon-button icon-button-ghost" id="closeExerciseLibraryBtn" type="button" aria-label="סגירה">✕</button></div>
+      <div class="dialog-scroll">
+      <p class="scanner-hint" id="exerciseLibraryHint">חפשו תרגיל וסננו לפי קבוצת שרירים וציוד במאגר המקומי. הוסיפו או הסירו אותו מתוכנית האימון.</p>
+      <label class="food-search-field exercise-search-field"><span aria-hidden="true">⌕</span><input id="exerciseLibrarySearch" type="search" placeholder="חיפוש תרגילים באנגלית..." autocomplete="off" aria-label="חיפוש תרגילים" dir="ltr"></label>
+      <div class="food-category-filters" id="exerciseMuscleFilters" role="group" aria-label="סינון לפי קבוצת שרירים"></div>
+      <label class="exercise-equipment-filter">ציוד <select id="exerciseEquipmentFilter"><option value="all">כל סוגי הציוד</option><option>Barbell</option><option>Dumbbell</option><option>Cable</option><option>Machine</option><option>Bodyweight</option><option>Smith Machine</option><option>Resistance Band</option></select></label>
+      <p id="exerciseLibraryStatus" class="food-search-status" aria-live="polite"></p>
+      <div class="exercise-library-list" id="exerciseLibraryList"></div>
+      <button class="btn-action-primary library-done-btn" id="exerciseLibraryDoneBtn" type="button">סיום בחירה</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- EXERCISE SWAP MODAL (HEVY-INSPIRED INSTANT SUBSTITUTION) -->
+  <div class="dialog-backdrop" id="exerciseSwapDialog" hidden>
+    <section class="dialog-card exercise-swap-dialog" role="dialog" aria-modal="true" aria-labelledby="exerciseSwapTitle">
+      <div class="dialog-header">
+        <div>
+          <span class="eyebrow">החלפת תרגיל מהירה · Instant Exercise Swap</span>
+          <h2 id="exerciseSwapTitle">החלפת תרגיל באימון</h2>
+        </div>
+        <button class="icon-button icon-button-ghost" id="closeExerciseSwapBtn" type="button" aria-label="סגירה">✕</button>
+      </div>
+      <div class="dialog-scroll">
+      <div class="swap-target-box" id="swapTargetBox">
+        <span class="swap-target-label">מחליף כעת את:</span>
+        <strong id="swapTargetExerciseName" class="swap-target-name">-</strong>
+        <span id="swapTargetExerciseBadge" class="swap-target-badge">-</span>
+      </div>
+      <label class="food-search-field exercise-search-field">
+        <span aria-hidden="true">⌕</span>
+        <input id="exerciseSwapSearch" type="search" placeholder="חיפוש מהיר לפי שם תרגיל (אנגלית/עברית)..." autocomplete="off" aria-label="חיפוש תרגיל חלופי" dir="ltr">
+      </label>
+      <div class="exercise-swap-tabs" role="tablist">
+        <button id="swapTabEquiv" class="category-chip active" type="button" role="tab" aria-selected="true">שקולים מומלצים</button>
+        <button id="swapTabMuscle" class="category-chip" type="button" role="tab" aria-selected="false">אותה קבוצת שריר</button>
+        <button id="swapTabAll" class="category-chip" type="button" role="tab" aria-selected="false">כל המאגר</button>
+      </div>
+      <div class="exercise-swap-equipment-bar">
+        <label class="exercise-equipment-filter">סינון לפי ציוד:
+          <select id="exerciseSwapEquipmentFilter">
+            <option value="all">כל סוגי הציוד</option>
+            <option value="Barbell">Barbell (מוט)</option>
+            <option value="Dumbbell">Dumbbell (משקולות יד)</option>
+            <option value="Cable">Cable (כבלים / פולי)</option>
+            <option value="Machine">Machine (מכונות)</option>
+            <option value="Bodyweight">Bodyweight (משקל גוף)</option>
+            <option value="Smith Machine">Smith Machine (סמית' משין)</option>
+            <option value="Resistance Band">Resistance Band (גומיות)</option>
+          </select>
+        </label>
+      </div>
+      <p id="exerciseSwapStatus" class="food-search-status" aria-live="polite"></p>
+      <div class="exercise-swap-list" id="exerciseSwapList"></div>
+      </div>
+    </section>
+  <!-- COACH REPORT DETAIL MODAL (DEEP DIVE DRILL-DOWN) -->
+  <div class="dialog-backdrop" id="coachReportDetailModal" hidden>
+    <section class="dialog-card coach-report-drilldown-dialog" role="dialog" aria-modal="true" aria-labelledby="drilldownTitle">
+      <div class="dialog-header">
+        <div>
+          <span class="eyebrow" id="drilldownTraineeBadge">דוח יומי מעמיק · מתאמן</span>
+          <h2 id="drilldownTitle">פירוט דוח יומי</h2>
+        </div>
+        <button class="icon-button icon-button-ghost" id="closeDrilldownModalBtn" type="button" aria-label="סגירה">✕</button>
+      </div>
+      <div class="dialog-scroll" id="drilldownModalContent"></div>
+    </section>
+  </div>
+
+  <!-- COACH REGISTER TRAINEE MODAL -->
+  <div class="dialog-backdrop" id="coachRegisterTraineeModal" hidden>
+    <section class="dialog-card coach-register-modal-card" role="dialog" aria-modal="true" aria-labelledby="registerModalTitle">
+      <div class="dialog-header">
+        <div>
+          <span class="eyebrow">הרשאת מאמן · הוספת משתמש למערכת</span>
+          <h2 id="registerModalTitle">רישום מתאמן חדש</h2>
+        </div>
+        <button class="icon-button icon-button-ghost" id="closeRegisterTraineeModalBtn" type="button" aria-label="סגירה">✕</button>
+      </div>
+      <form class="register-trainee-form" id="coachRegisterTraineeForm">
+        <div class="form-grid-2">
+          <label>שם מלא:
+            <input type="text" id="newTraineeName" placeholder="למשל: דניאל כהן" required>
+          </label>
+          <label>כתובת אימייל (משמש להתחברות):
+            <input type="email" id="newTraineeEmail" placeholder="trainee@fitpulse.com" required>
+          </label>
+        </div>
+        <div class="form-grid-2">
+          <label>סיסמה ראשונית (לפחות 6 תווים):
+            <input type="password" id="newTraineePassword" placeholder="••••••" minlength="6" required>
+          </label>
+          <label>תוכנית אימונים ראשונית:
+            <input type="text" id="newTraineeRoutine" placeholder="Push-Pull-Legs 4D" value="Push-Pull-Legs 4D">
+          </label>
+        </div>
+        <div class="form-grid-4">
+          <label>גיל:
+            <input type="number" id="newTraineeAge" value="26" min="14" max="99">
+          </label>
+          <label>מגדר:
+            <select id="newTraineeGender">
+              <option value="male">זכר</option>
+              <option value="female">נקבה</option>
+              <option value="other">אחר</option>
+            </select>
+          </label>
+          <label>גובה (ס"מ):
+            <input type="number" id="newTraineeHeight" value="178" min="120" max="230">
+          </label>
+          <label>משקל נוכחי (ק"ג):
+            <input type="number" id="newTraineeWeight" value="78.0" step="0.1" min="30" max="250">
+          </label>
+        </div>
+        <div class="form-grid-3">
+          <label>יעד קלוריות יומי:
+            <input type="number" id="newTraineeCalories" value="2400" step="50">
+          </label>
+          <label>יעד חלבון (גרם):
+            <input type="number" id="newTraineeProtein" value="165" step="5">
+          </label>
+          <label>יעד מים (מ"ל):
+            <input type="number" id="newTraineeWater" value="3000" step="250">
+          </label>
+        </div>
+        <label>דגשים והערות ליווי למתאמן:
+          <textarea id="newTraineeNotes" rows="2" placeholder="דגשים לתקופת המסה/חיטוב, פציעות עבר, יעדי כוח..."></textarea>
+        </label>
+        <div class="form-actions-row">
+          <button type="button" class="btn-action-ghost" id="cancelRegisterTraineeBtn">ביטול</button>
+          <button type="submit" class="btn-action-primary" id="submitRegisterTraineeBtn">יצירת חשבון והתחלת ליווי</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <!-- AUTH GATE OVERLAY (LOGIN & INSTRUCTIONS BEFORE ENTERING) -->
+  <div class="auth-gate-overlay" id="authGateOverlay">
+    <div class="auth-gate-container">
+      <!-- Logo & Branding -->
+      <div class="auth-gate-brand">
+        <div class="auth-gate-logo">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 5v14M18 5v14M2 9v6M22 9v6M6 12h12"></path></svg>
+        </div>
+        <h1 class="auth-gate-title">FitPulse · מערכת ניהול מתאמנים ומאמנים</h1>
+        <p class="auth-gate-subtitle">מערכת חכמה לניהול אימונים, דוחות יומיים וסנכרון ענן בזמן אמת</p>
+      </div>
+
+      <!-- Segmented Tab Switcher (Login vs Instructions) -->
+      <div class="auth-tab-switch">
+        <button type="button" class="auth-tab-btn active" id="authTabLoginBtn">
+          <span>כניסה למערכת</span>
+        </button>
+        <button type="button" class="auth-tab-btn" id="authTabGuideBtn">
+          <span>מדריך והנחיות שימוש</span>
+        </button>
+      </div>
+
+      <!-- VIEW 1: LOGIN -->
+      <div class="auth-view active" id="authViewLogin">
+        <form class="auth-form" id="authLoginForm">
+          <div class="auth-field-group">
+            <label for="authEmailInput">כתובת אימייל או שם משתמש</label>
+            <input type="text" id="authEmailInput" placeholder="name@fitpulse.com או daniel" required autocomplete="username">
+          </div>
+
+          <div class="auth-field-group">
+            <label for="authPasswordInput">סיסמה</label>
+            <input type="password" id="authPasswordInput" placeholder="••••••••" required autocomplete="current-password">
+          </div>
+
+          <div id="authErrorMessage" class="auth-error-msg" hidden></div>
+
+          <button type="submit" class="auth-submit-btn" id="authSubmitBtn">
+            <span>כניסה למערכת</span>
+          </button>
+        </form>
+
+        <!-- Fast Demo Accounts Bar -->
+        <div class="auth-demo-section">
+          <span class="auth-demo-title">כניסה מהירה בלחיצה אחת (מצב הדגמה ובדיקות):</span>
+          <div class="auth-demo-pills">
+            <button type="button" class="auth-demo-pill" data-demo-role="trainee" data-demo-email="daniel@fitpulse.com" data-demo-name="דניאל כהן">
+              <span class="demo-avatar">דכ</span>
+              <div class="demo-info">
+                <strong>מתאמן</strong>
+                <small>דניאל כהן</small>
+              </div>
+            </button>
+            <button type="button" class="auth-demo-pill" data-demo-role="coach" data-demo-email="coach@fitpulse.com" data-demo-name="מאמן ראשי">
+              <span class="demo-avatar coach">👑</span>
+              <div class="demo-info">
+                <strong>מאמן ראשי</strong>
+                <small>ניהול מתאמנים ודוחות</small>
+              </div>
+            </button>
+            <button type="button" class="auth-demo-pill" data-demo-role="manager" data-demo-email="manager@fitpulse.com" data-demo-name="מנהל מערכת">
+              <span class="demo-avatar manager">🛡️</span>
+              <div class="demo-info">
+                <strong>מנהל מערכת</strong>
+                <small>סמכות עליונה וניטור ענן</small>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <div class="auth-cloud-badge">
+          <span class="pulse-dot"></span>
+          <span>מאובטח ומחובר ל-Firebase Authentication (Project: fitnessnutritionapp-ab381)</span>
+        </div>
+      </div>
+
+      <!-- VIEW 2: PRE-LOGIN INSTRUCTIONS & GUIDE -->
+      <div class="auth-view" id="authViewGuide" hidden>
+        <div class="auth-guide-content">
+          <div class="guide-cards-grid">
+            <div class="guide-card">
+              <div class="guide-card-icon">1</div>
+              <h3>איך המערכת עובדת</h3>
+              <p>המערכת פועלת במודל ליווי יומיומי רציף בין המתאמן למאמן. כל יום נפתח בדוח יומי שבו המתאמן מזין שקילת בוקר, הרגלי חיים, תזונה ואימון, ובסיום היום הדוח ננעל ונשלח אוטומטית לענן.</p>
+            </div>
+
+            <div class="guide-card">
+              <div class="guide-card-icon">2</div>
+              <h3>הנחיות למתאמן</h3>
+              <ul class="guide-list">
+                <li><strong>שקילה בבוקר:</strong> הזנת משקל בוקר בצום, כמות מים ואיכות שינה.</li>
+                <li><strong>מעקב תזונה:</strong> רישום ארוחות עם חתימת שעה מדויקת (Timestamp).</li>
+                <li><strong>ביצוע אימון:</strong> תיעוד סטים, משקלים וחזרות לפי תקן Hevy ללא מסכים מיותרים.</li>
+                <li><strong>נעילת דוח:</strong> בסוף היום לוחצים על "נעילת דוח ושליחה למאמן".</li>
+              </ul>
+            </div>
+
+            <div class="guide-card">
+              <div class="guide-card-icon">3</div>
+              <h3>הנחיות וממשק המאמן</h3>
+              <ul class="guide-list">
+                <li><strong>סקירת 14 יום:</strong> מעקב מרוכז אחר עמידה ביעדי קלוריות, חלבון ומשקלים.</li>
+                <li><strong>צלילה לפרטים (Deep Dive):</strong> כניסה לכל יום בנפרד לצפייה בכל גרם ובכל סט.</li>
+                <li><strong>משוב אישי:</strong> כתיבת הערות והנחיות טכניקה למתאמן ישירות דרך המערכת.</li>
+                <li><strong>רישום מתאמנים:</strong> המאמן מנפיק חשבון למתאמן חדש עם סיסמה מוגדרת.</li>
+              </ul>
+            </div>
+
+            <div class="guide-card">
+              <div class="guide-card-icon">4</div>
+              <h3>רמות הרשאה ואבטחה</h3>
+              <ul class="guide-list">
+                <li><strong>מתאמן:</strong> רואה רק את הנתונים, התוכניות והדוחות האישיים שלו.</li>
+                <li><strong>מאמן:</strong> גישה לכלל המתאמנים המוקצים לו, סקירת היסטוריה ומשובים.</li>
+                <li><strong>מנהל מערכת (App Manager):</strong> ניטור תשתיות Firebase, מעקב פעילות חי וניהול תפקידים.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="guide-cta-row">
+            <button type="button" class="btn-action-primary" id="guideGoToLoginBtn">
+              <span>הבנתי, מעבר להתחברות למערכת ➔</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase Cloud Database (Firestore) -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="data.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js" defer></script>
+  <script src="app.js"></script>
+</body>
+</html>

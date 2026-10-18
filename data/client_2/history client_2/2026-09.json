@@ -1,0 +1,3400 @@
+{
+  "traineeId": "client_2",
+  "traineeName": "שירה לוי",
+  "month": "2026-09",
+  "year": 2026,
+  "monthNumber": 9,
+  "totalReports": 30,
+  "workoutsCompleted": 17,
+  "reports": [
+    {
+      "id": "client_2_2026-09-01",
+      "traineeId": "client_2",
+      "date": "2026-09-01",
+      "status": "finalized",
+      "createdAt": "2026-09-01T07:30:00.000Z",
+      "finalizedAt": "2026-09-01T22:16:00.000Z",
+      "updatedAt": "2026-09-01T22:16:00.000Z",
+      "checkIn": {
+        "morningWeight": 61.4,
+        "waterLiters": 2.5,
+        "sleepHours": 8,
+        "sleepQuality": 5,
+        "steps": 8970,
+        "digestion": 5,
+        "hungerLevel": 3,
+        "energyLevel": 4,
+        "stressLevel": 2,
+        "notes": "אימון חזק, עלייה במשקל עבודה בבנץ׳."
+      },
+      "nutrition": {
+        "totalCalories": 1787,
+        "targetCalories": 1850,
+        "totalProtein": 138,
+        "targetProtein": 130,
+        "totalCarbs": 200,
+        "totalFat": 56,
+        "meals": [
+          {
+            "id": "m1_2026-09-01",
+            "name": "ארוחת בוקר: שיבולת שועל עם חלבון, פירות יער וחמאת בוטנים",
+            "calories": 500,
+            "protein": 35,
+            "carbs": 65,
+            "fat": 16,
+            "time": "08:15",
+            "loggedAt": "2026-09-01T08:15:20.000Z"
+          },
+          {
+            "id": "m2_2026-09-01",
+            "name": "ארוחת צהריים: חזה עוף צלוי, אורז בסמטי ושעועית ירוקה",
+            "calories": 715,
+            "protein": 58,
+            "carbs": 85,
+            "fat": 14,
+            "time": "13:30",
+            "loggedAt": "2026-09-01T13:30:45.000Z"
+          },
+          {
+            "id": "m3_2026-09-01",
+            "name": "ארוחת ביניים: יוגורט פרו 20 גרם חלבון עם שקדים",
+            "calories": 214,
+            "protein": 21,
+            "carbs": 15,
+            "fat": 8,
+            "time": "17:00",
+            "loggedAt": "2026-09-01T17:00:10.000Z"
+          },
+          {
+            "id": "m4_2026-09-01",
+            "name": "ארוחת ערב: פילה סלמון בתנור, בטטה קלויה וסלט ירקות עשיר",
+            "calories": 357,
+            "protein": 25,
+            "carbs": 35,
+            "fat": 18,
+            "time": "20:45",
+            "loggedAt": "2026-09-01T20:45:33.000Z"
+          }
+        ]
+      },
+      "workouts": [
+        {
+          "id": "wo_2026-09-01",
+          "name": "אימון B - גב, יד קדמית ורגליים",
+          "planName": "Upper / Lower 4D",
+          "durationMinutes": 53,
+          "totalVolume": 4320,
+          "time": "18:30",
+          "startedAt": "2026-09-01T18:30:00.000Z",
+          "completedAt": "2026-09-01T19:25:00.000Z",
+          "exercises": [
+            {
+              "id": "ex_1",
+              "name": "לחיצת חזה במוט (Barbell Bench Press)",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 80,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:38"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 82.5,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "18:42"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 85,
+                  "reps": 6,
+                  "completed": true,
+                  "time": "18:47"
+                }
+              ]
+            },
+            {
+              "id": "ex_2",
+              "name": "לחיצת כתפיים בדאמבלים בישיבה",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 24,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:55"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:00"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:05"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "coachFeedback": null
+    },
+    {
+      "id": "client_2_2026-09-02",
+      "traineeId": "client_2",
+      "date": "2026-09-02",
+      "status": "finalized",
+      "createdAt": "2026-09-02T07:30:00.000Z",
+      "finalizedAt": "2026-09-02T22:17:00.000Z",
+      "updatedAt": "2026-09-02T22:17:00.000Z",
+      "checkIn": {
+        "morningWeight": 61.5,
+        "waterLiters": 2.7,
+        "sleepHours": 8.5,
+        "sleepQuality": 4,
+        "steps": 9440,
+        "digestion": 5,
+        "hungerLevel": 3,
+        "energyLevel": 4,
+        "stressLevel": 2,
+        "notes": "יום מנוחה והתאוששות מלאה, הקפדה על חלבון."
+      },
+      "nutrition": {
+        "totalCalories": 1824,
+        "targetCalories": 1850,
+        "totalProtein": 131,
+        "targetProtein": 130,
+        "totalCarbs": 200,
+        "totalFat": 56,
+        "meals": [
+          {
+            "id": "m1_2026-09-02",
+            "name": "ארוחת בוקר: שיבולת שועל עם חלבון, פירות יער וחמאת בוטנים",
+            "calories": 511,
+            "protein": 33,
+            "carbs": 65,
+            "fat": 16,
+            "time": "08:15",
+            "loggedAt": "2026-09-02T08:15:20.000Z"
+          },
+          {
+            "id": "m2_2026-09-02",
+            "name": "ארוחת צהריים: חזה עוף צלוי, אורז בסמטי ושעועית ירוקה",
+            "calories": 730,
+            "protein": 55,
+            "carbs": 85,
+            "fat": 14,
+            "time": "13:30",
+            "loggedAt": "2026-09-02T13:30:45.000Z"
+          },
+          {
+            "id": "m3_2026-09-02",
+            "name": "ארוחת ביניים: יוגורט פרו 20 גרם חלבון עם שקדים",
+            "calories": 219,
+            "protein": 20,
+            "carbs": 15,
+            "fat": 8,
+            "time": "17:00",
+            "loggedAt": "2026-09-02T17:00:10.000Z"
+          },
+          {
+            "id": "m4_2026-09-02",
+            "name": "ארוחת ערב: פילה סלמון בתנור, בטטה קלויה וסלט ירקות עשיר",
+            "calories": 365,
+            "protein": 24,
+            "carbs": 35,
+            "fat": 18,
+            "time": "20:45",
+            "loggedAt": "2026-09-02T20:45:33.000Z"
+          }
+        ]
+      },
+      "workouts": [],
+      "coachFeedback": null
+    },
+    {
+      "id": "client_2_2026-09-03",
+      "traineeId": "client_2",
+      "date": "2026-09-03",
+      "status": "finalized",
+      "createdAt": "2026-09-03T07:30:00.000Z",
+      "finalizedAt": "2026-09-03T22:18:00.000Z",
+      "updatedAt": "2026-09-03T22:18:00.000Z",
+      "checkIn": {
+        "morningWeight": 61.6,
+        "waterLiters": 2.9,
+        "sleepHours": 7.5,
+        "sleepQuality": 5,
+        "steps": 9910,
+        "digestion": 5,
+        "hungerLevel": 3,
+        "energyLevel": 4,
+        "stressLevel": 2,
+        "notes": "אימון חזק, עלייה במשקל עבודה בבנץ׳."
+      },
+      "nutrition": {
+        "totalCalories": 1861,
+        "targetCalories": 1850,
+        "totalProtein": 144,
+        "targetProtein": 130,
+        "totalCarbs": 200,
+        "totalFat": 56,
+        "meals": [
+          {
+            "id": "m1_2026-09-03",
+            "name": "ארוחת בוקר: שיבולת שועל עם חלבון, פירות יער וחמאת בוטנים",
+            "calories": 521,
+            "protein": 36,
+            "carbs": 65,
+            "fat": 16,
+            "time": "08:15",
+            "loggedAt": "2026-09-03T08:15:20.000Z"
+          },
+          {
+            "id": "m2_2026-09-03",
+            "name": "ארוחת צהריים: חזה עוף צלוי, אורז בסמטי ושעועית ירוקה",
+            "calories": 744,
+            "protein": 60,
+            "carbs": 85,
+            "fat": 14,
+            "time": "13:30",
+            "loggedAt": "2026-09-03T13:30:45.000Z"
+          },
+          {
+            "id": "m3_2026-09-03",
+            "name": "ארוחת ביניים: יוגורט פרו 20 גרם חלבון עם שקדים",
+            "calories": 223,
+            "protein": 22,
+            "carbs": 15,
+            "fat": 8,
+            "time": "17:00",
+            "loggedAt": "2026-09-03T17:00:10.000Z"
+          },
+          {
+            "id": "m4_2026-09-03",
+            "name": "ארוחת ערב: פילה סלמון בתנור, בטטה קלויה וסלט ירקות עשיר",
+            "calories": 372,
+            "protein": 26,
+            "carbs": 35,
+            "fat": 18,
+            "time": "20:45",
+            "loggedAt": "2026-09-03T20:45:33.000Z"
+          }
+        ]
+      },
+      "workouts": [
+        {
+          "id": "wo_2026-09-03",
+          "name": "אימון A - חזה, כתפיים ויד אחורית",
+          "planName": "Upper / Lower 4D",
+          "durationMinutes": 55,
+          "totalVolume": 4560,
+          "time": "18:30",
+          "startedAt": "2026-09-03T18:30:00.000Z",
+          "completedAt": "2026-09-03T19:25:00.000Z",
+          "exercises": [
+            {
+              "id": "ex_1",
+              "name": "לחיצת חזה במוט (Barbell Bench Press)",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 80,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:38"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 82.5,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "18:42"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 85,
+                  "reps": 6,
+                  "completed": true,
+                  "time": "18:47"
+                }
+              ]
+            },
+            {
+              "id": "ex_2",
+              "name": "לחיצת כתפיים בדאמבלים בישיבה",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 24,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:55"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:00"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:05"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "coachFeedback": {
+        "reviewed": true,
+        "reviewedAt": "2026-09-03T23:00:00.000Z",
+        "coachName": "מאמן ראשי",
+        "coachRating": 5,
+        "notes": "עבודה טכנית מרשימה על הסטים הכבדים. המשך לשמור על עקביות בצריכת המים."
+      }
+    },
+    {
+      "id": "client_2_2026-09-04",
+      "traineeId": "client_2",
+      "date": "2026-09-04",
+      "status": "finalized",
+      "createdAt": "2026-09-04T07:30:00.000Z",
+      "finalizedAt": "2026-09-04T22:19:00.000Z",
+      "updatedAt": "2026-09-04T22:19:00.000Z",
+      "checkIn": {
+        "morningWeight": 61.7,
+        "waterLiters": 2.3,
+        "sleepHours": 8,
+        "sleepQuality": 4,
+        "steps": 10380,
+        "digestion": 5,
+        "hungerLevel": 3,
+        "energyLevel": 4,
+        "stressLevel": 2,
+        "notes": "אימון חזק, עלייה במשקל עבודה בבנץ׳."
+      },
+      "nutrition": {
+        "totalCalories": 1898,
+        "targetCalories": 1850,
+        "totalProtein": 137,
+        "targetProtein": 130,
+        "totalCarbs": 200,
+        "totalFat": 56,
+        "meals": [
+          {
+            "id": "m1_2026-09-04",
+            "name": "ארוחת בוקר: שיבולת שועל עם חלבון, פירות יער וחמאת בוטנים",
+            "calories": 531,
+            "protein": 34,
+            "carbs": 65,
+            "fat": 16,
+            "time": "08:15",
+            "loggedAt": "2026-09-04T08:15:20.000Z"
+          },
+          {
+            "id": "m2_2026-09-04",
+            "name": "ארוחת צהריים: חזה עוף צלוי, אורז בסמטי ושעועית ירוקה",
+            "calories": 759,
+            "protein": 58,
+            "carbs": 85,
+            "fat": 14,
+            "time": "13:30",
+            "loggedAt": "2026-09-04T13:30:45.000Z"
+          },
+          {
+            "id": "m3_2026-09-04",
+            "name": "ארוחת ביניים: יוגורט פרו 20 גרם חלבון עם שקדים",
+            "calories": 228,
+            "protein": 21,
+            "carbs": 15,
+            "fat": 8,
+            "time": "17:00",
+            "loggedAt": "2026-09-04T17:00:10.000Z"
+          },
+          {
+            "id": "m4_2026-09-04",
+            "name": "ארוחת ערב: פילה סלמון בתנור, בטטה קלויה וסלט ירקות עשיר",
+            "calories": 380,
+            "protein": 25,
+            "carbs": 35,
+            "fat": 18,
+            "time": "20:45",
+            "loggedAt": "2026-09-04T20:45:33.000Z"
+          }
+        ]
+      },
+      "workouts": [
+        {
+          "id": "wo_2026-09-04",
+          "name": "אימון B - גב, יד קדמית ורגליים",
+          "planName": "Upper / Lower 4D",
+          "durationMinutes": 56,
+          "totalVolume": 4680,
+          "time": "18:30",
+          "startedAt": "2026-09-04T18:30:00.000Z",
+          "completedAt": "2026-09-04T19:25:00.000Z",
+          "exercises": [
+            {
+              "id": "ex_1",
+              "name": "לחיצת חזה במוט (Barbell Bench Press)",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 80,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:38"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 82.5,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "18:42"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 85,
+                  "reps": 6,
+                  "completed": true,
+                  "time": "18:47"
+                }
+              ]
+            },
+            {
+              "id": "ex_2",
+              "name": "לחיצת כתפיים בדאמבלים בישיבה",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 24,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:55"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:00"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:05"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "coachFeedback": null
+    },
+    {
+      "id": "client_2_2026-09-05",
+      "traineeId": "client_2",
+      "date": "2026-09-05",
+      "status": "finalized",
+      "createdAt": "2026-09-05T07:30:00.000Z",
+      "finalizedAt": "2026-09-05T22:20:00.000Z",
+      "updatedAt": "2026-09-05T22:20:00.000Z",
+      "checkIn": {
+        "morningWeight": 61.3,
+        "waterLiters": 2.5,
+        "sleepHours": 8.5,
+        "sleepQuality": 5,
+        "steps": 10850,
+        "digestion": 5,
+        "hungerLevel": 3,
+        "energyLevel": 4,
+        "stressLevel": 2,
+        "notes": "יום מנוחה והתאוששות מלאה, הקפדה על חלבון."
+      },
+      "nutrition": {
+        "totalCalories": 1935,
+        "targetCalories": 1850,
+        "totalProtein": 130,
+        "targetProtein": 130,
+        "totalCarbs": 200,
+        "totalFat": 56,
+        "meals": [
+          {
+            "id": "m1_2026-09-05",
+            "name": "ארוחת בוקר: שיבולת שועל עם חלבון, פירות יער וחמאת בוטנים",
+            "calories": 542,
+            "protein": 33,
+            "carbs": 65,
+            "fat": 16,
+            "time": "08:15",
+            "loggedAt": "2026-09-05T08:15:20.000Z"
+          },
+          {
+            "id": "m2_2026-09-05",
+            "name": "ארוחת צהריים: חזה עוף צלוי, אורז בסמטי ושעועית ירוקה",
+            "calories": 774,
+            "protein": 55,
+            "carbs": 85,
+            "fat": 14,
+            "time": "13:30",
+            "loggedAt": "2026-09-05T13:30:45.000Z"
+          },
+          {
+            "id": "m3_2026-09-05",
+            "name": "ארוחת ביניים: יוגורט פרו 20 גרם חלבון עם שקדים",
+            "calories": 232,
+            "protein": 20,
+            "carbs": 15,
+            "fat": 8,
+            "time": "17:00",
+            "loggedAt": "2026-09-05T17:00:10.000Z"
+          },
+          {
+            "id": "m4_2026-09-05",
+            "name": "ארוחת ערב: פילה סלמון בתנור, בטטה קלויה וסלט ירקות עשיר",
+            "calories": 387,
+            "protein": 23,
+            "carbs": 35,
+            "fat": 18,
+            "time": "20:45",
+            "loggedAt": "2026-09-05T20:45:33.000Z"
+          }
+        ]
+      },
+      "workouts": [],
+      "coachFeedback": null
+    },
+    {
+      "id": "client_2_2026-09-06",
+      "traineeId": "client_2",
+      "date": "2026-09-06",
+      "status": "finalized",
+      "createdAt": "2026-09-06T07:30:00.000Z",
+      "finalizedAt": "2026-09-06T22:21:00.000Z",
+      "updatedAt": "2026-09-06T22:21:00.000Z",
+      "checkIn": {
+        "morningWeight": 61.4,
+        "waterLiters": 2.7,
+        "sleepHours": 7.5,
+        "sleepQuality": 4,
+        "steps": 11320,
+        "digestion": 5,
+        "hungerLevel": 3,
+        "energyLevel": 4,
+        "stressLevel": 2,
+        "notes": "אימון חזק, עלייה במשקל עבודה בבנץ׳."
+      },
+      "nutrition": {
+        "totalCalories": 1972,
+        "targetCalories": 1850,
+        "totalProtein": 143,
+        "targetProtein": 130,
+        "totalCarbs": 200,
+        "totalFat": 56,
+        "meals": [
+          {
+            "id": "m1_2026-09-06",
+            "name": "ארוחת בוקר: שיבולת שועל עם חלבון, פירות יער וחמאת בוטנים",
+            "calories": 552,
+            "protein": 36,
+            "carbs": 65,
+            "fat": 16,
+            "time": "08:15",
+            "loggedAt": "2026-09-06T08:15:20.000Z"
+          },
+          {
+            "id": "m2_2026-09-06",
+            "name": "ארוחת צהריים: חזה עוף צלוי, אורז בסמטי ושעועית ירוקה",
+            "calories": 789,
+            "protein": 60,
+            "carbs": 85,
+            "fat": 14,
+            "time": "13:30",
+            "loggedAt": "2026-09-06T13:30:45.000Z"
+          },
+          {
+            "id": "m3_2026-09-06",
+            "name": "ארוחת ביניים: יוגורט פרו 20 גרם חלבון עם שקדים",
+            "calories": 237,
+            "protein": 21,
+            "carbs": 15,
+            "fat": 8,
+            "time": "17:00",
+            "loggedAt": "2026-09-06T17:00:10.000Z"
+          },
+          {
+            "id": "m4_2026-09-06",
+            "name": "ארוחת ערב: פילה סלמון בתנור, בטטה קלויה וסלט ירקות עשיר",
+            "calories": 394,
+            "protein": 26,
+            "carbs": 35,
+            "fat": 18,
+            "time": "20:45",
+            "loggedAt": "2026-09-06T20:45:33.000Z"
+          }
+        ]
+      },
+      "workouts": [
+        {
+          "id": "wo_2026-09-06",
+          "name": "אימון A - חזה, כתפיים ויד אחורית",
+          "planName": "Upper / Lower 4D",
+          "durationMinutes": 58,
+          "totalVolume": 4920,
+          "time": "18:30",
+          "startedAt": "2026-09-06T18:30:00.000Z",
+          "completedAt": "2026-09-06T19:25:00.000Z",
+          "exercises": [
+            {
+              "id": "ex_1",
+              "name": "לחיצת חזה במוט (Barbell Bench Press)",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 80,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:38"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 82.5,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "18:42"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 85,
+                  "reps": 6,
+                  "completed": true,
+                  "time": "18:47"
+                }
+              ]
+            },
+            {
+              "id": "ex_2",
+              "name": "לחיצת כתפיים בדאמבלים בישיבה",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 24,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:55"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:00"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:05"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "coachFeedback": {
+        "reviewed": true,
+        "reviewedAt": "2026-09-06T23:00:00.000Z",
+        "coachName": "מאמן ראשי",
+        "coachRating": 5,
+        "notes": "עבודה טכנית מרשימה על הסטים הכבדים. המשך לשמור על עקביות בצריכת המים."
+      }
+    },
+    {
+      "id": "client_2_2026-09-07",
+      "traineeId": "client_2",
+      "date": "2026-09-07",
+      "status": "auto_closed",
+      "createdAt": "2026-09-07T07:30:00.000Z",
+      "finalizedAt": "2026-09-07T22:22:00.000Z",
+      "updatedAt": "2026-09-07T22:22:00.000Z",
+      "checkIn": {
+        "morningWeight": 61.5,
+        "waterLiters": 2.9,
+        "sleepHours": 8,
+        "sleepQuality": 5,
+        "steps": 11790,
+        "digestion": 5,
+        "hungerLevel": 3,
+        "energyLevel": 4,
+        "stressLevel": 2,
+        "notes": "יום מנוחה והתאוששות מלאה, הקפדה על חלבון."
+      },
+      "nutrition": {
+        "totalCalories": 1759,
+        "targetCalories": 1850,
+        "totalProtein": 136,
+        "targetProtein": 130,
+        "totalCarbs": 200,
+        "totalFat": 56,
+        "meals": [
+          {
+            "id": "m1_2026-09-07",
+            "name": "ארוחת בוקר: שיבולת שועל עם חלבון, פירות יער וחמאת בוטנים",
+            "calories": 493,
+            "protein": 34,
+            "carbs": 65,
+            "fat": 16,
+            "time": "08:15",
+            "loggedAt": "2026-09-07T08:15:20.000Z"
+          },
+          {
+            "id": "m2_2026-09-07",
+            "name": "ארוחת צהריים: חזה עוף צלוי, אורז בסמטי ושעועית ירוקה",
+            "calories": 704,
+            "protein": 57,
+            "carbs": 85,
+            "fat": 14,
+            "time": "13:30",
+            "loggedAt": "2026-09-07T13:30:45.000Z"
+          },
+          {
+            "id": "m3_2026-09-07",
+            "name": "ארוחת ביניים: יוגורט פרו 20 גרם חלבון עם שקדים",
+            "calories": 211,
+            "protein": 20,
+            "carbs": 15,
+            "fat": 8,
+            "time": "17:00",
+            "loggedAt": "2026-09-07T17:00:10.000Z"
+          },
+          {
+            "id": "m4_2026-09-07",
+            "name": "ארוחת ערב: פילה סלמון בתנור, בטטה קלויה וסלט ירקות עשיר",
+            "calories": 352,
+            "protein": 24,
+            "carbs": 35,
+            "fat": 18,
+            "time": "20:45",
+            "loggedAt": "2026-09-07T20:45:33.000Z"
+          }
+        ]
+      },
+      "workouts": [],
+      "coachFeedback": null
+    },
+    {
+      "id": "client_2_2026-09-08",
+      "traineeId": "client_2",
+      "date": "2026-09-08",
+      "status": "finalized",
+      "createdAt": "2026-09-08T07:30:00.000Z",
+      "finalizedAt": "2026-09-08T22:23:00.000Z",
+      "updatedAt": "2026-09-08T22:23:00.000Z",
+      "checkIn": {
+        "morningWeight": 61.6,
+        "waterLiters": 2.3,
+        "sleepHours": 8.5,
+        "sleepQuality": 4,
+        "steps": 12260,
+        "digestion": 5,
+        "hungerLevel": 3,
+        "energyLevel": 4,
+        "stressLevel": 2,
+        "notes": "אימון חזק, עלייה במשקל עבודה בבנץ׳."
+      },
+      "nutrition": {
+        "totalCalories": 1796,
+        "targetCalories": 1850,
+        "totalProtein": 129,
+        "targetProtein": 130,
+        "totalCarbs": 200,
+        "totalFat": 56,
+        "meals": [
+          {
+            "id": "m1_2026-09-08",
+            "name": "ארוחת בוקר: שיבולת שועל עם חלבון, פירות יער וחמאת בוטנים",
+            "calories": 503,
+            "protein": 32,
+            "carbs": 65,
+            "fat": 16,
+            "time": "08:15",
+            "loggedAt": "2026-09-08T08:15:20.000Z"
+          },
+          {
+            "id": "m2_2026-09-08",
+            "name": "ארוחת צהריים: חזה עוף צלוי, אורז בסמטי ושעועית ירוקה",
+            "calories": 718,
+            "protein": 54,
+            "carbs": 85,
+            "fat": 14,
+            "time": "13:30",
+            "loggedAt": "2026-09-08T13:30:45.000Z"
+          },
+          {
+            "id": "m3_2026-09-08",
+            "name": "ארוחת ביניים: יוגורט פרו 20 גרם חלבון עם שקדים",
+            "calories": 216,
+            "protein": 19,
+            "carbs": 15,
+            "fat": 8,
+            "time": "17:00",
+            "loggedAt": "2026-09-08T17:00:10.000Z"
+          },
+          {
+            "id": "m4_2026-09-08",
+            "name": "ארוחת ערב: פילה סלמון בתנור, בטטה קלויה וסלט ירקות עשיר",
+            "calories": 359,
+            "protein": 23,
+            "carbs": 35,
+            "fat": 18,
+            "time": "20:45",
+            "loggedAt": "2026-09-08T20:45:33.000Z"
+          }
+        ]
+      },
+      "workouts": [
+        {
+          "id": "wo_2026-09-08",
+          "name": "אימון B - גב, יד קדמית ורגליים",
+          "planName": "Upper / Lower 4D",
+          "durationMinutes": 60,
+          "totalVolume": 5160,
+          "time": "18:30",
+          "startedAt": "2026-09-08T18:30:00.000Z",
+          "completedAt": "2026-09-08T19:25:00.000Z",
+          "exercises": [
+            {
+              "id": "ex_1",
+              "name": "לחיצת חזה במוט (Barbell Bench Press)",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 80,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:38"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 82.5,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "18:42"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 85,
+                  "reps": 6,
+                  "completed": true,
+                  "time": "18:47"
+                }
+              ]
+            },
+            {
+              "id": "ex_2",
+              "name": "לחיצת כתפיים בדאמבלים בישיבה",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 24,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:55"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:00"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:05"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "coachFeedback": null
+    },
+    {
+      "id": "client_2_2026-09-09",
+      "traineeId": "client_2",
+      "date": "2026-09-09",
+      "status": "finalized",
+      "createdAt": "2026-09-09T07:30:00.000Z",
+      "finalizedAt": "2026-09-09T22:24:00.000Z",
+      "updatedAt": "2026-09-09T22:24:00.000Z",
+      "checkIn": {
+        "morningWeight": 61.7,
+        "waterLiters": 2.5,
+        "sleepHours": 7.5,
+        "sleepQuality": 5,
+        "steps": 8730,
+        "digestion": 5,
+        "hungerLevel": 3,
+        "energyLevel": 4,
+        "stressLevel": 2,
+        "notes": "יום מנוחה והתאוששות מלאה, הקפדה על חלבון."
+      },
+      "nutrition": {
+        "totalCalories": 1833,
+        "targetCalories": 1850,
+        "totalProtein": 142,
+        "targetProtein": 130,
+        "totalCarbs": 200,
+        "totalFat": 56,
+        "meals": [
+          {
+            "id": "m1_2026-09-09",
+            "name": "ארוחת בוקר: שיבולת שועל עם חלבון, פירות יער וחמאת בוטנים",
+            "calories": 513,
+            "protein": 36,
+            "carbs": 65,
+            "fat": 16,
+            "time": "08:15",
+            "loggedAt": "2026-09-09T08:15:20.000Z"
+          },
+          {
+            "id": "m2_2026-09-09",
+            "name": "ארוחת צהריים: חזה עוף צלוי, אורז בסמטי ושעועית ירוקה",
+            "calories": 733,
+            "protein": 60,
+            "carbs": 85,
+            "fat": 14,
+            "time": "13:30",
+            "loggedAt": "2026-09-09T13:30:45.000Z"
+          },
+          {
+            "id": "m3_2026-09-09",
+            "name": "ארוחת ביניים: יוגורט פרו 20 גרם חלבון עם שקדים",
+            "calories": 220,
+            "protein": 21,
+            "carbs": 15,
+            "fat": 8,
+            "time": "17:00",
+            "loggedAt": "2026-09-09T17:00:10.000Z"
+          },
+          {
+            "id": "m4_2026-09-09",
+            "name": "ארוחת ערב: פילה סלמון בתנור, בטטה קלויה וסלט ירקות עשיר",
+            "calories": 367,
+            "protein": 26,
+            "carbs": 35,
+            "fat": 18,
+            "time": "20:45",
+            "loggedAt": "2026-09-09T20:45:33.000Z"
+          }
+        ]
+      },
+      "workouts": [],
+      "coachFeedback": {
+        "reviewed": true,
+        "reviewedAt": "2026-09-09T23:00:00.000Z",
+        "coachName": "מאמן ראשי",
+        "coachRating": 5,
+        "notes": "יום התאוששות מצוין, תמשיך ככה!"
+      }
+    },
+    {
+      "id": "client_2_2026-09-10",
+      "traineeId": "client_2",
+      "date": "2026-09-10",
+      "status": "finalized",
+      "createdAt": "2026-09-10T07:30:00.000Z",
+      "finalizedAt": "2026-09-10T22:25:00.000Z",
+      "updatedAt": "2026-09-10T22:25:00.000Z",
+      "checkIn": {
+        "morningWeight": 61.3,
+        "waterLiters": 2.7,
+        "sleepHours": 8,
+        "sleepQuality": 4,
+        "steps": 9200,
+        "digestion": 5,
+        "hungerLevel": 3,
+        "energyLevel": 4,
+        "stressLevel": 2,
+        "notes": "אימון חזק, עלייה במשקל עבודה בבנץ׳."
+      },
+      "nutrition": {
+        "totalCalories": 1870,
+        "targetCalories": 1850,
+        "totalProtein": 135,
+        "targetProtein": 130,
+        "totalCarbs": 200,
+        "totalFat": 56,
+        "meals": [
+          {
+            "id": "m1_2026-09-10",
+            "name": "ארוחת בוקר: שיבולת שועל עם חלבון, פירות יער וחמאת בוטנים",
+            "calories": 524,
+            "protein": 34,
+            "carbs": 65,
+            "fat": 16,
+            "time": "08:15",
+            "loggedAt": "2026-09-10T08:15:20.000Z"
+          },
+          {
+            "id": "m2_2026-09-10",
+            "name": "ארוחת צהריים: חזה עוף צלוי, אורז בסמטי ושעועית ירוקה",
+            "calories": 748,
+            "protein": 57,
+            "carbs": 85,
+            "fat": 14,
+            "time": "13:30",
+            "loggedAt": "2026-09-10T13:30:45.000Z"
+          },
+          {
+            "id": "m3_2026-09-10",
+            "name": "ארוחת ביניים: יוגורט פרו 20 גרם חלבון עם שקדים",
+            "calories": 224,
+            "protein": 20,
+            "carbs": 15,
+            "fat": 8,
+            "time": "17:00",
+            "loggedAt": "2026-09-10T17:00:10.000Z"
+          },
+          {
+            "id": "m4_2026-09-10",
+            "name": "ארוחת ערב: פילה סלמון בתנור, בטטה קלויה וסלט ירקות עשיר",
+            "calories": 374,
+            "protein": 24,
+            "carbs": 35,
+            "fat": 18,
+            "time": "20:45",
+            "loggedAt": "2026-09-10T20:45:33.000Z"
+          }
+        ]
+      },
+      "workouts": [
+        {
+          "id": "wo_2026-09-10",
+          "name": "אימון A - חזה, כתפיים ויד אחורית",
+          "planName": "Upper / Lower 4D",
+          "durationMinutes": 62,
+          "totalVolume": 5400,
+          "time": "18:30",
+          "startedAt": "2026-09-10T18:30:00.000Z",
+          "completedAt": "2026-09-10T19:25:00.000Z",
+          "exercises": [
+            {
+              "id": "ex_1",
+              "name": "לחיצת חזה במוט (Barbell Bench Press)",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 80,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:38"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 82.5,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "18:42"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 85,
+                  "reps": 6,
+                  "completed": true,
+                  "time": "18:47"
+                }
+              ]
+            },
+            {
+              "id": "ex_2",
+              "name": "לחיצת כתפיים בדאמבלים בישיבה",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 24,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:55"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:00"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:05"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "coachFeedback": null
+    },
+    {
+      "id": "client_2_2026-09-11",
+      "traineeId": "client_2",
+      "date": "2026-09-11",
+      "status": "finalized",
+      "createdAt": "2026-09-11T07:30:00.000Z",
+      "finalizedAt": "2026-09-11T22:26:00.000Z",
+      "updatedAt": "2026-09-11T22:26:00.000Z",
+      "checkIn": {
+        "morningWeight": 61.4,
+        "waterLiters": 2.9,
+        "sleepHours": 8.5,
+        "sleepQuality": 5,
+        "steps": 9670,
+        "digestion": 5,
+        "hungerLevel": 3,
+        "energyLevel": 4,
+        "stressLevel": 2,
+        "notes": "אימון חזק, עלייה במשקל עבודה בבנץ׳."
+      },
+      "nutrition": {
+        "totalCalories": 1907,
+        "targetCalories": 1850,
+        "totalProtein": 128,
+        "targetProtein": 130,
+        "totalCarbs": 200,
+        "totalFat": 56,
+        "meals": [
+          {
+            "id": "m1_2026-09-11",
+            "name": "ארוחת בוקר: שיבולת שועל עם חלבון, פירות יער וחמאת בוטנים",
+            "calories": 534,
+            "protein": 32,
+            "carbs": 65,
+            "fat": 16,
+            "time": "08:15",
+            "loggedAt": "2026-09-11T08:15:20.000Z"
+          },
+          {
+            "id": "m2_2026-09-11",
+            "name": "ארוחת צהריים: חזה עוף צלוי, אורז בסמטי ושעועית ירוקה",
+            "calories": 763,
+            "protein": 54,
+            "carbs": 85,
+            "fat": 14,
+            "time": "13:30",
+            "loggedAt": "2026-09-11T13:30:45.000Z"
+          },
+          {
+            "id": "m3_2026-09-11",
+            "name": "ארוחת ביניים: יוגורט פרו 20 גרם חלבון עם שקדים",
+            "calories": 229,
+            "protein": 19,
+            "carbs": 15,
+            "fat": 8,
+            "time": "17:00",
+            "loggedAt": "2026-09-11T17:00:10.000Z"
+          },
+          {
+            "id": "m4_2026-09-11",
+            "name": "ארוחת ערב: פילה סלמון בתנור, בטטה קלויה וסלט ירקות עשיר",
+            "calories": 381,
+            "protein": 23,
+            "carbs": 35,
+            "fat": 18,
+            "time": "20:45",
+            "loggedAt": "2026-09-11T20:45:33.000Z"
+          }
+        ]
+      },
+      "workouts": [
+        {
+          "id": "wo_2026-09-11",
+          "name": "אימון B - גב, יד קדמית ורגליים",
+          "planName": "Upper / Lower 4D",
+          "durationMinutes": 63,
+          "totalVolume": 5520,
+          "time": "18:30",
+          "startedAt": "2026-09-11T18:30:00.000Z",
+          "completedAt": "2026-09-11T19:25:00.000Z",
+          "exercises": [
+            {
+              "id": "ex_1",
+              "name": "לחיצת חזה במוט (Barbell Bench Press)",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 80,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:38"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 82.5,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "18:42"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 85,
+                  "reps": 6,
+                  "completed": true,
+                  "time": "18:47"
+                }
+              ]
+            },
+            {
+              "id": "ex_2",
+              "name": "לחיצת כתפיים בדאמבלים בישיבה",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 24,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:55"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:00"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:05"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "coachFeedback": null
+    },
+    {
+      "id": "client_2_2026-09-12",
+      "traineeId": "client_2",
+      "date": "2026-09-12",
+      "status": "finalized",
+      "createdAt": "2026-09-12T07:30:00.000Z",
+      "finalizedAt": "2026-09-12T22:27:00.000Z",
+      "updatedAt": "2026-09-12T22:27:00.000Z",
+      "checkIn": {
+        "morningWeight": 61.5,
+        "waterLiters": 2.3,
+        "sleepHours": 7.5,
+        "sleepQuality": 4,
+        "steps": 10140,
+        "digestion": 5,
+        "hungerLevel": 3,
+        "energyLevel": 4,
+        "stressLevel": 2,
+        "notes": "יום מנוחה והתאוששות מלאה, הקפדה על חלבון."
+      },
+      "nutrition": {
+        "totalCalories": 1944,
+        "targetCalories": 1850,
+        "totalProtein": 141,
+        "targetProtein": 130,
+        "totalCarbs": 200,
+        "totalFat": 56,
+        "meals": [
+          {
+            "id": "m1_2026-09-12",
+            "name": "ארוחת בוקר: שיבולת שועל עם חלבון, פירות יער וחמאת בוטנים",
+            "calories": 544,
+            "protein": 35,
+            "carbs": 65,
+            "fat": 16,
+            "time": "08:15",
+            "loggedAt": "2026-09-12T08:15:20.000Z"
+          },
+          {
+            "id": "m2_2026-09-12",
+            "name": "ארוחת צהריים: חזה עוף צלוי, אורז בסמטי ושעועית ירוקה",
+            "calories": 778,
+            "protein": 59,
+            "carbs": 85,
+            "fat": 14,
+            "time": "13:30",
+            "loggedAt": "2026-09-12T13:30:45.000Z"
+          },
+          {
+            "id": "m3_2026-09-12",
+            "name": "ארוחת ביניים: יוגורט פרו 20 גרם חלבון עם שקדים",
+            "calories": 233,
+            "protein": 21,
+            "carbs": 15,
+            "fat": 8,
+            "time": "17:00",
+            "loggedAt": "2026-09-12T17:00:10.000Z"
+          },
+          {
+            "id": "m4_2026-09-12",
+            "name": "ארוחת ערב: פילה סלמון בתנור, בטטה קלויה וסלט ירקות עשיר",
+            "calories": 389,
+            "protein": 25,
+            "carbs": 35,
+            "fat": 18,
+            "time": "20:45",
+            "loggedAt": "2026-09-12T20:45:33.000Z"
+          }
+        ]
+      },
+      "workouts": [],
+      "coachFeedback": {
+        "reviewed": true,
+        "reviewedAt": "2026-09-12T23:00:00.000Z",
+        "coachName": "מאמן ראשי",
+        "coachRating": 5,
+        "notes": "יום התאוששות מצוין, תמשיך ככה!"
+      }
+    },
+    {
+      "id": "client_2_2026-09-13",
+      "traineeId": "client_2",
+      "date": "2026-09-13",
+      "status": "finalized",
+      "createdAt": "2026-09-13T07:30:00.000Z",
+      "finalizedAt": "2026-09-13T22:28:00.000Z",
+      "updatedAt": "2026-09-13T22:28:00.000Z",
+      "checkIn": {
+        "morningWeight": 61.6,
+        "waterLiters": 2.5,
+        "sleepHours": 8,
+        "sleepQuality": 5,
+        "steps": 10610,
+        "digestion": 5,
+        "hungerLevel": 3,
+        "energyLevel": 4,
+        "stressLevel": 2,
+        "notes": "אימון חזק, עלייה במשקל עבודה בבנץ׳."
+      },
+      "nutrition": {
+        "totalCalories": 1981,
+        "targetCalories": 1850,
+        "totalProtein": 134,
+        "targetProtein": 130,
+        "totalCarbs": 200,
+        "totalFat": 56,
+        "meals": [
+          {
+            "id": "m1_2026-09-13",
+            "name": "ארוחת בוקר: שיבולת שועל עם חלבון, פירות יער וחמאת בוטנים",
+            "calories": 555,
+            "protein": 34,
+            "carbs": 65,
+            "fat": 16,
+            "time": "08:15",
+            "loggedAt": "2026-09-13T08:15:20.000Z"
+          },
+          {
+            "id": "m2_2026-09-13",
+            "name": "ארוחת צהריים: חזה עוף צלוי, אורז בסמטי ושעועית ירוקה",
+            "calories": 792,
+            "protein": 56,
+            "carbs": 85,
+            "fat": 14,
+            "time": "13:30",
+            "loggedAt": "2026-09-13T13:30:45.000Z"
+          },
+          {
+            "id": "m3_2026-09-13",
+            "name": "ארוחת ביניים: יוגורט פרו 20 גרם חלבון עם שקדים",
+            "calories": 238,
+            "protein": 20,
+            "carbs": 15,
+            "fat": 8,
+            "time": "17:00",
+            "loggedAt": "2026-09-13T17:00:10.000Z"
+          },
+          {
+            "id": "m4_2026-09-13",
+            "name": "ארוחת ערב: פילה סלמון בתנור, בטטה קלויה וסלט ירקות עשיר",
+            "calories": 396,
+            "protein": 24,
+            "carbs": 35,
+            "fat": 18,
+            "time": "20:45",
+            "loggedAt": "2026-09-13T20:45:33.000Z"
+          }
+        ]
+      },
+      "workouts": [
+        {
+          "id": "wo_2026-09-13",
+          "name": "אימון A - חזה, כתפיים ויד אחורית",
+          "planName": "Upper / Lower 4D",
+          "durationMinutes": 65,
+          "totalVolume": 5760,
+          "time": "18:30",
+          "startedAt": "2026-09-13T18:30:00.000Z",
+          "completedAt": "2026-09-13T19:25:00.000Z",
+          "exercises": [
+            {
+              "id": "ex_1",
+              "name": "לחיצת חזה במוט (Barbell Bench Press)",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 80,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:38"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 82.5,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "18:42"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 85,
+                  "reps": 6,
+                  "completed": true,
+                  "time": "18:47"
+                }
+              ]
+            },
+            {
+              "id": "ex_2",
+              "name": "לחיצת כתפיים בדאמבלים בישיבה",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 24,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:55"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:00"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:05"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "coachFeedback": null
+    },
+    {
+      "id": "client_2_2026-09-14",
+      "traineeId": "client_2",
+      "date": "2026-09-14",
+      "status": "auto_closed",
+      "createdAt": "2026-09-14T07:30:00.000Z",
+      "finalizedAt": "2026-09-14T22:29:00.000Z",
+      "updatedAt": "2026-09-14T22:29:00.000Z",
+      "checkIn": {
+        "morningWeight": 61.7,
+        "waterLiters": 2.7,
+        "sleepHours": 8.5,
+        "sleepQuality": 4,
+        "steps": 11080,
+        "digestion": 5,
+        "hungerLevel": 3,
+        "energyLevel": 4,
+        "stressLevel": 2,
+        "notes": "יום מנוחה והתאוששות מלאה, הקפדה על חלבון."
+      },
+      "nutrition": {
+        "totalCalories": 1768,
+        "targetCalories": 1850,
+        "totalProtein": 127,
+        "targetProtein": 130,
+        "totalCarbs": 200,
+        "totalFat": 56,
+        "meals": [
+          {
+            "id": "m1_2026-09-14",
+            "name": "ארוחת בוקר: שיבולת שועל עם חלבון, פירות יער וחמאת בוטנים",
+            "calories": 495,
+            "protein": 32,
+            "carbs": 65,
+            "fat": 16,
+            "time": "08:15",
+            "loggedAt": "2026-09-14T08:15:20.000Z"
+          },
+          {
+            "id": "m2_2026-09-14",
+            "name": "ארוחת צהריים: חזה עוף צלוי, אורז בסמטי ושעועית ירוקה",
+            "calories": 707,
+            "protein": 53,
+            "carbs": 85,
+            "fat": 14,
+            "time": "13:30",
+            "loggedAt": "2026-09-14T13:30:45.000Z"
+          },
+          {
+            "id": "m3_2026-09-14",
+            "name": "ארוחת ביניים: יוגורט פרו 20 גרם חלבון עם שקדים",
+            "calories": 212,
+            "protein": 19,
+            "carbs": 15,
+            "fat": 8,
+            "time": "17:00",
+            "loggedAt": "2026-09-14T17:00:10.000Z"
+          },
+          {
+            "id": "m4_2026-09-14",
+            "name": "ארוחת ערב: פילה סלמון בתנור, בטטה קלויה וסלט ירקות עשיר",
+            "calories": 354,
+            "protein": 23,
+            "carbs": 35,
+            "fat": 18,
+            "time": "20:45",
+            "loggedAt": "2026-09-14T20:45:33.000Z"
+          }
+        ]
+      },
+      "workouts": [],
+      "coachFeedback": null
+    },
+    {
+      "id": "client_2_2026-09-15",
+      "traineeId": "client_2",
+      "date": "2026-09-15",
+      "status": "finalized",
+      "createdAt": "2026-09-15T07:30:00.000Z",
+      "finalizedAt": "2026-09-15T22:30:00.000Z",
+      "updatedAt": "2026-09-15T22:30:00.000Z",
+      "checkIn": {
+        "morningWeight": 61.3,
+        "waterLiters": 2.9,
+        "sleepHours": 7.5,
+        "sleepQuality": 5,
+        "steps": 11550,
+        "digestion": 5,
+        "hungerLevel": 3,
+        "energyLevel": 4,
+        "stressLevel": 2,
+        "notes": "אימון חזק, עלייה במשקל עבודה בבנץ׳."
+      },
+      "nutrition": {
+        "totalCalories": 1805,
+        "targetCalories": 1850,
+        "totalProtein": 140,
+        "targetProtein": 130,
+        "totalCarbs": 200,
+        "totalFat": 56,
+        "meals": [
+          {
+            "id": "m1_2026-09-15",
+            "name": "ארוחת בוקר: שיבולת שועל עם חלבון, פירות יער וחמאת בוטנים",
+            "calories": 505,
+            "protein": 35,
+            "carbs": 65,
+            "fat": 16,
+            "time": "08:15",
+            "loggedAt": "2026-09-15T08:15:20.000Z"
+          },
+          {
+            "id": "m2_2026-09-15",
+            "name": "ארוחת צהריים: חזה עוף צלוי, אורז בסמטי ושעועית ירוקה",
+            "calories": 722,
+            "protein": 59,
+            "carbs": 85,
+            "fat": 14,
+            "time": "13:30",
+            "loggedAt": "2026-09-15T13:30:45.000Z"
+          },
+          {
+            "id": "m3_2026-09-15",
+            "name": "ארוחת ביניים: יוגורט פרו 20 גרם חלבון עם שקדים",
+            "calories": 217,
+            "protein": 21,
+            "carbs": 15,
+            "fat": 8,
+            "time": "17:00",
+            "loggedAt": "2026-09-15T17:00:10.000Z"
+          },
+          {
+            "id": "m4_2026-09-15",
+            "name": "ארוחת ערב: פילה סלמון בתנור, בטטה קלויה וסלט ירקות עשיר",
+            "calories": 361,
+            "protein": 25,
+            "carbs": 35,
+            "fat": 18,
+            "time": "20:45",
+            "loggedAt": "2026-09-15T20:45:33.000Z"
+          }
+        ]
+      },
+      "workouts": [
+        {
+          "id": "wo_2026-09-15",
+          "name": "אימון B - גב, יד קדמית ורגליים",
+          "planName": "Upper / Lower 4D",
+          "durationMinutes": 52,
+          "totalVolume": 6000,
+          "time": "18:30",
+          "startedAt": "2026-09-15T18:30:00.000Z",
+          "completedAt": "2026-09-15T19:25:00.000Z",
+          "exercises": [
+            {
+              "id": "ex_1",
+              "name": "לחיצת חזה במוט (Barbell Bench Press)",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 80,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:38"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 82.5,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "18:42"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 85,
+                  "reps": 6,
+                  "completed": true,
+                  "time": "18:47"
+                }
+              ]
+            },
+            {
+              "id": "ex_2",
+              "name": "לחיצת כתפיים בדאמבלים בישיבה",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 24,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:55"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:00"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:05"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "coachFeedback": {
+        "reviewed": true,
+        "reviewedAt": "2026-09-15T23:00:00.000Z",
+        "coachName": "מאמן ראשי",
+        "coachRating": 5,
+        "notes": "עבודה טכנית מרשימה על הסטים הכבדים. המשך לשמור על עקביות בצריכת המים."
+      }
+    },
+    {
+      "id": "client_2_2026-09-16",
+      "traineeId": "client_2",
+      "date": "2026-09-16",
+      "status": "finalized",
+      "createdAt": "2026-09-16T07:30:00.000Z",
+      "finalizedAt": "2026-09-16T22:31:00.000Z",
+      "updatedAt": "2026-09-16T22:31:00.000Z",
+      "checkIn": {
+        "morningWeight": 61.4,
+        "waterLiters": 2.3,
+        "sleepHours": 8,
+        "sleepQuality": 4,
+        "steps": 12020,
+        "digestion": 5,
+        "hungerLevel": 3,
+        "energyLevel": 4,
+        "stressLevel": 2,
+        "notes": "יום מנוחה והתאוששות מלאה, הקפדה על חלבון."
+      },
+      "nutrition": {
+        "totalCalories": 1842,
+        "targetCalories": 1850,
+        "totalProtein": 133,
+        "targetProtein": 130,
+        "totalCarbs": 200,
+        "totalFat": 56,
+        "meals": [
+          {
+            "id": "m1_2026-09-16",
+            "name": "ארוחת בוקר: שיבולת שועל עם חלבון, פירות יער וחמאת בוטנים",
+            "calories": 516,
+            "protein": 33,
+            "carbs": 65,
+            "fat": 16,
+            "time": "08:15",
+            "loggedAt": "2026-09-16T08:15:20.000Z"
+          },
+          {
+            "id": "m2_2026-09-16",
+            "name": "ארוחת צהריים: חזה עוף צלוי, אורז בסמטי ושעועית ירוקה",
+            "calories": 737,
+            "protein": 56,
+            "carbs": 85,
+            "fat": 14,
+            "time": "13:30",
+            "loggedAt": "2026-09-16T13:30:45.000Z"
+          },
+          {
+            "id": "m3_2026-09-16",
+            "name": "ארוחת ביניים: יוגורט פרו 20 גרם חלבון עם שקדים",
+            "calories": 221,
+            "protein": 20,
+            "carbs": 15,
+            "fat": 8,
+            "time": "17:00",
+            "loggedAt": "2026-09-16T17:00:10.000Z"
+          },
+          {
+            "id": "m4_2026-09-16",
+            "name": "ארוחת ערב: פילה סלמון בתנור, בטטה קלויה וסלט ירקות עשיר",
+            "calories": 368,
+            "protein": 24,
+            "carbs": 35,
+            "fat": 18,
+            "time": "20:45",
+            "loggedAt": "2026-09-16T20:45:33.000Z"
+          }
+        ]
+      },
+      "workouts": [],
+      "coachFeedback": null
+    },
+    {
+      "id": "client_2_2026-09-17",
+      "traineeId": "client_2",
+      "date": "2026-09-17",
+      "status": "finalized",
+      "createdAt": "2026-09-17T07:30:00.000Z",
+      "finalizedAt": "2026-09-17T22:32:00.000Z",
+      "updatedAt": "2026-09-17T22:32:00.000Z",
+      "checkIn": {
+        "morningWeight": 61.5,
+        "waterLiters": 2.5,
+        "sleepHours": 8.5,
+        "sleepQuality": 5,
+        "steps": 12490,
+        "digestion": 5,
+        "hungerLevel": 3,
+        "energyLevel": 4,
+        "stressLevel": 2,
+        "notes": "אימון חזק, עלייה במשקל עבודה בבנץ׳."
+      },
+      "nutrition": {
+        "totalCalories": 1879,
+        "targetCalories": 1850,
+        "totalProtein": 126,
+        "targetProtein": 130,
+        "totalCarbs": 200,
+        "totalFat": 56,
+        "meals": [
+          {
+            "id": "m1_2026-09-17",
+            "name": "ארוחת בוקר: שיבולת שועל עם חלבון, פירות יער וחמאת בוטנים",
+            "calories": 526,
+            "protein": 32,
+            "carbs": 65,
+            "fat": 16,
+            "time": "08:15",
+            "loggedAt": "2026-09-17T08:15:20.000Z"
+          },
+          {
+            "id": "m2_2026-09-17",
+            "name": "ארוחת צהריים: חזה עוף צלוי, אורז בסמטי ושעועית ירוקה",
+            "calories": 752,
+            "protein": 53,
+            "carbs": 85,
+            "fat": 14,
+            "time": "13:30",
+            "loggedAt": "2026-09-17T13:30:45.000Z"
+          },
+          {
+            "id": "m3_2026-09-17",
+            "name": "ארוחת ביניים: יוגורט פרו 20 גרם חלבון עם שקדים",
+            "calories": 225,
+            "protein": 19,
+            "carbs": 15,
+            "fat": 8,
+            "time": "17:00",
+            "loggedAt": "2026-09-17T17:00:10.000Z"
+          },
+          {
+            "id": "m4_2026-09-17",
+            "name": "ארוחת ערב: פילה סלמון בתנור, בטטה קלויה וסלט ירקות עשיר",
+            "calories": 376,
+            "protein": 23,
+            "carbs": 35,
+            "fat": 18,
+            "time": "20:45",
+            "loggedAt": "2026-09-17T20:45:33.000Z"
+          }
+        ]
+      },
+      "workouts": [
+        {
+          "id": "wo_2026-09-17",
+          "name": "אימון A - חזה, כתפיים ויד אחורית",
+          "planName": "Upper / Lower 4D",
+          "durationMinutes": 54,
+          "totalVolume": 6240,
+          "time": "18:30",
+          "startedAt": "2026-09-17T18:30:00.000Z",
+          "completedAt": "2026-09-17T19:25:00.000Z",
+          "exercises": [
+            {
+              "id": "ex_1",
+              "name": "לחיצת חזה במוט (Barbell Bench Press)",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 80,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:38"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 82.5,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "18:42"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 85,
+                  "reps": 6,
+                  "completed": true,
+                  "time": "18:47"
+                }
+              ]
+            },
+            {
+              "id": "ex_2",
+              "name": "לחיצת כתפיים בדאמבלים בישיבה",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 24,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:55"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:00"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:05"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "coachFeedback": null
+    },
+    {
+      "id": "client_2_2026-09-18",
+      "traineeId": "client_2",
+      "date": "2026-09-18",
+      "status": "finalized",
+      "createdAt": "2026-09-18T07:30:00.000Z",
+      "finalizedAt": "2026-09-18T22:33:00.000Z",
+      "updatedAt": "2026-09-18T22:33:00.000Z",
+      "checkIn": {
+        "morningWeight": 61.6,
+        "waterLiters": 2.7,
+        "sleepHours": 7.5,
+        "sleepQuality": 4,
+        "steps": 8960,
+        "digestion": 5,
+        "hungerLevel": 3,
+        "energyLevel": 4,
+        "stressLevel": 2,
+        "notes": "אימון חזק, עלייה במשקל עבודה בבנץ׳."
+      },
+      "nutrition": {
+        "totalCalories": 1916,
+        "targetCalories": 1850,
+        "totalProtein": 139,
+        "targetProtein": 130,
+        "totalCarbs": 200,
+        "totalFat": 56,
+        "meals": [
+          {
+            "id": "m1_2026-09-18",
+            "name": "ארוחת בוקר: שיבולת שועל עם חלבון, פירות יער וחמאת בוטנים",
+            "calories": 536,
+            "protein": 35,
+            "carbs": 65,
+            "fat": 16,
+            "time": "08:15",
+            "loggedAt": "2026-09-18T08:15:20.000Z"
+          },
+          {
+            "id": "m2_2026-09-18",
+            "name": "ארוחת צהריים: חזה עוף צלוי, אורז בסמטי ושעועית ירוקה",
+            "calories": 766,
+            "protein": 58,
+            "carbs": 85,
+            "fat": 14,
+            "time": "13:30",
+            "loggedAt": "2026-09-18T13:30:45.000Z"
+          },
+          {
+            "id": "m3_2026-09-18",
+            "name": "ארוחת ביניים: יוגורט פרו 20 גרם חלבון עם שקדים",
+            "calories": 230,
+            "protein": 21,
+            "carbs": 15,
+            "fat": 8,
+            "time": "17:00",
+            "loggedAt": "2026-09-18T17:00:10.000Z"
+          },
+          {
+            "id": "m4_2026-09-18",
+            "name": "ארוחת ערב: פילה סלמון בתנור, בטטה קלויה וסלט ירקות עשיר",
+            "calories": 383,
+            "protein": 25,
+            "carbs": 35,
+            "fat": 18,
+            "time": "20:45",
+            "loggedAt": "2026-09-18T20:45:33.000Z"
+          }
+        ]
+      },
+      "workouts": [
+        {
+          "id": "wo_2026-09-18",
+          "name": "אימון B - גב, יד קדמית ורגליים",
+          "planName": "Upper / Lower 4D",
+          "durationMinutes": 55,
+          "totalVolume": 6360,
+          "time": "18:30",
+          "startedAt": "2026-09-18T18:30:00.000Z",
+          "completedAt": "2026-09-18T19:25:00.000Z",
+          "exercises": [
+            {
+              "id": "ex_1",
+              "name": "לחיצת חזה במוט (Barbell Bench Press)",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 80,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:38"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 82.5,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "18:42"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 85,
+                  "reps": 6,
+                  "completed": true,
+                  "time": "18:47"
+                }
+              ]
+            },
+            {
+              "id": "ex_2",
+              "name": "לחיצת כתפיים בדאמבלים בישיבה",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 24,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:55"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:00"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:05"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "coachFeedback": {
+        "reviewed": true,
+        "reviewedAt": "2026-09-18T23:00:00.000Z",
+        "coachName": "מאמן ראשי",
+        "coachRating": 5,
+        "notes": "עבודה טכנית מרשימה על הסטים הכבדים. המשך לשמור על עקביות בצריכת המים."
+      }
+    },
+    {
+      "id": "client_2_2026-09-19",
+      "traineeId": "client_2",
+      "date": "2026-09-19",
+      "status": "finalized",
+      "createdAt": "2026-09-19T07:30:00.000Z",
+      "finalizedAt": "2026-09-19T22:34:00.000Z",
+      "updatedAt": "2026-09-19T22:34:00.000Z",
+      "checkIn": {
+        "morningWeight": 61.7,
+        "waterLiters": 2.9,
+        "sleepHours": 8,
+        "sleepQuality": 5,
+        "steps": 9430,
+        "digestion": 5,
+        "hungerLevel": 3,
+        "energyLevel": 4,
+        "stressLevel": 2,
+        "notes": "יום מנוחה והתאוששות מלאה, הקפדה על חלבון."
+      },
+      "nutrition": {
+        "totalCalories": 1953,
+        "targetCalories": 1850,
+        "totalProtein": 132,
+        "targetProtein": 130,
+        "totalCarbs": 200,
+        "totalFat": 56,
+        "meals": [
+          {
+            "id": "m1_2026-09-19",
+            "name": "ארוחת בוקר: שיבולת שועל עם חלבון, פירות יער וחמאת בוטנים",
+            "calories": 547,
+            "protein": 33,
+            "carbs": 65,
+            "fat": 16,
+            "time": "08:15",
+            "loggedAt": "2026-09-19T08:15:20.000Z"
+          },
+          {
+            "id": "m2_2026-09-19",
+            "name": "ארוחת צהריים: חזה עוף צלוי, אורז בסמטי ושעועית ירוקה",
+            "calories": 781,
+            "protein": 55,
+            "carbs": 85,
+            "fat": 14,
+            "time": "13:30",
+            "loggedAt": "2026-09-19T13:30:45.000Z"
+          },
+          {
+            "id": "m3_2026-09-19",
+            "name": "ארוחת ביניים: יוגורט פרו 20 גרם חלבון עם שקדים",
+            "calories": 234,
+            "protein": 20,
+            "carbs": 15,
+            "fat": 8,
+            "time": "17:00",
+            "loggedAt": "2026-09-19T17:00:10.000Z"
+          },
+          {
+            "id": "m4_2026-09-19",
+            "name": "ארוחת ערב: פילה סלמון בתנור, בטטה קלויה וסלט ירקות עשיר",
+            "calories": 391,
+            "protein": 24,
+            "carbs": 35,
+            "fat": 18,
+            "time": "20:45",
+            "loggedAt": "2026-09-19T20:45:33.000Z"
+          }
+        ]
+      },
+      "workouts": [],
+      "coachFeedback": null
+    },
+    {
+      "id": "client_2_2026-09-20",
+      "traineeId": "client_2",
+      "date": "2026-09-20",
+      "status": "finalized",
+      "createdAt": "2026-09-20T07:30:00.000Z",
+      "finalizedAt": "2026-09-20T22:35:00.000Z",
+      "updatedAt": "2026-09-20T22:35:00.000Z",
+      "checkIn": {
+        "morningWeight": 61.3,
+        "waterLiters": 2.3,
+        "sleepHours": 8.5,
+        "sleepQuality": 4,
+        "steps": 9900,
+        "digestion": 5,
+        "hungerLevel": 3,
+        "energyLevel": 4,
+        "stressLevel": 2,
+        "notes": "אימון חזק, עלייה במשקל עבודה בבנץ׳."
+      },
+      "nutrition": {
+        "totalCalories": 1990,
+        "targetCalories": 1850,
+        "totalProtein": 125,
+        "targetProtein": 130,
+        "totalCarbs": 200,
+        "totalFat": 56,
+        "meals": [
+          {
+            "id": "m1_2026-09-20",
+            "name": "ארוחת בוקר: שיבולת שועל עם חלבון, פירות יער וחמאת בוטנים",
+            "calories": 557,
+            "protein": 31,
+            "carbs": 65,
+            "fat": 16,
+            "time": "08:15",
+            "loggedAt": "2026-09-20T08:15:20.000Z"
+          },
+          {
+            "id": "m2_2026-09-20",
+            "name": "ארוחת צהריים: חזה עוף צלוי, אורז בסמטי ושעועית ירוקה",
+            "calories": 796,
+            "protein": 53,
+            "carbs": 85,
+            "fat": 14,
+            "time": "13:30",
+            "loggedAt": "2026-09-20T13:30:45.000Z"
+          },
+          {
+            "id": "m3_2026-09-20",
+            "name": "ארוחת ביניים: יוגורט פרו 20 גרם חלבון עם שקדים",
+            "calories": 239,
+            "protein": 19,
+            "carbs": 15,
+            "fat": 8,
+            "time": "17:00",
+            "loggedAt": "2026-09-20T17:00:10.000Z"
+          },
+          {
+            "id": "m4_2026-09-20",
+            "name": "ארוחת ערב: פילה סלמון בתנור, בטטה קלויה וסלט ירקות עשיר",
+            "calories": 398,
+            "protein": 23,
+            "carbs": 35,
+            "fat": 18,
+            "time": "20:45",
+            "loggedAt": "2026-09-20T20:45:33.000Z"
+          }
+        ]
+      },
+      "workouts": [
+        {
+          "id": "wo_2026-09-20",
+          "name": "אימון A - חזה, כתפיים ויד אחורית",
+          "planName": "Upper / Lower 4D",
+          "durationMinutes": 57,
+          "totalVolume": 6600,
+          "time": "18:30",
+          "startedAt": "2026-09-20T18:30:00.000Z",
+          "completedAt": "2026-09-20T19:25:00.000Z",
+          "exercises": [
+            {
+              "id": "ex_1",
+              "name": "לחיצת חזה במוט (Barbell Bench Press)",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 80,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:38"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 82.5,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "18:42"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 85,
+                  "reps": 6,
+                  "completed": true,
+                  "time": "18:47"
+                }
+              ]
+            },
+            {
+              "id": "ex_2",
+              "name": "לחיצת כתפיים בדאמבלים בישיבה",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 24,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:55"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:00"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:05"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "coachFeedback": null
+    },
+    {
+      "id": "client_2_2026-09-21",
+      "traineeId": "client_2",
+      "date": "2026-09-21",
+      "status": "auto_closed",
+      "createdAt": "2026-09-21T07:30:00.000Z",
+      "finalizedAt": "2026-09-21T22:36:00.000Z",
+      "updatedAt": "2026-09-21T22:36:00.000Z",
+      "checkIn": {
+        "morningWeight": 61.4,
+        "waterLiters": 2.5,
+        "sleepHours": 7.5,
+        "sleepQuality": 5,
+        "steps": 10370,
+        "digestion": 5,
+        "hungerLevel": 3,
+        "energyLevel": 4,
+        "stressLevel": 2,
+        "notes": "יום מנוחה והתאוששות מלאה, הקפדה על חלבון."
+      },
+      "nutrition": {
+        "totalCalories": 1777,
+        "targetCalories": 1850,
+        "totalProtein": 138,
+        "targetProtein": 130,
+        "totalCarbs": 200,
+        "totalFat": 56,
+        "meals": [
+          {
+            "id": "m1_2026-09-21",
+            "name": "ארוחת בוקר: שיבולת שועל עם חלבון, פירות יער וחמאת בוטנים",
+            "calories": 498,
+            "protein": 35,
+            "carbs": 65,
+            "fat": 16,
+            "time": "08:15",
+            "loggedAt": "2026-09-21T08:15:20.000Z"
+          },
+          {
+            "id": "m2_2026-09-21",
+            "name": "ארוחת צהריים: חזה עוף צלוי, אורז בסמטי ושעועית ירוקה",
+            "calories": 711,
+            "protein": 58,
+            "carbs": 85,
+            "fat": 14,
+            "time": "13:30",
+            "loggedAt": "2026-09-21T13:30:45.000Z"
+          },
+          {
+            "id": "m3_2026-09-21",
+            "name": "ארוחת ביניים: יוגורט פרו 20 גרם חלבון עם שקדים",
+            "calories": 213,
+            "protein": 21,
+            "carbs": 15,
+            "fat": 8,
+            "time": "17:00",
+            "loggedAt": "2026-09-21T17:00:10.000Z"
+          },
+          {
+            "id": "m4_2026-09-21",
+            "name": "ארוחת ערב: פילה סלמון בתנור, בטטה קלויה וסלט ירקות עשיר",
+            "calories": 355,
+            "protein": 25,
+            "carbs": 35,
+            "fat": 18,
+            "time": "20:45",
+            "loggedAt": "2026-09-21T20:45:33.000Z"
+          }
+        ]
+      },
+      "workouts": [],
+      "coachFeedback": {
+        "reviewed": true,
+        "reviewedAt": "2026-09-21T23:00:00.000Z",
+        "coachName": "מאמן ראשי",
+        "coachRating": 5,
+        "notes": "יום התאוששות מצוין, תמשיך ככה!"
+      }
+    },
+    {
+      "id": "client_2_2026-09-22",
+      "traineeId": "client_2",
+      "date": "2026-09-22",
+      "status": "finalized",
+      "createdAt": "2026-09-22T07:30:00.000Z",
+      "finalizedAt": "2026-09-22T22:37:00.000Z",
+      "updatedAt": "2026-09-22T22:37:00.000Z",
+      "checkIn": {
+        "morningWeight": 61.5,
+        "waterLiters": 2.7,
+        "sleepHours": 8,
+        "sleepQuality": 4,
+        "steps": 10840,
+        "digestion": 5,
+        "hungerLevel": 3,
+        "energyLevel": 4,
+        "stressLevel": 2,
+        "notes": "אימון חזק, עלייה במשקל עבודה בבנץ׳."
+      },
+      "nutrition": {
+        "totalCalories": 1814,
+        "targetCalories": 1850,
+        "totalProtein": 131,
+        "targetProtein": 130,
+        "totalCarbs": 200,
+        "totalFat": 56,
+        "meals": [
+          {
+            "id": "m1_2026-09-22",
+            "name": "ארוחת בוקר: שיבולת שועל עם חלבון, פירות יער וחמאת בוטנים",
+            "calories": 508,
+            "protein": 33,
+            "carbs": 65,
+            "fat": 16,
+            "time": "08:15",
+            "loggedAt": "2026-09-22T08:15:20.000Z"
+          },
+          {
+            "id": "m2_2026-09-22",
+            "name": "ארוחת צהריים: חזה עוף צלוי, אורז בסמטי ושעועית ירוקה",
+            "calories": 726,
+            "protein": 55,
+            "carbs": 85,
+            "fat": 14,
+            "time": "13:30",
+            "loggedAt": "2026-09-22T13:30:45.000Z"
+          },
+          {
+            "id": "m3_2026-09-22",
+            "name": "ארוחת ביניים: יוגורט פרו 20 גרם חלבון עם שקדים",
+            "calories": 218,
+            "protein": 20,
+            "carbs": 15,
+            "fat": 8,
+            "time": "17:00",
+            "loggedAt": "2026-09-22T17:00:10.000Z"
+          },
+          {
+            "id": "m4_2026-09-22",
+            "name": "ארוחת ערב: פילה סלמון בתנור, בטטה קלויה וסלט ירקות עשיר",
+            "calories": 363,
+            "protein": 24,
+            "carbs": 35,
+            "fat": 18,
+            "time": "20:45",
+            "loggedAt": "2026-09-22T20:45:33.000Z"
+          }
+        ]
+      },
+      "workouts": [
+        {
+          "id": "wo_2026-09-22",
+          "name": "אימון B - גב, יד קדמית ורגליים",
+          "planName": "Upper / Lower 4D",
+          "durationMinutes": 59,
+          "totalVolume": 6840,
+          "time": "18:30",
+          "startedAt": "2026-09-22T18:30:00.000Z",
+          "completedAt": "2026-09-22T19:25:00.000Z",
+          "exercises": [
+            {
+              "id": "ex_1",
+              "name": "לחיצת חזה במוט (Barbell Bench Press)",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 80,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:38"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 82.5,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "18:42"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 85,
+                  "reps": 6,
+                  "completed": true,
+                  "time": "18:47"
+                }
+              ]
+            },
+            {
+              "id": "ex_2",
+              "name": "לחיצת כתפיים בדאמבלים בישיבה",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 24,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:55"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:00"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:05"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "coachFeedback": null
+    },
+    {
+      "id": "client_2_2026-09-23",
+      "traineeId": "client_2",
+      "date": "2026-09-23",
+      "status": "finalized",
+      "createdAt": "2026-09-23T07:30:00.000Z",
+      "finalizedAt": "2026-09-23T22:38:00.000Z",
+      "updatedAt": "2026-09-23T22:38:00.000Z",
+      "checkIn": {
+        "morningWeight": 61.6,
+        "waterLiters": 2.9,
+        "sleepHours": 8.5,
+        "sleepQuality": 5,
+        "steps": 11310,
+        "digestion": 5,
+        "hungerLevel": 3,
+        "energyLevel": 4,
+        "stressLevel": 2,
+        "notes": "יום מנוחה והתאוששות מלאה, הקפדה על חלבון."
+      },
+      "nutrition": {
+        "totalCalories": 1851,
+        "targetCalories": 1850,
+        "totalProtein": 144,
+        "targetProtein": 130,
+        "totalCarbs": 200,
+        "totalFat": 56,
+        "meals": [
+          {
+            "id": "m1_2026-09-23",
+            "name": "ארוחת בוקר: שיבולת שועל עם חלבון, פירות יער וחמאת בוטנים",
+            "calories": 518,
+            "protein": 36,
+            "carbs": 65,
+            "fat": 16,
+            "time": "08:15",
+            "loggedAt": "2026-09-23T08:15:20.000Z"
+          },
+          {
+            "id": "m2_2026-09-23",
+            "name": "ארוחת צהריים: חזה עוף צלוי, אורז בסמטי ושעועית ירוקה",
+            "calories": 740,
+            "protein": 60,
+            "carbs": 85,
+            "fat": 14,
+            "time": "13:30",
+            "loggedAt": "2026-09-23T13:30:45.000Z"
+          },
+          {
+            "id": "m3_2026-09-23",
+            "name": "ארוחת ביניים: יוגורט פרו 20 גרם חלבון עם שקדים",
+            "calories": 222,
+            "protein": 22,
+            "carbs": 15,
+            "fat": 8,
+            "time": "17:00",
+            "loggedAt": "2026-09-23T17:00:10.000Z"
+          },
+          {
+            "id": "m4_2026-09-23",
+            "name": "ארוחת ערב: פילה סלמון בתנור, בטטה קלויה וסלט ירקות עשיר",
+            "calories": 370,
+            "protein": 26,
+            "carbs": 35,
+            "fat": 18,
+            "time": "20:45",
+            "loggedAt": "2026-09-23T20:45:33.000Z"
+          }
+        ]
+      },
+      "workouts": [],
+      "coachFeedback": null
+    },
+    {
+      "id": "client_2_2026-09-24",
+      "traineeId": "client_2",
+      "date": "2026-09-24",
+      "status": "finalized",
+      "createdAt": "2026-09-24T07:30:00.000Z",
+      "finalizedAt": "2026-09-24T22:39:00.000Z",
+      "updatedAt": "2026-09-24T22:39:00.000Z",
+      "checkIn": {
+        "morningWeight": 61.7,
+        "waterLiters": 2.3,
+        "sleepHours": 7.5,
+        "sleepQuality": 4,
+        "steps": 11780,
+        "digestion": 5,
+        "hungerLevel": 3,
+        "energyLevel": 4,
+        "stressLevel": 2,
+        "notes": "אימון חזק, עלייה במשקל עבודה בבנץ׳."
+      },
+      "nutrition": {
+        "totalCalories": 1888,
+        "targetCalories": 1850,
+        "totalProtein": 137,
+        "targetProtein": 130,
+        "totalCarbs": 200,
+        "totalFat": 56,
+        "meals": [
+          {
+            "id": "m1_2026-09-24",
+            "name": "ארוחת בוקר: שיבולת שועל עם חלבון, פירות יער וחמאת בוטנים",
+            "calories": 529,
+            "protein": 34,
+            "carbs": 65,
+            "fat": 16,
+            "time": "08:15",
+            "loggedAt": "2026-09-24T08:15:20.000Z"
+          },
+          {
+            "id": "m2_2026-09-24",
+            "name": "ארוחת צהריים: חזה עוף צלוי, אורז בסמטי ושעועית ירוקה",
+            "calories": 755,
+            "protein": 58,
+            "carbs": 85,
+            "fat": 14,
+            "time": "13:30",
+            "loggedAt": "2026-09-24T13:30:45.000Z"
+          },
+          {
+            "id": "m3_2026-09-24",
+            "name": "ארוחת ביניים: יוגורט פרו 20 גרם חלבון עם שקדים",
+            "calories": 227,
+            "protein": 21,
+            "carbs": 15,
+            "fat": 8,
+            "time": "17:00",
+            "loggedAt": "2026-09-24T17:00:10.000Z"
+          },
+          {
+            "id": "m4_2026-09-24",
+            "name": "ארוחת ערב: פילה סלמון בתנור, בטטה קלויה וסלט ירקות עשיר",
+            "calories": 378,
+            "protein": 25,
+            "carbs": 35,
+            "fat": 18,
+            "time": "20:45",
+            "loggedAt": "2026-09-24T20:45:33.000Z"
+          }
+        ]
+      },
+      "workouts": [
+        {
+          "id": "wo_2026-09-24",
+          "name": "אימון A - חזה, כתפיים ויד אחורית",
+          "planName": "Upper / Lower 4D",
+          "durationMinutes": 61,
+          "totalVolume": 7080,
+          "time": "18:30",
+          "startedAt": "2026-09-24T18:30:00.000Z",
+          "completedAt": "2026-09-24T19:25:00.000Z",
+          "exercises": [
+            {
+              "id": "ex_1",
+              "name": "לחיצת חזה במוט (Barbell Bench Press)",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 80,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:38"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 82.5,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "18:42"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 85,
+                  "reps": 6,
+                  "completed": true,
+                  "time": "18:47"
+                }
+              ]
+            },
+            {
+              "id": "ex_2",
+              "name": "לחיצת כתפיים בדאמבלים בישיבה",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 24,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:55"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:00"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:05"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "coachFeedback": {
+        "reviewed": true,
+        "reviewedAt": "2026-09-24T23:00:00.000Z",
+        "coachName": "מאמן ראשי",
+        "coachRating": 5,
+        "notes": "עבודה טכנית מרשימה על הסטים הכבדים. המשך לשמור על עקביות בצריכת המים."
+      }
+    },
+    {
+      "id": "client_2_2026-09-25",
+      "traineeId": "client_2",
+      "date": "2026-09-25",
+      "status": "finalized",
+      "createdAt": "2026-09-25T07:30:00.000Z",
+      "finalizedAt": "2026-09-25T22:40:00.000Z",
+      "updatedAt": "2026-09-25T22:40:00.000Z",
+      "checkIn": {
+        "morningWeight": 61.3,
+        "waterLiters": 2.5,
+        "sleepHours": 8,
+        "sleepQuality": 5,
+        "steps": 12250,
+        "digestion": 5,
+        "hungerLevel": 3,
+        "energyLevel": 4,
+        "stressLevel": 2,
+        "notes": "אימון חזק, עלייה במשקל עבודה בבנץ׳."
+      },
+      "nutrition": {
+        "totalCalories": 1925,
+        "targetCalories": 1850,
+        "totalProtein": 130,
+        "targetProtein": 130,
+        "totalCarbs": 200,
+        "totalFat": 56,
+        "meals": [
+          {
+            "id": "m1_2026-09-25",
+            "name": "ארוחת בוקר: שיבולת שועל עם חלבון, פירות יער וחמאת בוטנים",
+            "calories": 539,
+            "protein": 33,
+            "carbs": 65,
+            "fat": 16,
+            "time": "08:15",
+            "loggedAt": "2026-09-25T08:15:20.000Z"
+          },
+          {
+            "id": "m2_2026-09-25",
+            "name": "ארוחת צהריים: חזה עוף צלוי, אורז בסמטי ושעועית ירוקה",
+            "calories": 770,
+            "protein": 55,
+            "carbs": 85,
+            "fat": 14,
+            "time": "13:30",
+            "loggedAt": "2026-09-25T13:30:45.000Z"
+          },
+          {
+            "id": "m3_2026-09-25",
+            "name": "ארוחת ביניים: יוגורט פרו 20 גרם חלבון עם שקדים",
+            "calories": 231,
+            "protein": 20,
+            "carbs": 15,
+            "fat": 8,
+            "time": "17:00",
+            "loggedAt": "2026-09-25T17:00:10.000Z"
+          },
+          {
+            "id": "m4_2026-09-25",
+            "name": "ארוחת ערב: פילה סלמון בתנור, בטטה קלויה וסלט ירקות עשיר",
+            "calories": 385,
+            "protein": 23,
+            "carbs": 35,
+            "fat": 18,
+            "time": "20:45",
+            "loggedAt": "2026-09-25T20:45:33.000Z"
+          }
+        ]
+      },
+      "workouts": [
+        {
+          "id": "wo_2026-09-25",
+          "name": "אימון B - גב, יד קדמית ורגליים",
+          "planName": "Upper / Lower 4D",
+          "durationMinutes": 62,
+          "totalVolume": 7200,
+          "time": "18:30",
+          "startedAt": "2026-09-25T18:30:00.000Z",
+          "completedAt": "2026-09-25T19:25:00.000Z",
+          "exercises": [
+            {
+              "id": "ex_1",
+              "name": "לחיצת חזה במוט (Barbell Bench Press)",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 80,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:38"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 82.5,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "18:42"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 85,
+                  "reps": 6,
+                  "completed": true,
+                  "time": "18:47"
+                }
+              ]
+            },
+            {
+              "id": "ex_2",
+              "name": "לחיצת כתפיים בדאמבלים בישיבה",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 24,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:55"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:00"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:05"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "coachFeedback": null
+    },
+    {
+      "id": "client_2_2026-09-26",
+      "traineeId": "client_2",
+      "date": "2026-09-26",
+      "status": "finalized",
+      "createdAt": "2026-09-26T07:30:00.000Z",
+      "finalizedAt": "2026-09-26T22:41:00.000Z",
+      "updatedAt": "2026-09-26T22:41:00.000Z",
+      "checkIn": {
+        "morningWeight": 61.4,
+        "waterLiters": 2.7,
+        "sleepHours": 8.5,
+        "sleepQuality": 4,
+        "steps": 8720,
+        "digestion": 5,
+        "hungerLevel": 3,
+        "energyLevel": 4,
+        "stressLevel": 2,
+        "notes": "יום מנוחה והתאוששות מלאה, הקפדה על חלבון."
+      },
+      "nutrition": {
+        "totalCalories": 1962,
+        "targetCalories": 1850,
+        "totalProtein": 143,
+        "targetProtein": 130,
+        "totalCarbs": 200,
+        "totalFat": 56,
+        "meals": [
+          {
+            "id": "m1_2026-09-26",
+            "name": "ארוחת בוקר: שיבולת שועל עם חלבון, פירות יער וחמאת בוטנים",
+            "calories": 549,
+            "protein": 36,
+            "carbs": 65,
+            "fat": 16,
+            "time": "08:15",
+            "loggedAt": "2026-09-26T08:15:20.000Z"
+          },
+          {
+            "id": "m2_2026-09-26",
+            "name": "ארוחת צהריים: חזה עוף צלוי, אורז בסמטי ושעועית ירוקה",
+            "calories": 785,
+            "protein": 60,
+            "carbs": 85,
+            "fat": 14,
+            "time": "13:30",
+            "loggedAt": "2026-09-26T13:30:45.000Z"
+          },
+          {
+            "id": "m3_2026-09-26",
+            "name": "ארוחת ביניים: יוגורט פרו 20 גרם חלבון עם שקדים",
+            "calories": 235,
+            "protein": 21,
+            "carbs": 15,
+            "fat": 8,
+            "time": "17:00",
+            "loggedAt": "2026-09-26T17:00:10.000Z"
+          },
+          {
+            "id": "m4_2026-09-26",
+            "name": "ארוחת ערב: פילה סלמון בתנור, בטטה קלויה וסלט ירקות עשיר",
+            "calories": 392,
+            "protein": 26,
+            "carbs": 35,
+            "fat": 18,
+            "time": "20:45",
+            "loggedAt": "2026-09-26T20:45:33.000Z"
+          }
+        ]
+      },
+      "workouts": [],
+      "coachFeedback": null
+    },
+    {
+      "id": "client_2_2026-09-27",
+      "traineeId": "client_2",
+      "date": "2026-09-27",
+      "status": "finalized",
+      "createdAt": "2026-09-27T07:30:00.000Z",
+      "finalizedAt": "2026-09-27T22:42:00.000Z",
+      "updatedAt": "2026-09-27T22:42:00.000Z",
+      "checkIn": {
+        "morningWeight": 61.5,
+        "waterLiters": 2.9,
+        "sleepHours": 7.5,
+        "sleepQuality": 5,
+        "steps": 9190,
+        "digestion": 5,
+        "hungerLevel": 3,
+        "energyLevel": 4,
+        "stressLevel": 2,
+        "notes": "אימון חזק, עלייה במשקל עבודה בבנץ׳."
+      },
+      "nutrition": {
+        "totalCalories": 1999,
+        "targetCalories": 1850,
+        "totalProtein": 136,
+        "targetProtein": 130,
+        "totalCarbs": 200,
+        "totalFat": 56,
+        "meals": [
+          {
+            "id": "m1_2026-09-27",
+            "name": "ארוחת בוקר: שיבולת שועל עם חלבון, פירות יער וחמאת בוטנים",
+            "calories": 560,
+            "protein": 34,
+            "carbs": 65,
+            "fat": 16,
+            "time": "08:15",
+            "loggedAt": "2026-09-27T08:15:20.000Z"
+          },
+          {
+            "id": "m2_2026-09-27",
+            "name": "ארוחת צהריים: חזה עוף צלוי, אורז בסמטי ושעועית ירוקה",
+            "calories": 800,
+            "protein": 57,
+            "carbs": 85,
+            "fat": 14,
+            "time": "13:30",
+            "loggedAt": "2026-09-27T13:30:45.000Z"
+          },
+          {
+            "id": "m3_2026-09-27",
+            "name": "ארוחת ביניים: יוגורט פרו 20 גרם חלבון עם שקדים",
+            "calories": 240,
+            "protein": 20,
+            "carbs": 15,
+            "fat": 8,
+            "time": "17:00",
+            "loggedAt": "2026-09-27T17:00:10.000Z"
+          },
+          {
+            "id": "m4_2026-09-27",
+            "name": "ארוחת ערב: פילה סלמון בתנור, בטטה קלויה וסלט ירקות עשיר",
+            "calories": 400,
+            "protein": 24,
+            "carbs": 35,
+            "fat": 18,
+            "time": "20:45",
+            "loggedAt": "2026-09-27T20:45:33.000Z"
+          }
+        ]
+      },
+      "workouts": [
+        {
+          "id": "wo_2026-09-27",
+          "name": "אימון A - חזה, כתפיים ויד אחורית",
+          "planName": "Upper / Lower 4D",
+          "durationMinutes": 64,
+          "totalVolume": 7440,
+          "time": "18:30",
+          "startedAt": "2026-09-27T18:30:00.000Z",
+          "completedAt": "2026-09-27T19:25:00.000Z",
+          "exercises": [
+            {
+              "id": "ex_1",
+              "name": "לחיצת חזה במוט (Barbell Bench Press)",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 80,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:38"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 82.5,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "18:42"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 85,
+                  "reps": 6,
+                  "completed": true,
+                  "time": "18:47"
+                }
+              ]
+            },
+            {
+              "id": "ex_2",
+              "name": "לחיצת כתפיים בדאמבלים בישיבה",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 24,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:55"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:00"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:05"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "coachFeedback": {
+        "reviewed": true,
+        "reviewedAt": "2026-09-27T23:00:00.000Z",
+        "coachName": "מאמן ראשי",
+        "coachRating": 5,
+        "notes": "עבודה טכנית מרשימה על הסטים הכבדים. המשך לשמור על עקביות בצריכת המים."
+      }
+    },
+    {
+      "id": "client_2_2026-09-28",
+      "traineeId": "client_2",
+      "date": "2026-09-28",
+      "status": "auto_closed",
+      "createdAt": "2026-09-28T07:30:00.000Z",
+      "finalizedAt": "2026-09-28T22:43:00.000Z",
+      "updatedAt": "2026-09-28T22:43:00.000Z",
+      "checkIn": {
+        "morningWeight": 61.6,
+        "waterLiters": 2.3,
+        "sleepHours": 8,
+        "sleepQuality": 4,
+        "steps": 9660,
+        "digestion": 5,
+        "hungerLevel": 3,
+        "energyLevel": 4,
+        "stressLevel": 2,
+        "notes": "יום מנוחה והתאוששות מלאה, הקפדה על חלבון."
+      },
+      "nutrition": {
+        "totalCalories": 1786,
+        "targetCalories": 1850,
+        "totalProtein": 129,
+        "targetProtein": 130,
+        "totalCarbs": 200,
+        "totalFat": 56,
+        "meals": [
+          {
+            "id": "m1_2026-09-28",
+            "name": "ארוחת בוקר: שיבולת שועל עם חלבון, פירות יער וחמאת בוטנים",
+            "calories": 500,
+            "protein": 32,
+            "carbs": 65,
+            "fat": 16,
+            "time": "08:15",
+            "loggedAt": "2026-09-28T08:15:20.000Z"
+          },
+          {
+            "id": "m2_2026-09-28",
+            "name": "ארוחת צהריים: חזה עוף צלוי, אורז בסמטי ושעועית ירוקה",
+            "calories": 714,
+            "protein": 54,
+            "carbs": 85,
+            "fat": 14,
+            "time": "13:30",
+            "loggedAt": "2026-09-28T13:30:45.000Z"
+          },
+          {
+            "id": "m3_2026-09-28",
+            "name": "ארוחת ביניים: יוגורט פרו 20 גרם חלבון עם שקדים",
+            "calories": 214,
+            "protein": 19,
+            "carbs": 15,
+            "fat": 8,
+            "time": "17:00",
+            "loggedAt": "2026-09-28T17:00:10.000Z"
+          },
+          {
+            "id": "m4_2026-09-28",
+            "name": "ארוחת ערב: פילה סלמון בתנור, בטטה קלויה וסלט ירקות עשיר",
+            "calories": 357,
+            "protein": 23,
+            "carbs": 35,
+            "fat": 18,
+            "time": "20:45",
+            "loggedAt": "2026-09-28T20:45:33.000Z"
+          }
+        ]
+      },
+      "workouts": [],
+      "coachFeedback": null
+    },
+    {
+      "id": "client_2_2026-09-29",
+      "traineeId": "client_2",
+      "date": "2026-09-29",
+      "status": "finalized",
+      "createdAt": "2026-09-29T07:30:00.000Z",
+      "finalizedAt": "2026-09-29T22:44:00.000Z",
+      "updatedAt": "2026-09-29T22:44:00.000Z",
+      "checkIn": {
+        "morningWeight": 61.7,
+        "waterLiters": 2.5,
+        "sleepHours": 8.5,
+        "sleepQuality": 5,
+        "steps": 10130,
+        "digestion": 5,
+        "hungerLevel": 3,
+        "energyLevel": 4,
+        "stressLevel": 2,
+        "notes": "אימון חזק, עלייה במשקל עבודה בבנץ׳."
+      },
+      "nutrition": {
+        "totalCalories": 1823,
+        "targetCalories": 1850,
+        "totalProtein": 142,
+        "targetProtein": 130,
+        "totalCarbs": 200,
+        "totalFat": 56,
+        "meals": [
+          {
+            "id": "m1_2026-09-29",
+            "name": "ארוחת בוקר: שיבולת שועל עם חלבון, פירות יער וחמאת בוטנים",
+            "calories": 510,
+            "protein": 36,
+            "carbs": 65,
+            "fat": 16,
+            "time": "08:15",
+            "loggedAt": "2026-09-29T08:15:20.000Z"
+          },
+          {
+            "id": "m2_2026-09-29",
+            "name": "ארוחת צהריים: חזה עוף צלוי, אורז בסמטי ושעועית ירוקה",
+            "calories": 729,
+            "protein": 60,
+            "carbs": 85,
+            "fat": 14,
+            "time": "13:30",
+            "loggedAt": "2026-09-29T13:30:45.000Z"
+          },
+          {
+            "id": "m3_2026-09-29",
+            "name": "ארוחת ביניים: יוגורט פרו 20 גרם חלבון עם שקדים",
+            "calories": 219,
+            "protein": 21,
+            "carbs": 15,
+            "fat": 8,
+            "time": "17:00",
+            "loggedAt": "2026-09-29T17:00:10.000Z"
+          },
+          {
+            "id": "m4_2026-09-29",
+            "name": "ארוחת ערב: פילה סלמון בתנור, בטטה קלויה וסלט ירקות עשיר",
+            "calories": 365,
+            "protein": 26,
+            "carbs": 35,
+            "fat": 18,
+            "time": "20:45",
+            "loggedAt": "2026-09-29T20:45:33.000Z"
+          }
+        ]
+      },
+      "workouts": [
+        {
+          "id": "wo_2026-09-29",
+          "name": "אימון B - גב, יד קדמית ורגליים",
+          "planName": "Upper / Lower 4D",
+          "durationMinutes": 66,
+          "totalVolume": 7680,
+          "time": "18:30",
+          "startedAt": "2026-09-29T18:30:00.000Z",
+          "completedAt": "2026-09-29T19:25:00.000Z",
+          "exercises": [
+            {
+              "id": "ex_1",
+              "name": "לחיצת חזה במוט (Barbell Bench Press)",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 80,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:38"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 82.5,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "18:42"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 85,
+                  "reps": 6,
+                  "completed": true,
+                  "time": "18:47"
+                }
+              ]
+            },
+            {
+              "id": "ex_2",
+              "name": "לחיצת כתפיים בדאמבלים בישיבה",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 24,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:55"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:00"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:05"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "coachFeedback": null
+    },
+    {
+      "id": "client_2_2026-09-30",
+      "traineeId": "client_2",
+      "date": "2026-09-30",
+      "status": "finalized",
+      "createdAt": "2026-09-30T07:30:00.000Z",
+      "finalizedAt": "2026-09-30T22:15:00.000Z",
+      "updatedAt": "2026-09-30T22:15:00.000Z",
+      "checkIn": {
+        "morningWeight": 61.3,
+        "waterLiters": 2.7,
+        "sleepHours": 7.5,
+        "sleepQuality": 4,
+        "steps": 10600,
+        "digestion": 5,
+        "hungerLevel": 3,
+        "energyLevel": 4,
+        "stressLevel": 2,
+        "notes": "יום מנוחה והתאוששות מלאה, הקפדה על חלבון."
+      },
+      "nutrition": {
+        "totalCalories": 1860,
+        "targetCalories": 1850,
+        "totalProtein": 135,
+        "targetProtein": 130,
+        "totalCarbs": 200,
+        "totalFat": 56,
+        "meals": [
+          {
+            "id": "m1_2026-09-30",
+            "name": "ארוחת בוקר: שיבולת שועל עם חלבון, פירות יער וחמאת בוטנים",
+            "calories": 521,
+            "protein": 34,
+            "carbs": 65,
+            "fat": 16,
+            "time": "08:15",
+            "loggedAt": "2026-09-30T08:15:20.000Z"
+          },
+          {
+            "id": "m2_2026-09-30",
+            "name": "ארוחת צהריים: חזה עוף צלוי, אורז בסמטי ושעועית ירוקה",
+            "calories": 744,
+            "protein": 57,
+            "carbs": 85,
+            "fat": 14,
+            "time": "13:30",
+            "loggedAt": "2026-09-30T13:30:45.000Z"
+          },
+          {
+            "id": "m3_2026-09-30",
+            "name": "ארוחת ביניים: יוגורט פרו 20 גרם חלבון עם שקדים",
+            "calories": 223,
+            "protein": 20,
+            "carbs": 15,
+            "fat": 8,
+            "time": "17:00",
+            "loggedAt": "2026-09-30T17:00:10.000Z"
+          },
+          {
+            "id": "m4_2026-09-30",
+            "name": "ארוחת ערב: פילה סלמון בתנור, בטטה קלויה וסלט ירקות עשיר",
+            "calories": 372,
+            "protein": 24,
+            "carbs": 35,
+            "fat": 18,
+            "time": "20:45",
+            "loggedAt": "2026-09-30T20:45:33.000Z"
+          }
+        ]
+      },
+      "workouts": [],
+      "coachFeedback": {
+        "reviewed": true,
+        "reviewedAt": "2026-09-30T23:00:00.000Z",
+        "coachName": "מאמן ראשי",
+        "coachRating": 5,
+        "notes": "יום התאוששות מצוין, תמשיך ככה!"
+      }
+    }
+  ]
+}

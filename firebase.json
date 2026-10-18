@@ -1,0 +1,31 @@
+{
+  "firestore": {
+    "database": "(default)",
+    "location": "me-west1",
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "hosting": {
+    "public": "public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "auth": {
+    "providers": {
+      "emailPassword": true,
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "fitnessnutritionapp-ab381",
+        "supportEmail": "support@fitnessnutritionapp-ab381.firebaseapp.com"
+      }
+    }
+  }
+}

@@ -88,6 +88,55 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 200, { success: true, trainees });
       }
 
+      // POST /api/trainees/create (Coach registers a new trainee)
+      if (pathname === '/api/trainees/create' && method === 'POST') {
+        const body = await parseJsonBody(req);
+        if (!body.name) {
+          return sendJson(res, 400, { success: false, error: 'Trainee name is required' });
+        }
+        const created = db.createTrainee(body);
+        return sendJson(res, 201, { success: true, trainee: created });
+      }
+
+      // GET /api/system/status (App Manager system & Firebase monitor)
+      if (pathname === '/api/system/status' && method === 'GET') {
+        const trainees = db.getTrainees();
+        const reportsCount = Object.keys(db.data.dailyReports || {}).length;
+        const auditLogs = db.getAuditLogs(30);
+        return sendJson(res, 200, {
+          success: true,
+          system: {
+            status: 'online',
+            environment: 'production',
+            uptimeSeconds: Math.round(process.uptime()),
+            nodeVersion: process.version,
+            serverPort: PORT
+          },
+          firebase: {
+            projectId: 'fitnessnutritionapp-ab381',
+            region: 'me-west1 (Tel Aviv)',
+            firestoreStatus: 'connected',
+            authStatus: 'active',
+            authProviders: ['emailPassword', 'googleSignIn'],
+            hostingUrl: 'https://fitnessnutritionapp-ab381.web.app'
+          },
+          database: {
+            traineesCount: trainees.length,
+            totalReportsLogged: reportsCount,
+            storageType: 'per-trainee-folders',
+            storagePath: 'data/trainees/'
+          },
+          auditLogs
+        });
+      }
+
+      // POST /api/system/log (Client logs an activity)
+      if (pathname === '/api/system/log' && method === 'POST') {
+        const body = await parseJsonBody(req);
+        const log = db.logActivity(body.type || 'INFO', body.description || '', body.meta || {});
+        return sendJson(res, 200, { success: true, log });
+      }
+
       // GET /api/reports?traineeId=...&days=14&startDate=...&endDate=...
       if (pathname === '/api/reports' && method === 'GET') {
         const traineeId = parsedUrl.query.traineeId || 'client_1';
@@ -97,6 +146,25 @@ const server = http.createServer(async (req, res) => {
 
         const reports = db.getReports(traineeId, { days, startDate, endDate });
         return sendJson(res, 200, { success: true, traineeId, count: reports.length, reports });
+      }
+
+      // GET /api/reports/monthly?traineeId=...&month=YYYY-MM
+      if (pathname === '/api/reports/monthly' && method === 'GET') {
+        const traineeId = parsedUrl.query.traineeId || 'client_1';
+        const month = parsedUrl.query.month || new Date().toISOString().substring(0, 7);
+        const monthData = db.getMonthlyReports(traineeId, month);
+        return sendJson(res, 200, { success: true, ...monthData });
+      }
+
+      // GET /api/trainees/:traineeId/stats
+      const statsMatch = pathname.match(/^\/api\/trainees\/([a-zA-Z0-9_\-]+)\/stats$/);
+      if (statsMatch && method === 'GET') {
+        const traineeId = statsMatch[1];
+        const stats = db.getTraineeStats(traineeId);
+        if (!stats) {
+          return sendJson(res, 404, { success: false, error: 'Stats not found for trainee' });
+        }
+        return sendJson(res, 200, { success: true, stats });
       }
 
       // GET /api/reports/:traineeId/:date

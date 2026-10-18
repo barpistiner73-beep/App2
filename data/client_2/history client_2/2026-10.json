@@ -1,0 +1,2108 @@
+{
+  "traineeId": "client_2",
+  "traineeName": "שירה לוי",
+  "month": "2026-10",
+  "year": 2026,
+  "monthNumber": 10,
+  "totalReports": 18,
+  "workoutsCompleted": 10,
+  "reports": [
+    {
+      "id": "client_2_2026-10-01",
+      "traineeId": "client_2",
+      "date": "2026-10-01",
+      "status": "finalized",
+      "createdAt": "2026-10-01T07:30:00.000Z",
+      "finalizedAt": "2026-10-01T22:16:00.000Z",
+      "updatedAt": "2026-10-01T22:16:00.000Z",
+      "checkIn": {
+        "morningWeight": 61.4,
+        "waterLiters": 2.5,
+        "sleepHours": 8,
+        "sleepQuality": 5,
+        "steps": 8970,
+        "digestion": 5,
+        "hungerLevel": 3,
+        "energyLevel": 4,
+        "stressLevel": 2,
+        "notes": "אימון חזק, עלייה במשקל עבודה בבנץ׳."
+      },
+      "nutrition": {
+        "totalCalories": 1787,
+        "targetCalories": 1850,
+        "totalProtein": 138,
+        "targetProtein": 130,
+        "totalCarbs": 200,
+        "totalFat": 56,
+        "meals": [
+          {
+            "id": "m1_2026-10-01",
+            "name": "ארוחת בוקר: שיבולת שועל עם חלבון, פירות יער וחמאת בוטנים",
+            "calories": 500,
+            "protein": 35,
+            "carbs": 65,
+            "fat": 16,
+            "time": "08:15",
+            "loggedAt": "2026-10-01T08:15:20.000Z"
+          },
+          {
+            "id": "m2_2026-10-01",
+            "name": "ארוחת צהריים: חזה עוף צלוי, אורז בסמטי ושעועית ירוקה",
+            "calories": 715,
+            "protein": 58,
+            "carbs": 85,
+            "fat": 14,
+            "time": "13:30",
+            "loggedAt": "2026-10-01T13:30:45.000Z"
+          },
+          {
+            "id": "m3_2026-10-01",
+            "name": "ארוחת ביניים: יוגורט פרו 20 גרם חלבון עם שקדים",
+            "calories": 214,
+            "protein": 21,
+            "carbs": 15,
+            "fat": 8,
+            "time": "17:00",
+            "loggedAt": "2026-10-01T17:00:10.000Z"
+          },
+          {
+            "id": "m4_2026-10-01",
+            "name": "ארוחת ערב: פילה סלמון בתנור, בטטה קלויה וסלט ירקות עשיר",
+            "calories": 357,
+            "protein": 25,
+            "carbs": 35,
+            "fat": 18,
+            "time": "20:45",
+            "loggedAt": "2026-10-01T20:45:33.000Z"
+          }
+        ]
+      },
+      "workouts": [
+        {
+          "id": "wo_2026-10-01",
+          "name": "אימון A - חזה, כתפיים ויד אחורית",
+          "planName": "Upper / Lower 4D",
+          "durationMinutes": 53,
+          "totalVolume": 4320,
+          "time": "18:30",
+          "startedAt": "2026-10-01T18:30:00.000Z",
+          "completedAt": "2026-10-01T19:25:00.000Z",
+          "exercises": [
+            {
+              "id": "ex_1",
+              "name": "לחיצת חזה במוט (Barbell Bench Press)",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 80,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:38"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 82.5,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "18:42"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 85,
+                  "reps": 6,
+                  "completed": true,
+                  "time": "18:47"
+                }
+              ]
+            },
+            {
+              "id": "ex_2",
+              "name": "לחיצת כתפיים בדאמבלים בישיבה",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 24,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:55"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:00"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:05"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "coachFeedback": null
+    },
+    {
+      "id": "client_2_2026-10-02",
+      "traineeId": "client_2",
+      "date": "2026-10-02",
+      "status": "finalized",
+      "createdAt": "2026-10-02T07:30:00.000Z",
+      "finalizedAt": "2026-10-02T22:17:00.000Z",
+      "updatedAt": "2026-10-02T22:17:00.000Z",
+      "checkIn": {
+        "morningWeight": 61.5,
+        "waterLiters": 2.7,
+        "sleepHours": 8.5,
+        "sleepQuality": 4,
+        "steps": 9440,
+        "digestion": 5,
+        "hungerLevel": 3,
+        "energyLevel": 4,
+        "stressLevel": 2,
+        "notes": "אימון חזק, עלייה במשקל עבודה בבנץ׳."
+      },
+      "nutrition": {
+        "totalCalories": 1824,
+        "targetCalories": 1850,
+        "totalProtein": 131,
+        "targetProtein": 130,
+        "totalCarbs": 200,
+        "totalFat": 56,
+        "meals": [
+          {
+            "id": "m1_2026-10-02",
+            "name": "ארוחת בוקר: שיבולת שועל עם חלבון, פירות יער וחמאת בוטנים",
+            "calories": 511,
+            "protein": 33,
+            "carbs": 65,
+            "fat": 16,
+            "time": "08:15",
+            "loggedAt": "2026-10-02T08:15:20.000Z"
+          },
+          {
+            "id": "m2_2026-10-02",
+            "name": "ארוחת צהריים: חזה עוף צלוי, אורז בסמטי ושעועית ירוקה",
+            "calories": 730,
+            "protein": 55,
+            "carbs": 85,
+            "fat": 14,
+            "time": "13:30",
+            "loggedAt": "2026-10-02T13:30:45.000Z"
+          },
+          {
+            "id": "m3_2026-10-02",
+            "name": "ארוחת ביניים: יוגורט פרו 20 גרם חלבון עם שקדים",
+            "calories": 219,
+            "protein": 20,
+            "carbs": 15,
+            "fat": 8,
+            "time": "17:00",
+            "loggedAt": "2026-10-02T17:00:10.000Z"
+          },
+          {
+            "id": "m4_2026-10-02",
+            "name": "ארוחת ערב: פילה סלמון בתנור, בטטה קלויה וסלט ירקות עשיר",
+            "calories": 365,
+            "protein": 24,
+            "carbs": 35,
+            "fat": 18,
+            "time": "20:45",
+            "loggedAt": "2026-10-02T20:45:33.000Z"
+          }
+        ]
+      },
+      "workouts": [
+        {
+          "id": "wo_2026-10-02",
+          "name": "אימון B - גב, יד קדמית ורגליים",
+          "planName": "Upper / Lower 4D",
+          "durationMinutes": 54,
+          "totalVolume": 4440,
+          "time": "18:30",
+          "startedAt": "2026-10-02T18:30:00.000Z",
+          "completedAt": "2026-10-02T19:25:00.000Z",
+          "exercises": [
+            {
+              "id": "ex_1",
+              "name": "לחיצת חזה במוט (Barbell Bench Press)",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 80,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:38"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 82.5,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "18:42"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 85,
+                  "reps": 6,
+                  "completed": true,
+                  "time": "18:47"
+                }
+              ]
+            },
+            {
+              "id": "ex_2",
+              "name": "לחיצת כתפיים בדאמבלים בישיבה",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 24,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "18:55"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:00"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 26,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "19:05"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "coachFeedback": null
+    },
+    {
+      "id": "client_2_2026-10-03",
+      "traineeId": "client_2",
+      "date": "2026-10-03",
+      "status": "finalized",
+      "createdAt": "2026-10-03T07:30:00.000Z",
+      "finalizedAt": "2026-10-03T22:18:00.000Z",
+      "updatedAt": "2026-10-03T22:18:00.000Z",
+      "checkIn": {
+        "morningWeight": 61.6,
+        "waterLiters": 2.9,
+        "sleepHours": 7.5,
+        "sleepQuality": 5,
+        "steps": 9910,
+        "digestion": 5,
+        "hungerLevel": 3,
+        "energyLevel": 4,
+        "stressLevel": 2,
+        "notes": "יום מנוחה והתאוששות מלאה, הקפדה על חלבון."
+      },
+      "nutrition": {
+        "totalCalories": 1861,
+        "targetCalories": 1850,
+        "totalProtein": 144,
+        "targetProtein": 130,
+        "totalCarbs": 200,
+        "totalFat": 56,
+        "meals": [
+          {
+            "id": "m1_2026-10-03",
+            "name": "ארוחת בוקר: שיבולת שועל עם חלבון, פירות יער וחמאת בוטנים",
+            "calories": 521,
+            "protein": 36,
+            "carbs": 65,
+            "fat": 16,
+            "time": "08:15",
+            "loggedAt": "2026-10-03T08:15:20.000Z"
+          },
+          {
+            "id": "m2_2026-10-03",
+            "name": "ארוחת צהריים: חזה עוף צלוי, אורז בסמטי ושעועית ירוקה",
+            "calories": 744,
+            "protein": 60,
+            "carbs": 85,
+            "fat": 14,
+            "time": "13:30",
+            "loggedAt": "2026-10-03T13:30:45.000Z"
+          },
+          {
+            "id": "m3_2026-10-03",
+            "name": "ארוחת ביניים: יוגורט פרו 20 גרם חלבון עם שקדים",
+            "calories": 223,
+            "protein": 22,
+            "carbs": 15,
+            "fat": 8,
+            "time": "17:00",
+            "loggedAt": "2026-10-03T17:00:10.000Z"
+          },
+          {
+            "id": "m4_2026-10-03",
+            "name": "ארוחת ערב: פילה סלמון בתנור, בטטה קלויה וסלט ירקות עשיר",
+            "calories": 372,
+            "protein": 26,
+            "carbs": 35,
+            "fat": 18,
+            "time": "20:45",
+            "loggedAt": "2026-10-03T20:45:33.000Z"
+          }
+        ]
+      },
+      "workouts": [],
+      "coachFeedback": {
+        "reviewed": true,
+        "reviewedAt": "2026-10-03T23:00:00.000Z",
+        "coachName": "מאמן ראשי",
+        "coachRating": 5,
+        "notes": "יום התאוששות מצוין, תמשיך ככה!"
+      }
+    },
+    {
+      "id": "client_2_2026-10-04",
+      "traineeId": "client_2",
+      "date": "2026-10-04",
+      "status": "finalized",
+      "createdAt": "2026-10-04T08:00:00.000Z",
+      "updatedAt": "2026-10-04T21:00:00.000Z",
+      "finalizedAt": "2026-10-04T21:15:00.000Z",
+      "metrics": {
+        "morningWeightKg": 62,
+        "sleepHours": 8,
+        "sleepQuality": 9,
+        "waterMl": 2500,
+        "steps": 10500,
+        "energyLevel": 5,
+        "hungerLevel": 2,
+        "stressLevel": 2,
+        "digestion": "good",
+        "traineeNotes": "מרגישה התקדמות יפה בהיפ ת׳ראסט ושיפור בהתאוששות."
+      },
+      "nutrition": {
+        "totalCalories": 1480,
+        "totalProtein": 100,
+        "totalCarbs": 150,
+        "totalFat": 48,
+        "totalFiber": 29,
+        "totalSodium": 1800,
+        "targetCalories": 1850,
+        "targetProtein": 130,
+        "meals": [
+          {
+            "id": "meal_c2_2026-10-04_1",
+            "loggedAt": "2026-10-04T08:30:00.000Z",
+            "time": "08:30",
+            "name": "קערת אסאי עם גרנולה וסקופ חלבון",
+            "amount": 250,
+            "unitName": "גרם",
+            "calories": 420,
+            "protein": 28,
+            "carbs": 52,
+            "fat": 10,
+            "source": "FoodData Central"
+          },
+          {
+            "id": "meal_c2_2026-10-04_2",
+            "loggedAt": "2026-10-04T13:00:00.000Z",
+            "time": "13:00",
+            "name": "טופו מוקפץ עם קינואה וירקות אסייתיים",
+            "amount": 280,
+            "unitName": "גרם",
+            "calories": 540,
+            "protein": 38,
+            "carbs": 60,
+            "fat": 16,
+            "source": "FoodData Central"
+          },
+          {
+            "id": "meal_c2_2026-10-04_3",
+            "loggedAt": "2026-10-04T19:45:00.000Z",
+            "time": "19:45",
+            "name": "חביתת 3 ביצים, לחם כוסמין, אבוקדו וסלט",
+            "amount": 200,
+            "unitName": "גרם",
+            "calories": 520,
+            "protein": 34,
+            "carbs": 38,
+            "fat": 22,
+            "source": "FoodData Central"
+          }
+        ]
+      },
+      "workouts": [
+        {
+          "id": "wo_c2_2026-10-04_1",
+          "routineId": "session_legs",
+          "name": "Lower Body & Glutes (רגליים וישבן)",
+          "startedAt": "2026-10-04T17:30:00.000Z",
+          "completedAt": "2026-10-04T18:25:00.000Z",
+          "time": "17:30",
+          "durationMinutes": 55,
+          "completedSets": 16,
+          "totalSets": 16,
+          "totalVolume": 5120,
+          "difficulty": 8,
+          "notes": "אימון חזק, דגש על טכניקה בסקוואט והיפ ת׳ראסט",
+          "exercises": [
+            {
+              "name": "Barbell Hip Thrust",
+              "exerciseId": "ex_hip_thrust",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 90,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "17:38"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 100,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "17:42"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 105,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "17:46"
+                }
+              ]
+            },
+            {
+              "name": "Bulgarian Split Squat",
+              "exerciseId": "ex_bulgarian_split_squat",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 16,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "17:54"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 18,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "17:58"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 18,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "18:02"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "coachFeedback": {
+        "reviewed": true,
+        "reviewedAt": "2026-10-04T22:00:00.000Z",
+        "notes": "כל הכבוד על ההתמדה והעלייה במשקלים ברגליים!",
+        "coachRating": 5
+      }
+    },
+    {
+      "id": "client_2_2026-10-05",
+      "traineeId": "client_2",
+      "date": "2026-10-05",
+      "status": "finalized",
+      "createdAt": "2026-10-05T08:00:00.000Z",
+      "updatedAt": "2026-10-05T21:00:00.000Z",
+      "finalizedAt": "2026-10-05T21:15:00.000Z",
+      "metrics": {
+        "morningWeightKg": 61.96,
+        "sleepHours": 8,
+        "sleepQuality": 9,
+        "waterMl": 2500,
+        "steps": 10500,
+        "energyLevel": 5,
+        "hungerLevel": 2,
+        "stressLevel": 2,
+        "digestion": "good",
+        "traineeNotes": "מרגישה התקדמות יפה בהיפ ת׳ראסט ושיפור בהתאוששות."
+      },
+      "nutrition": {
+        "totalCalories": 1480,
+        "totalProtein": 100,
+        "totalCarbs": 150,
+        "totalFat": 48,
+        "totalFiber": 29,
+        "totalSodium": 1800,
+        "targetCalories": 1850,
+        "targetProtein": 130,
+        "meals": [
+          {
+            "id": "meal_c2_2026-10-05_1",
+            "loggedAt": "2026-10-05T08:30:00.000Z",
+            "time": "08:30",
+            "name": "קערת אסאי עם גרנולה וסקופ חלבון",
+            "amount": 250,
+            "unitName": "גרם",
+            "calories": 420,
+            "protein": 28,
+            "carbs": 52,
+            "fat": 10,
+            "source": "FoodData Central"
+          },
+          {
+            "id": "meal_c2_2026-10-05_2",
+            "loggedAt": "2026-10-05T13:00:00.000Z",
+            "time": "13:00",
+            "name": "טופו מוקפץ עם קינואה וירקות אסייתיים",
+            "amount": 280,
+            "unitName": "גרם",
+            "calories": 540,
+            "protein": 38,
+            "carbs": 60,
+            "fat": 16,
+            "source": "FoodData Central"
+          },
+          {
+            "id": "meal_c2_2026-10-05_3",
+            "loggedAt": "2026-10-05T19:45:00.000Z",
+            "time": "19:45",
+            "name": "חביתת 3 ביצים, לחם כוסמין, אבוקדו וסלט",
+            "amount": 200,
+            "unitName": "גרם",
+            "calories": 520,
+            "protein": 34,
+            "carbs": 38,
+            "fat": 22,
+            "source": "FoodData Central"
+          }
+        ]
+      },
+      "workouts": [],
+      "coachFeedback": {
+        "reviewed": true,
+        "reviewedAt": "2026-10-05T22:00:00.000Z",
+        "notes": "כל הכבוד על ההתמדה והעלייה במשקלים ברגליים!",
+        "coachRating": 5
+      }
+    },
+    {
+      "id": "client_2_2026-10-06",
+      "traineeId": "client_2",
+      "date": "2026-10-06",
+      "status": "finalized",
+      "createdAt": "2026-10-06T08:00:00.000Z",
+      "updatedAt": "2026-10-06T21:00:00.000Z",
+      "finalizedAt": "2026-10-06T21:15:00.000Z",
+      "metrics": {
+        "morningWeightKg": 61.92,
+        "sleepHours": 8,
+        "sleepQuality": 9,
+        "waterMl": 2500,
+        "steps": 10500,
+        "energyLevel": 5,
+        "hungerLevel": 2,
+        "stressLevel": 2,
+        "digestion": "good",
+        "traineeNotes": "מרגישה התקדמות יפה בהיפ ת׳ראסט ושיפור בהתאוששות."
+      },
+      "nutrition": {
+        "totalCalories": 1480,
+        "totalProtein": 100,
+        "totalCarbs": 150,
+        "totalFat": 48,
+        "totalFiber": 29,
+        "totalSodium": 1800,
+        "targetCalories": 1850,
+        "targetProtein": 130,
+        "meals": [
+          {
+            "id": "meal_c2_2026-10-06_1",
+            "loggedAt": "2026-10-06T08:30:00.000Z",
+            "time": "08:30",
+            "name": "קערת אסאי עם גרנולה וסקופ חלבון",
+            "amount": 250,
+            "unitName": "גרם",
+            "calories": 420,
+            "protein": 28,
+            "carbs": 52,
+            "fat": 10,
+            "source": "FoodData Central"
+          },
+          {
+            "id": "meal_c2_2026-10-06_2",
+            "loggedAt": "2026-10-06T13:00:00.000Z",
+            "time": "13:00",
+            "name": "טופו מוקפץ עם קינואה וירקות אסייתיים",
+            "amount": 280,
+            "unitName": "גרם",
+            "calories": 540,
+            "protein": 38,
+            "carbs": 60,
+            "fat": 16,
+            "source": "FoodData Central"
+          },
+          {
+            "id": "meal_c2_2026-10-06_3",
+            "loggedAt": "2026-10-06T19:45:00.000Z",
+            "time": "19:45",
+            "name": "חביתת 3 ביצים, לחם כוסמין, אבוקדו וסלט",
+            "amount": 200,
+            "unitName": "גרם",
+            "calories": 520,
+            "protein": 34,
+            "carbs": 38,
+            "fat": 22,
+            "source": "FoodData Central"
+          }
+        ]
+      },
+      "workouts": [
+        {
+          "id": "wo_c2_2026-10-06_1",
+          "routineId": "session_legs",
+          "name": "Lower Body & Glutes (רגליים וישבן)",
+          "startedAt": "2026-10-06T17:30:00.000Z",
+          "completedAt": "2026-10-06T18:25:00.000Z",
+          "time": "17:30",
+          "durationMinutes": 55,
+          "completedSets": 16,
+          "totalSets": 16,
+          "totalVolume": 5120,
+          "difficulty": 8,
+          "notes": "אימון חזק, דגש על טכניקה בסקוואט והיפ ת׳ראסט",
+          "exercises": [
+            {
+              "name": "Barbell Hip Thrust",
+              "exerciseId": "ex_hip_thrust",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 90,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "17:38"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 100,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "17:42"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 105,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "17:46"
+                }
+              ]
+            },
+            {
+              "name": "Bulgarian Split Squat",
+              "exerciseId": "ex_bulgarian_split_squat",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 16,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "17:54"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 18,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "17:58"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 18,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "18:02"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "coachFeedback": {
+        "reviewed": true,
+        "reviewedAt": "2026-10-06T22:00:00.000Z",
+        "notes": "כל הכבוד על ההתמדה והעלייה במשקלים ברגליים!",
+        "coachRating": 5
+      }
+    },
+    {
+      "id": "client_2_2026-10-07",
+      "traineeId": "client_2",
+      "date": "2026-10-07",
+      "status": "finalized",
+      "createdAt": "2026-10-07T08:00:00.000Z",
+      "updatedAt": "2026-10-07T21:00:00.000Z",
+      "finalizedAt": "2026-10-07T21:15:00.000Z",
+      "metrics": {
+        "morningWeightKg": 61.88,
+        "sleepHours": 8,
+        "sleepQuality": 9,
+        "waterMl": 2500,
+        "steps": 10500,
+        "energyLevel": 5,
+        "hungerLevel": 2,
+        "stressLevel": 2,
+        "digestion": "good",
+        "traineeNotes": "מרגישה התקדמות יפה בהיפ ת׳ראסט ושיפור בהתאוששות."
+      },
+      "nutrition": {
+        "totalCalories": 1480,
+        "totalProtein": 100,
+        "totalCarbs": 150,
+        "totalFat": 48,
+        "totalFiber": 29,
+        "totalSodium": 1800,
+        "targetCalories": 1850,
+        "targetProtein": 130,
+        "meals": [
+          {
+            "id": "meal_c2_2026-10-07_1",
+            "loggedAt": "2026-10-07T08:30:00.000Z",
+            "time": "08:30",
+            "name": "קערת אסאי עם גרנולה וסקופ חלבון",
+            "amount": 250,
+            "unitName": "גרם",
+            "calories": 420,
+            "protein": 28,
+            "carbs": 52,
+            "fat": 10,
+            "source": "FoodData Central"
+          },
+          {
+            "id": "meal_c2_2026-10-07_2",
+            "loggedAt": "2026-10-07T13:00:00.000Z",
+            "time": "13:00",
+            "name": "טופו מוקפץ עם קינואה וירקות אסייתיים",
+            "amount": 280,
+            "unitName": "גרם",
+            "calories": 540,
+            "protein": 38,
+            "carbs": 60,
+            "fat": 16,
+            "source": "FoodData Central"
+          },
+          {
+            "id": "meal_c2_2026-10-07_3",
+            "loggedAt": "2026-10-07T19:45:00.000Z",
+            "time": "19:45",
+            "name": "חביתת 3 ביצים, לחם כוסמין, אבוקדו וסלט",
+            "amount": 200,
+            "unitName": "גרם",
+            "calories": 520,
+            "protein": 34,
+            "carbs": 38,
+            "fat": 22,
+            "source": "FoodData Central"
+          }
+        ]
+      },
+      "workouts": [],
+      "coachFeedback": {
+        "reviewed": true,
+        "reviewedAt": "2026-10-07T22:00:00.000Z",
+        "notes": "כל הכבוד על ההתמדה והעלייה במשקלים ברגליים!",
+        "coachRating": 5
+      }
+    },
+    {
+      "id": "client_2_2026-10-08",
+      "traineeId": "client_2",
+      "date": "2026-10-08",
+      "status": "finalized",
+      "createdAt": "2026-10-08T08:00:00.000Z",
+      "updatedAt": "2026-10-08T21:00:00.000Z",
+      "finalizedAt": "2026-10-08T21:15:00.000Z",
+      "metrics": {
+        "morningWeightKg": 61.84,
+        "sleepHours": 8,
+        "sleepQuality": 9,
+        "waterMl": 2500,
+        "steps": 10500,
+        "energyLevel": 5,
+        "hungerLevel": 2,
+        "stressLevel": 2,
+        "digestion": "good",
+        "traineeNotes": "מרגישה התקדמות יפה בהיפ ת׳ראסט ושיפור בהתאוששות."
+      },
+      "nutrition": {
+        "totalCalories": 1480,
+        "totalProtein": 100,
+        "totalCarbs": 150,
+        "totalFat": 48,
+        "totalFiber": 29,
+        "totalSodium": 1800,
+        "targetCalories": 1850,
+        "targetProtein": 130,
+        "meals": [
+          {
+            "id": "meal_c2_2026-10-08_1",
+            "loggedAt": "2026-10-08T08:30:00.000Z",
+            "time": "08:30",
+            "name": "קערת אסאי עם גרנולה וסקופ חלבון",
+            "amount": 250,
+            "unitName": "גרם",
+            "calories": 420,
+            "protein": 28,
+            "carbs": 52,
+            "fat": 10,
+            "source": "FoodData Central"
+          },
+          {
+            "id": "meal_c2_2026-10-08_2",
+            "loggedAt": "2026-10-08T13:00:00.000Z",
+            "time": "13:00",
+            "name": "טופו מוקפץ עם קינואה וירקות אסייתיים",
+            "amount": 280,
+            "unitName": "גרם",
+            "calories": 540,
+            "protein": 38,
+            "carbs": 60,
+            "fat": 16,
+            "source": "FoodData Central"
+          },
+          {
+            "id": "meal_c2_2026-10-08_3",
+            "loggedAt": "2026-10-08T19:45:00.000Z",
+            "time": "19:45",
+            "name": "חביתת 3 ביצים, לחם כוסמין, אבוקדו וסלט",
+            "amount": 200,
+            "unitName": "גרם",
+            "calories": 520,
+            "protein": 34,
+            "carbs": 38,
+            "fat": 22,
+            "source": "FoodData Central"
+          }
+        ]
+      },
+      "workouts": [
+        {
+          "id": "wo_c2_2026-10-08_1",
+          "routineId": "session_legs",
+          "name": "Lower Body & Glutes (רגליים וישבן)",
+          "startedAt": "2026-10-08T17:30:00.000Z",
+          "completedAt": "2026-10-08T18:25:00.000Z",
+          "time": "17:30",
+          "durationMinutes": 55,
+          "completedSets": 16,
+          "totalSets": 16,
+          "totalVolume": 5120,
+          "difficulty": 8,
+          "notes": "אימון חזק, דגש על טכניקה בסקוואט והיפ ת׳ראסט",
+          "exercises": [
+            {
+              "name": "Barbell Hip Thrust",
+              "exerciseId": "ex_hip_thrust",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 90,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "17:38"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 100,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "17:42"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 105,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "17:46"
+                }
+              ]
+            },
+            {
+              "name": "Bulgarian Split Squat",
+              "exerciseId": "ex_bulgarian_split_squat",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 16,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "17:54"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 18,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "17:58"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 18,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "18:02"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "coachFeedback": {
+        "reviewed": true,
+        "reviewedAt": "2026-10-08T22:00:00.000Z",
+        "notes": "כל הכבוד על ההתמדה והעלייה במשקלים ברגליים!",
+        "coachRating": 5
+      }
+    },
+    {
+      "id": "client_2_2026-10-09",
+      "traineeId": "client_2",
+      "date": "2026-10-09",
+      "status": "finalized",
+      "createdAt": "2026-10-09T08:00:00.000Z",
+      "updatedAt": "2026-10-09T21:00:00.000Z",
+      "finalizedAt": "2026-10-09T21:15:00.000Z",
+      "metrics": {
+        "morningWeightKg": 61.8,
+        "sleepHours": 8,
+        "sleepQuality": 9,
+        "waterMl": 2500,
+        "steps": 10500,
+        "energyLevel": 5,
+        "hungerLevel": 2,
+        "stressLevel": 2,
+        "digestion": "good",
+        "traineeNotes": "מרגישה התקדמות יפה בהיפ ת׳ראסט ושיפור בהתאוששות."
+      },
+      "nutrition": {
+        "totalCalories": 1480,
+        "totalProtein": 100,
+        "totalCarbs": 150,
+        "totalFat": 48,
+        "totalFiber": 29,
+        "totalSodium": 1800,
+        "targetCalories": 1850,
+        "targetProtein": 130,
+        "meals": [
+          {
+            "id": "meal_c2_2026-10-09_1",
+            "loggedAt": "2026-10-09T08:30:00.000Z",
+            "time": "08:30",
+            "name": "קערת אסאי עם גרנולה וסקופ חלבון",
+            "amount": 250,
+            "unitName": "גרם",
+            "calories": 420,
+            "protein": 28,
+            "carbs": 52,
+            "fat": 10,
+            "source": "FoodData Central"
+          },
+          {
+            "id": "meal_c2_2026-10-09_2",
+            "loggedAt": "2026-10-09T13:00:00.000Z",
+            "time": "13:00",
+            "name": "טופו מוקפץ עם קינואה וירקות אסייתיים",
+            "amount": 280,
+            "unitName": "גרם",
+            "calories": 540,
+            "protein": 38,
+            "carbs": 60,
+            "fat": 16,
+            "source": "FoodData Central"
+          },
+          {
+            "id": "meal_c2_2026-10-09_3",
+            "loggedAt": "2026-10-09T19:45:00.000Z",
+            "time": "19:45",
+            "name": "חביתת 3 ביצים, לחם כוסמין, אבוקדו וסלט",
+            "amount": 200,
+            "unitName": "גרם",
+            "calories": 520,
+            "protein": 34,
+            "carbs": 38,
+            "fat": 22,
+            "source": "FoodData Central"
+          }
+        ]
+      },
+      "workouts": [],
+      "coachFeedback": {
+        "reviewed": true,
+        "reviewedAt": "2026-10-09T22:00:00.000Z",
+        "notes": "כל הכבוד על ההתמדה והעלייה במשקלים ברגליים!",
+        "coachRating": 5
+      }
+    },
+    {
+      "id": "client_2_2026-10-10",
+      "traineeId": "client_2",
+      "date": "2026-10-10",
+      "status": "finalized",
+      "createdAt": "2026-10-10T08:00:00.000Z",
+      "updatedAt": "2026-10-10T21:00:00.000Z",
+      "finalizedAt": "2026-10-10T21:15:00.000Z",
+      "metrics": {
+        "morningWeightKg": 61.76,
+        "sleepHours": 8,
+        "sleepQuality": 9,
+        "waterMl": 2500,
+        "steps": 10500,
+        "energyLevel": 5,
+        "hungerLevel": 2,
+        "stressLevel": 2,
+        "digestion": "good",
+        "traineeNotes": "מרגישה התקדמות יפה בהיפ ת׳ראסט ושיפור בהתאוששות."
+      },
+      "nutrition": {
+        "totalCalories": 1480,
+        "totalProtein": 100,
+        "totalCarbs": 150,
+        "totalFat": 48,
+        "totalFiber": 29,
+        "totalSodium": 1800,
+        "targetCalories": 1850,
+        "targetProtein": 130,
+        "meals": [
+          {
+            "id": "meal_c2_2026-10-10_1",
+            "loggedAt": "2026-10-10T08:30:00.000Z",
+            "time": "08:30",
+            "name": "קערת אסאי עם גרנולה וסקופ חלבון",
+            "amount": 250,
+            "unitName": "גרם",
+            "calories": 420,
+            "protein": 28,
+            "carbs": 52,
+            "fat": 10,
+            "source": "FoodData Central"
+          },
+          {
+            "id": "meal_c2_2026-10-10_2",
+            "loggedAt": "2026-10-10T13:00:00.000Z",
+            "time": "13:00",
+            "name": "טופו מוקפץ עם קינואה וירקות אסייתיים",
+            "amount": 280,
+            "unitName": "גרם",
+            "calories": 540,
+            "protein": 38,
+            "carbs": 60,
+            "fat": 16,
+            "source": "FoodData Central"
+          },
+          {
+            "id": "meal_c2_2026-10-10_3",
+            "loggedAt": "2026-10-10T19:45:00.000Z",
+            "time": "19:45",
+            "name": "חביתת 3 ביצים, לחם כוסמין, אבוקדו וסלט",
+            "amount": 200,
+            "unitName": "גרם",
+            "calories": 520,
+            "protein": 34,
+            "carbs": 38,
+            "fat": 22,
+            "source": "FoodData Central"
+          }
+        ]
+      },
+      "workouts": [
+        {
+          "id": "wo_c2_2026-10-10_1",
+          "routineId": "session_legs",
+          "name": "Lower Body & Glutes (רגליים וישבן)",
+          "startedAt": "2026-10-10T17:30:00.000Z",
+          "completedAt": "2026-10-10T18:25:00.000Z",
+          "time": "17:30",
+          "durationMinutes": 55,
+          "completedSets": 16,
+          "totalSets": 16,
+          "totalVolume": 5120,
+          "difficulty": 8,
+          "notes": "אימון חזק, דגש על טכניקה בסקוואט והיפ ת׳ראסט",
+          "exercises": [
+            {
+              "name": "Barbell Hip Thrust",
+              "exerciseId": "ex_hip_thrust",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 90,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "17:38"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 100,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "17:42"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 105,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "17:46"
+                }
+              ]
+            },
+            {
+              "name": "Bulgarian Split Squat",
+              "exerciseId": "ex_bulgarian_split_squat",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 16,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "17:54"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 18,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "17:58"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 18,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "18:02"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "coachFeedback": {
+        "reviewed": true,
+        "reviewedAt": "2026-10-10T22:00:00.000Z",
+        "notes": "כל הכבוד על ההתמדה והעלייה במשקלים ברגליים!",
+        "coachRating": 5
+      }
+    },
+    {
+      "id": "client_2_2026-10-11",
+      "traineeId": "client_2",
+      "date": "2026-10-11",
+      "status": "finalized",
+      "createdAt": "2026-10-11T08:00:00.000Z",
+      "updatedAt": "2026-10-11T21:00:00.000Z",
+      "finalizedAt": "2026-10-11T21:15:00.000Z",
+      "metrics": {
+        "morningWeightKg": 61.72,
+        "sleepHours": 8,
+        "sleepQuality": 9,
+        "waterMl": 2500,
+        "steps": 10500,
+        "energyLevel": 5,
+        "hungerLevel": 2,
+        "stressLevel": 2,
+        "digestion": "good",
+        "traineeNotes": "מרגישה התקדמות יפה בהיפ ת׳ראסט ושיפור בהתאוששות."
+      },
+      "nutrition": {
+        "totalCalories": 1480,
+        "totalProtein": 100,
+        "totalCarbs": 150,
+        "totalFat": 48,
+        "totalFiber": 29,
+        "totalSodium": 1800,
+        "targetCalories": 1850,
+        "targetProtein": 130,
+        "meals": [
+          {
+            "id": "meal_c2_2026-10-11_1",
+            "loggedAt": "2026-10-11T08:30:00.000Z",
+            "time": "08:30",
+            "name": "קערת אסאי עם גרנולה וסקופ חלבון",
+            "amount": 250,
+            "unitName": "גרם",
+            "calories": 420,
+            "protein": 28,
+            "carbs": 52,
+            "fat": 10,
+            "source": "FoodData Central"
+          },
+          {
+            "id": "meal_c2_2026-10-11_2",
+            "loggedAt": "2026-10-11T13:00:00.000Z",
+            "time": "13:00",
+            "name": "טופו מוקפץ עם קינואה וירקות אסייתיים",
+            "amount": 280,
+            "unitName": "גרם",
+            "calories": 540,
+            "protein": 38,
+            "carbs": 60,
+            "fat": 16,
+            "source": "FoodData Central"
+          },
+          {
+            "id": "meal_c2_2026-10-11_3",
+            "loggedAt": "2026-10-11T19:45:00.000Z",
+            "time": "19:45",
+            "name": "חביתת 3 ביצים, לחם כוסמין, אבוקדו וסלט",
+            "amount": 200,
+            "unitName": "גרם",
+            "calories": 520,
+            "protein": 34,
+            "carbs": 38,
+            "fat": 22,
+            "source": "FoodData Central"
+          }
+        ]
+      },
+      "workouts": [],
+      "coachFeedback": {
+        "reviewed": true,
+        "reviewedAt": "2026-10-11T22:00:00.000Z",
+        "notes": "כל הכבוד על ההתמדה והעלייה במשקלים ברגליים!",
+        "coachRating": 5
+      }
+    },
+    {
+      "id": "client_2_2026-10-12",
+      "traineeId": "client_2",
+      "date": "2026-10-12",
+      "status": "finalized",
+      "createdAt": "2026-10-12T08:00:00.000Z",
+      "updatedAt": "2026-10-12T21:00:00.000Z",
+      "finalizedAt": "2026-10-12T21:15:00.000Z",
+      "metrics": {
+        "morningWeightKg": 61.68,
+        "sleepHours": 8,
+        "sleepQuality": 9,
+        "waterMl": 2500,
+        "steps": 10500,
+        "energyLevel": 5,
+        "hungerLevel": 2,
+        "stressLevel": 2,
+        "digestion": "good",
+        "traineeNotes": "מרגישה התקדמות יפה בהיפ ת׳ראסט ושיפור בהתאוששות."
+      },
+      "nutrition": {
+        "totalCalories": 1480,
+        "totalProtein": 100,
+        "totalCarbs": 150,
+        "totalFat": 48,
+        "totalFiber": 29,
+        "totalSodium": 1800,
+        "targetCalories": 1850,
+        "targetProtein": 130,
+        "meals": [
+          {
+            "id": "meal_c2_2026-10-12_1",
+            "loggedAt": "2026-10-12T08:30:00.000Z",
+            "time": "08:30",
+            "name": "קערת אסאי עם גרנולה וסקופ חלבון",
+            "amount": 250,
+            "unitName": "גרם",
+            "calories": 420,
+            "protein": 28,
+            "carbs": 52,
+            "fat": 10,
+            "source": "FoodData Central"
+          },
+          {
+            "id": "meal_c2_2026-10-12_2",
+            "loggedAt": "2026-10-12T13:00:00.000Z",
+            "time": "13:00",
+            "name": "טופו מוקפץ עם קינואה וירקות אסייתיים",
+            "amount": 280,
+            "unitName": "גרם",
+            "calories": 540,
+            "protein": 38,
+            "carbs": 60,
+            "fat": 16,
+            "source": "FoodData Central"
+          },
+          {
+            "id": "meal_c2_2026-10-12_3",
+            "loggedAt": "2026-10-12T19:45:00.000Z",
+            "time": "19:45",
+            "name": "חביתת 3 ביצים, לחם כוסמין, אבוקדו וסלט",
+            "amount": 200,
+            "unitName": "גרם",
+            "calories": 520,
+            "protein": 34,
+            "carbs": 38,
+            "fat": 22,
+            "source": "FoodData Central"
+          }
+        ]
+      },
+      "workouts": [
+        {
+          "id": "wo_c2_2026-10-12_1",
+          "routineId": "session_legs",
+          "name": "Lower Body & Glutes (רגליים וישבן)",
+          "startedAt": "2026-10-12T17:30:00.000Z",
+          "completedAt": "2026-10-12T18:25:00.000Z",
+          "time": "17:30",
+          "durationMinutes": 55,
+          "completedSets": 16,
+          "totalSets": 16,
+          "totalVolume": 5120,
+          "difficulty": 8,
+          "notes": "אימון חזק, דגש על טכניקה בסקוואט והיפ ת׳ראסט",
+          "exercises": [
+            {
+              "name": "Barbell Hip Thrust",
+              "exerciseId": "ex_hip_thrust",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 90,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "17:38"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 100,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "17:42"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 105,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "17:46"
+                }
+              ]
+            },
+            {
+              "name": "Bulgarian Split Squat",
+              "exerciseId": "ex_bulgarian_split_squat",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 16,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "17:54"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 18,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "17:58"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 18,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "18:02"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "coachFeedback": {
+        "reviewed": true,
+        "reviewedAt": "2026-10-12T22:00:00.000Z",
+        "notes": "כל הכבוד על ההתמדה והעלייה במשקלים ברגליים!",
+        "coachRating": 5
+      }
+    },
+    {
+      "id": "client_2_2026-10-13",
+      "traineeId": "client_2",
+      "date": "2026-10-13",
+      "status": "finalized",
+      "createdAt": "2026-10-13T08:00:00.000Z",
+      "updatedAt": "2026-10-13T21:00:00.000Z",
+      "finalizedAt": "2026-10-13T21:15:00.000Z",
+      "metrics": {
+        "morningWeightKg": 61.64,
+        "sleepHours": 8,
+        "sleepQuality": 9,
+        "waterMl": 2500,
+        "steps": 10500,
+        "energyLevel": 5,
+        "hungerLevel": 2,
+        "stressLevel": 2,
+        "digestion": "good",
+        "traineeNotes": "מרגישה התקדמות יפה בהיפ ת׳ראסט ושיפור בהתאוששות."
+      },
+      "nutrition": {
+        "totalCalories": 1480,
+        "totalProtein": 100,
+        "totalCarbs": 150,
+        "totalFat": 48,
+        "totalFiber": 29,
+        "totalSodium": 1800,
+        "targetCalories": 1850,
+        "targetProtein": 130,
+        "meals": [
+          {
+            "id": "meal_c2_2026-10-13_1",
+            "loggedAt": "2026-10-13T08:30:00.000Z",
+            "time": "08:30",
+            "name": "קערת אסאי עם גרנולה וסקופ חלבון",
+            "amount": 250,
+            "unitName": "גרם",
+            "calories": 420,
+            "protein": 28,
+            "carbs": 52,
+            "fat": 10,
+            "source": "FoodData Central"
+          },
+          {
+            "id": "meal_c2_2026-10-13_2",
+            "loggedAt": "2026-10-13T13:00:00.000Z",
+            "time": "13:00",
+            "name": "טופו מוקפץ עם קינואה וירקות אסייתיים",
+            "amount": 280,
+            "unitName": "גרם",
+            "calories": 540,
+            "protein": 38,
+            "carbs": 60,
+            "fat": 16,
+            "source": "FoodData Central"
+          },
+          {
+            "id": "meal_c2_2026-10-13_3",
+            "loggedAt": "2026-10-13T19:45:00.000Z",
+            "time": "19:45",
+            "name": "חביתת 3 ביצים, לחם כוסמין, אבוקדו וסלט",
+            "amount": 200,
+            "unitName": "גרם",
+            "calories": 520,
+            "protein": 34,
+            "carbs": 38,
+            "fat": 22,
+            "source": "FoodData Central"
+          }
+        ]
+      },
+      "workouts": [],
+      "coachFeedback": {
+        "reviewed": true,
+        "reviewedAt": "2026-10-13T22:00:00.000Z",
+        "notes": "כל הכבוד על ההתמדה והעלייה במשקלים ברגליים!",
+        "coachRating": 5
+      }
+    },
+    {
+      "id": "client_2_2026-10-14",
+      "traineeId": "client_2",
+      "date": "2026-10-14",
+      "status": "finalized",
+      "createdAt": "2026-10-14T08:00:00.000Z",
+      "updatedAt": "2026-10-14T21:00:00.000Z",
+      "finalizedAt": "2026-10-14T21:15:00.000Z",
+      "metrics": {
+        "morningWeightKg": 61.6,
+        "sleepHours": 8,
+        "sleepQuality": 9,
+        "waterMl": 2500,
+        "steps": 10500,
+        "energyLevel": 5,
+        "hungerLevel": 2,
+        "stressLevel": 2,
+        "digestion": "good",
+        "traineeNotes": "מרגישה התקדמות יפה בהיפ ת׳ראסט ושיפור בהתאוששות."
+      },
+      "nutrition": {
+        "totalCalories": 1480,
+        "totalProtein": 100,
+        "totalCarbs": 150,
+        "totalFat": 48,
+        "totalFiber": 29,
+        "totalSodium": 1800,
+        "targetCalories": 1850,
+        "targetProtein": 130,
+        "meals": [
+          {
+            "id": "meal_c2_2026-10-14_1",
+            "loggedAt": "2026-10-14T08:30:00.000Z",
+            "time": "08:30",
+            "name": "קערת אסאי עם גרנולה וסקופ חלבון",
+            "amount": 250,
+            "unitName": "גרם",
+            "calories": 420,
+            "protein": 28,
+            "carbs": 52,
+            "fat": 10,
+            "source": "FoodData Central"
+          },
+          {
+            "id": "meal_c2_2026-10-14_2",
+            "loggedAt": "2026-10-14T13:00:00.000Z",
+            "time": "13:00",
+            "name": "טופו מוקפץ עם קינואה וירקות אסייתיים",
+            "amount": 280,
+            "unitName": "גרם",
+            "calories": 540,
+            "protein": 38,
+            "carbs": 60,
+            "fat": 16,
+            "source": "FoodData Central"
+          },
+          {
+            "id": "meal_c2_2026-10-14_3",
+            "loggedAt": "2026-10-14T19:45:00.000Z",
+            "time": "19:45",
+            "name": "חביתת 3 ביצים, לחם כוסמין, אבוקדו וסלט",
+            "amount": 200,
+            "unitName": "גרם",
+            "calories": 520,
+            "protein": 34,
+            "carbs": 38,
+            "fat": 22,
+            "source": "FoodData Central"
+          }
+        ]
+      },
+      "workouts": [
+        {
+          "id": "wo_c2_2026-10-14_1",
+          "routineId": "session_legs",
+          "name": "Lower Body & Glutes (רגליים וישבן)",
+          "startedAt": "2026-10-14T17:30:00.000Z",
+          "completedAt": "2026-10-14T18:25:00.000Z",
+          "time": "17:30",
+          "durationMinutes": 55,
+          "completedSets": 16,
+          "totalSets": 16,
+          "totalVolume": 5120,
+          "difficulty": 8,
+          "notes": "אימון חזק, דגש על טכניקה בסקוואט והיפ ת׳ראסט",
+          "exercises": [
+            {
+              "name": "Barbell Hip Thrust",
+              "exerciseId": "ex_hip_thrust",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 90,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "17:38"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 100,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "17:42"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 105,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "17:46"
+                }
+              ]
+            },
+            {
+              "name": "Bulgarian Split Squat",
+              "exerciseId": "ex_bulgarian_split_squat",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 16,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "17:54"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 18,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "17:58"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 18,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "18:02"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "coachFeedback": {
+        "reviewed": true,
+        "reviewedAt": "2026-10-14T22:00:00.000Z",
+        "notes": "כל הכבוד על ההתמדה והעלייה במשקלים ברגליים!",
+        "coachRating": 5
+      }
+    },
+    {
+      "id": "client_2_2026-10-15",
+      "traineeId": "client_2",
+      "date": "2026-10-15",
+      "status": "finalized",
+      "createdAt": "2026-10-15T08:00:00.000Z",
+      "updatedAt": "2026-10-15T21:00:00.000Z",
+      "finalizedAt": "2026-10-15T21:15:00.000Z",
+      "metrics": {
+        "morningWeightKg": 61.56,
+        "sleepHours": 8,
+        "sleepQuality": 9,
+        "waterMl": 2500,
+        "steps": 10500,
+        "energyLevel": 5,
+        "hungerLevel": 2,
+        "stressLevel": 2,
+        "digestion": "good",
+        "traineeNotes": "מרגישה התקדמות יפה בהיפ ת׳ראסט ושיפור בהתאוששות."
+      },
+      "nutrition": {
+        "totalCalories": 1480,
+        "totalProtein": 100,
+        "totalCarbs": 150,
+        "totalFat": 48,
+        "totalFiber": 29,
+        "totalSodium": 1800,
+        "targetCalories": 1850,
+        "targetProtein": 130,
+        "meals": [
+          {
+            "id": "meal_c2_2026-10-15_1",
+            "loggedAt": "2026-10-15T08:30:00.000Z",
+            "time": "08:30",
+            "name": "קערת אסאי עם גרנולה וסקופ חלבון",
+            "amount": 250,
+            "unitName": "גרם",
+            "calories": 420,
+            "protein": 28,
+            "carbs": 52,
+            "fat": 10,
+            "source": "FoodData Central"
+          },
+          {
+            "id": "meal_c2_2026-10-15_2",
+            "loggedAt": "2026-10-15T13:00:00.000Z",
+            "time": "13:00",
+            "name": "טופו מוקפץ עם קינואה וירקות אסייתיים",
+            "amount": 280,
+            "unitName": "גרם",
+            "calories": 540,
+            "protein": 38,
+            "carbs": 60,
+            "fat": 16,
+            "source": "FoodData Central"
+          },
+          {
+            "id": "meal_c2_2026-10-15_3",
+            "loggedAt": "2026-10-15T19:45:00.000Z",
+            "time": "19:45",
+            "name": "חביתת 3 ביצים, לחם כוסמין, אבוקדו וסלט",
+            "amount": 200,
+            "unitName": "גרם",
+            "calories": 520,
+            "protein": 34,
+            "carbs": 38,
+            "fat": 22,
+            "source": "FoodData Central"
+          }
+        ]
+      },
+      "workouts": [],
+      "coachFeedback": {
+        "reviewed": true,
+        "reviewedAt": "2026-10-15T22:00:00.000Z",
+        "notes": "כל הכבוד על ההתמדה והעלייה במשקלים ברגליים!",
+        "coachRating": 5
+      }
+    },
+    {
+      "id": "client_2_2026-10-16",
+      "traineeId": "client_2",
+      "date": "2026-10-16",
+      "status": "finalized",
+      "createdAt": "2026-10-16T08:00:00.000Z",
+      "updatedAt": "2026-10-16T21:00:00.000Z",
+      "finalizedAt": "2026-10-16T21:15:00.000Z",
+      "metrics": {
+        "morningWeightKg": 61.52,
+        "sleepHours": 8,
+        "sleepQuality": 9,
+        "waterMl": 2500,
+        "steps": 10500,
+        "energyLevel": 5,
+        "hungerLevel": 2,
+        "stressLevel": 2,
+        "digestion": "good",
+        "traineeNotes": "מרגישה התקדמות יפה בהיפ ת׳ראסט ושיפור בהתאוששות."
+      },
+      "nutrition": {
+        "totalCalories": 1480,
+        "totalProtein": 100,
+        "totalCarbs": 150,
+        "totalFat": 48,
+        "totalFiber": 29,
+        "totalSodium": 1800,
+        "targetCalories": 1850,
+        "targetProtein": 130,
+        "meals": [
+          {
+            "id": "meal_c2_2026-10-16_1",
+            "loggedAt": "2026-10-16T08:30:00.000Z",
+            "time": "08:30",
+            "name": "קערת אסאי עם גרנולה וסקופ חלבון",
+            "amount": 250,
+            "unitName": "גרם",
+            "calories": 420,
+            "protein": 28,
+            "carbs": 52,
+            "fat": 10,
+            "source": "FoodData Central"
+          },
+          {
+            "id": "meal_c2_2026-10-16_2",
+            "loggedAt": "2026-10-16T13:00:00.000Z",
+            "time": "13:00",
+            "name": "טופו מוקפץ עם קינואה וירקות אסייתיים",
+            "amount": 280,
+            "unitName": "גרם",
+            "calories": 540,
+            "protein": 38,
+            "carbs": 60,
+            "fat": 16,
+            "source": "FoodData Central"
+          },
+          {
+            "id": "meal_c2_2026-10-16_3",
+            "loggedAt": "2026-10-16T19:45:00.000Z",
+            "time": "19:45",
+            "name": "חביתת 3 ביצים, לחם כוסמין, אבוקדו וסלט",
+            "amount": 200,
+            "unitName": "גרם",
+            "calories": 520,
+            "protein": 34,
+            "carbs": 38,
+            "fat": 22,
+            "source": "FoodData Central"
+          }
+        ]
+      },
+      "workouts": [
+        {
+          "id": "wo_c2_2026-10-16_1",
+          "routineId": "session_legs",
+          "name": "Lower Body & Glutes (רגליים וישבן)",
+          "startedAt": "2026-10-16T17:30:00.000Z",
+          "completedAt": "2026-10-16T18:25:00.000Z",
+          "time": "17:30",
+          "durationMinutes": 55,
+          "completedSets": 16,
+          "totalSets": 16,
+          "totalVolume": 5120,
+          "difficulty": 8,
+          "notes": "אימון חזק, דגש על טכניקה בסקוואט והיפ ת׳ראסט",
+          "exercises": [
+            {
+              "name": "Barbell Hip Thrust",
+              "exerciseId": "ex_hip_thrust",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 90,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "17:38"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 100,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "17:42"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 105,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "17:46"
+                }
+              ]
+            },
+            {
+              "name": "Bulgarian Split Squat",
+              "exerciseId": "ex_bulgarian_split_squat",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 16,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "17:54"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 18,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "17:58"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 18,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "18:02"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "coachFeedback": null
+    },
+    {
+      "id": "client_2_2026-10-17",
+      "traineeId": "client_2",
+      "date": "2026-10-17",
+      "status": "finalized",
+      "createdAt": "2026-10-17T08:00:00.000Z",
+      "updatedAt": "2026-10-17T21:00:00.000Z",
+      "finalizedAt": "2026-10-17T21:15:00.000Z",
+      "metrics": {
+        "morningWeightKg": 61.48,
+        "sleepHours": 8,
+        "sleepQuality": 9,
+        "waterMl": 2500,
+        "steps": 10500,
+        "energyLevel": 5,
+        "hungerLevel": 2,
+        "stressLevel": 2,
+        "digestion": "good",
+        "traineeNotes": "מרגישה התקדמות יפה בהיפ ת׳ראסט ושיפור בהתאוששות."
+      },
+      "nutrition": {
+        "totalCalories": 1480,
+        "totalProtein": 100,
+        "totalCarbs": 150,
+        "totalFat": 48,
+        "totalFiber": 29,
+        "totalSodium": 1800,
+        "targetCalories": 1850,
+        "targetProtein": 130,
+        "meals": [
+          {
+            "id": "meal_c2_2026-10-17_1",
+            "loggedAt": "2026-10-17T08:30:00.000Z",
+            "time": "08:30",
+            "name": "קערת אסאי עם גרנולה וסקופ חלבון",
+            "amount": 250,
+            "unitName": "גרם",
+            "calories": 420,
+            "protein": 28,
+            "carbs": 52,
+            "fat": 10,
+            "source": "FoodData Central"
+          },
+          {
+            "id": "meal_c2_2026-10-17_2",
+            "loggedAt": "2026-10-17T13:00:00.000Z",
+            "time": "13:00",
+            "name": "טופו מוקפץ עם קינואה וירקות אסייתיים",
+            "amount": 280,
+            "unitName": "גרם",
+            "calories": 540,
+            "protein": 38,
+            "carbs": 60,
+            "fat": 16,
+            "source": "FoodData Central"
+          },
+          {
+            "id": "meal_c2_2026-10-17_3",
+            "loggedAt": "2026-10-17T19:45:00.000Z",
+            "time": "19:45",
+            "name": "חביתת 3 ביצים, לחם כוסמין, אבוקדו וסלט",
+            "amount": 200,
+            "unitName": "גרם",
+            "calories": 520,
+            "protein": 34,
+            "carbs": 38,
+            "fat": 22,
+            "source": "FoodData Central"
+          }
+        ]
+      },
+      "workouts": [],
+      "coachFeedback": null
+    },
+    {
+      "id": "client_2_2026-10-18",
+      "traineeId": "client_2",
+      "date": "2026-10-18",
+      "status": "draft",
+      "createdAt": "2026-10-18T08:00:00.000Z",
+      "updatedAt": "2026-10-18T21:00:00.000Z",
+      "finalizedAt": null,
+      "metrics": {
+        "morningWeightKg": 61.44,
+        "sleepHours": 8,
+        "sleepQuality": 9,
+        "waterMl": 2500,
+        "steps": 10500,
+        "energyLevel": 5,
+        "hungerLevel": 2,
+        "stressLevel": 2,
+        "digestion": "good",
+        "traineeNotes": "מרגישה התקדמות יפה בהיפ ת׳ראסט ושיפור בהתאוששות."
+      },
+      "nutrition": {
+        "totalCalories": 1480,
+        "totalProtein": 100,
+        "totalCarbs": 150,
+        "totalFat": 48,
+        "totalFiber": 29,
+        "totalSodium": 1800,
+        "targetCalories": 1850,
+        "targetProtein": 130,
+        "meals": [
+          {
+            "id": "meal_c2_2026-10-18_1",
+            "loggedAt": "2026-10-18T08:30:00.000Z",
+            "time": "08:30",
+            "name": "קערת אסאי עם גרנולה וסקופ חלבון",
+            "amount": 250,
+            "unitName": "גרם",
+            "calories": 420,
+            "protein": 28,
+            "carbs": 52,
+            "fat": 10,
+            "source": "FoodData Central"
+          },
+          {
+            "id": "meal_c2_2026-10-18_2",
+            "loggedAt": "2026-10-18T13:00:00.000Z",
+            "time": "13:00",
+            "name": "טופו מוקפץ עם קינואה וירקות אסייתיים",
+            "amount": 280,
+            "unitName": "גרם",
+            "calories": 540,
+            "protein": 38,
+            "carbs": 60,
+            "fat": 16,
+            "source": "FoodData Central"
+          },
+          {
+            "id": "meal_c2_2026-10-18_3",
+            "loggedAt": "2026-10-18T19:45:00.000Z",
+            "time": "19:45",
+            "name": "חביתת 3 ביצים, לחם כוסמין, אבוקדו וסלט",
+            "amount": 200,
+            "unitName": "גרם",
+            "calories": 520,
+            "protein": 34,
+            "carbs": 38,
+            "fat": 22,
+            "source": "FoodData Central"
+          }
+        ]
+      },
+      "workouts": [
+        {
+          "id": "wo_c2_2026-10-18_1",
+          "routineId": "session_legs",
+          "name": "Lower Body & Glutes (רגליים וישבן)",
+          "startedAt": "2026-10-18T17:30:00.000Z",
+          "completedAt": "2026-10-18T18:25:00.000Z",
+          "time": "17:30",
+          "durationMinutes": 55,
+          "completedSets": 16,
+          "totalSets": 16,
+          "totalVolume": 5120,
+          "difficulty": 8,
+          "notes": "אימון חזק, דגש על טכניקה בסקוואט והיפ ת׳ראסט",
+          "exercises": [
+            {
+              "name": "Barbell Hip Thrust",
+              "exerciseId": "ex_hip_thrust",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 90,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "17:38"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 100,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "17:42"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 105,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "17:46"
+                }
+              ]
+            },
+            {
+              "name": "Bulgarian Split Squat",
+              "exerciseId": "ex_bulgarian_split_squat",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 16,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "17:54"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 18,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "17:58"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 18,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "18:02"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "coachFeedback": null
+    }
+  ]
+}

@@ -61,6 +61,111 @@ const FitPulseFirebase = {
     }
   },
 
+  // Auth methods
+  async signIn(email, password) {
+    if (!this.isConfigured || !this.auth) return null;
+    try {
+      const userCredential = await this.auth.signInWithEmailAndPassword(email, password);
+      this.logAudit('USER_LOGIN', `התחברות משתמש: ${email}`);
+      return userCredential.user;
+    } catch (err) {
+      console.warn("[FitPulse Firebase] Sign in error:", err.message);
+      throw err;
+    }
+  },
+
+  async signOut() {
+    if (!this.isConfigured || !this.auth) return;
+    try {
+      await this.auth.signOut();
+    } catch (err) {
+      console.warn("[FitPulse Firebase] Sign out error:", err.message);
+    }
+  },
+
+  onAuthStateChanged(callback) {
+    if (!this.isConfigured || !this.auth) return () => {};
+    return this.auth.onAuthStateChanged(callback);
+  },
+
+  // Coach creates a new trainee in Firebase Auth without logging out the coach
+  async registerNewTraineeAuth(email, password, traineeData) {
+    if (!this.isConfigured) return null;
+    let secondaryApp = null;
+    try {
+      const appName = `TraineeReg_${Date.now()}`;
+      secondaryApp = firebase.initializeApp(firebaseConfig, appName);
+      const userCredential = await secondaryApp.auth().createUserWithEmailAndPassword(email, password);
+      const uid = userCredential.user.uid;
+
+      if (this.db) {
+        const traineeDoc = {
+          ...traineeData,
+          uid,
+          email,
+          role: 'trainee',
+          createdAt: new Date().toISOString()
+        };
+        await this.db.collection('trainees').doc(traineeData.id || uid).set(traineeDoc, { merge: true });
+        await this.db.collection('users').doc(uid).set({
+          uid,
+          email,
+          role: 'trainee',
+          name: traineeData.name,
+          traineeId: traineeData.id || uid,
+          createdAt: new Date().toISOString()
+        }, { merge: true });
+      }
+
+      this.logAudit('USER_REGISTERED', `נרשם מתאמן חדש: ${traineeData.name} (${email}) ע"י המאמן`);
+      return { uid, email };
+    } catch (err) {
+      console.error("[FitPulse Firebase] Error registering trainee auth:", err);
+      throw err;
+    } finally {
+      if (secondaryApp) {
+        try { await secondaryApp.delete(); } catch (e) {}
+      }
+    }
+  },
+
+  // Audit and system logging in Firestore
+  async logAudit(type, description, meta = {}) {
+    if (!this.isConfigured || !this.db) return;
+    try {
+      const doc = {
+        type,
+        description,
+        meta,
+        timestamp: new Date().toISOString()
+      };
+      await this.db.collection('auditLogs').add(doc);
+    } catch (err) {
+      // non-critical
+    }
+  },
+
+  // Subscribe to live audit logs for App Manager
+  subscribeToAuditLogs(onUpdate) {
+    if (!this.isConfigured || !this.db) return null;
+    try {
+      const unsub = this.db.collection('auditLogs')
+        .orderBy('timestamp', 'desc')
+        .limit(40)
+        .onSnapshot(snapshot => {
+          const logs = [];
+          snapshot.forEach(d => logs.push({ id: d.id, ...d.data() }));
+          onUpdate(logs);
+        }, err => {
+          console.warn("[FitPulse Firebase] Audit logs subscription notice:", err.message);
+        });
+      this.unsubscribers.push(unsub);
+      return unsub;
+    } catch (e) {
+      return null;
+    }
+  },
+
   // Save or update daily report draft in Firestore
   async saveReportDraft(report) {
     if (!this.isConfigured || !this.db) return false;

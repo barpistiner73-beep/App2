@@ -36,7 +36,7 @@
       "avatar": "של",
       "age": 25,
       "gender": "female",
-      "weight": 61.5,
+      "weight": 61.44,
       "height": 167,
       "targetCalories": 1850,
       "targetProtein": 130,
@@ -51,7 +51,7 @@
       "avatar": "רא",
       "age": 32,
       "gender": "male",
-      "weight": 89.2,
+      "weight": 89.3,
       "height": 179,
       "targetCalories": 2600,
       "targetProtein": 190,
@@ -66,7 +66,7 @@
       "avatar": "יש",
       "age": 29,
       "gender": "female",
-      "weight": 58,
+      "weight": 58.1,
       "height": 164,
       "targetCalories": 1900,
       "targetProtein": 135,
@@ -74,6 +74,10 @@
       "targetSleepHours": 8.5,
       "assignedRoutine": "Glutes & Legs Focus",
       "notes": "אימונים מתקדמים והעלאת צריכת חלבון"
+    },
+    {
+      "id": "JWhQFuuEWDbD5w5rwPwnQ8vuiKA2",
+      "name": "JWhQFuuEWDbD5w5rwPwnQ8vuiKA2"
     }
   ],
   "dailyReports": {
@@ -6335,6 +6339,534 @@
         ]
       },
       "workouts": [],
+      "coachFeedback": null,
+      "autoClosedNote": "הדוח נסגר אוטומטית בחצות בסוף היום ונשמר במסד הנתונים."
+    },
+    "client_1_2026-10-19": {
+      "id": "client_1_2026-10-19",
+      "traineeId": "client_1",
+      "date": "2026-10-19",
+      "status": "auto_closed",
+      "createdAt": "2026-10-19T18:16:08.533Z",
+      "updatedAt": "2026-10-19T21:00:57.923Z",
+      "finalizedAt": "2026-10-19T23:59:59.000Z",
+      "metrics": {
+        "morningWeightKg": null,
+        "sleepHours": 7.5,
+        "sleepQuality": 8,
+        "waterMl": 2500,
+        "steps": 9000,
+        "energyLevel": 4,
+        "hungerLevel": 2,
+        "stressLevel": 2,
+        "digestion": "good",
+        "traineeNotes": ""
+      },
+      "nutrition": {
+        "totalCalories": 0,
+        "totalProtein": 0,
+        "totalCarbs": 0,
+        "totalFat": 0,
+        "totalFiber": 30,
+        "totalSodium": 2100,
+        "targetCalories": 2250,
+        "targetProtein": 165,
+        "meals": []
+      },
+      "workouts": [
+        {
+          "id": "workout-1792433765857",
+          "routineId": "session_lower",
+          "name": "Lower Body Session",
+          "startedAt": "2026-10-19T18:15:22.043Z",
+          "completedAt": "2026-10-19T18:16:05.857Z",
+          "time": "21:16",
+          "durationMinutes": 1,
+          "completedSets": 3,
+          "totalSets": 26,
+          "totalVolume": 1960,
+          "difficulty": 8,
+          "notes": "",
+          "exercises": [
+            {
+              "name": "Barbell Back Squat",
+              "exerciseId": "ex_squat",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 85,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 85,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 85,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 4,
+                  "weight": 85,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "21:16"
+                }
+              ]
+            },
+            {
+              "name": "Romanian Deadlift (RDL)",
+              "exerciseId": "ex_rdl",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 60,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 60,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 60,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "21:16"
+                }
+              ]
+            },
+            {
+              "name": "45-Degree Leg Press",
+              "exerciseId": "ex_leg_press",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 130,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 130,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 130,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "21:16"
+                }
+              ]
+            },
+            {
+              "name": "Bulgarian Split Squat",
+              "exerciseId": "ex_bulgarian_split_squat",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 14,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 14,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 14,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "21:16"
+                }
+              ]
+            },
+            {
+              "name": "Leg Extension Machine",
+              "exerciseId": "ex_leg_extension",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 45,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 45,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 45,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:16"
+                }
+              ]
+            },
+            {
+              "name": "Lying Leg Curl",
+              "exerciseId": "ex_hamstring_curl",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 40,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 40,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 40,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:16"
+                }
+              ]
+            },
+            {
+              "name": "Standing Calf Raise",
+              "exerciseId": "ex_calf_raise",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 40,
+                  "reps": 15,
+                  "completed": false,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 40,
+                  "reps": 15,
+                  "completed": false,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 40,
+                  "reps": 15,
+                  "completed": false,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 4,
+                  "weight": 40,
+                  "reps": 15,
+                  "completed": false,
+                  "time": "21:16"
+                }
+              ]
+            },
+            {
+              "name": "Hanging Leg Raise",
+              "exerciseId": "ex_hanging_leg_raise",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 0,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 0,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 0,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:16"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "workout-1792434002068",
+          "routineId": "session_push",
+          "name": "Push Session",
+          "startedAt": "2026-10-19T18:19:57.925Z",
+          "completedAt": "2026-10-19T18:20:02.067Z",
+          "time": "21:20",
+          "durationMinutes": 1,
+          "completedSets": 0,
+          "totalSets": 26,
+          "totalVolume": 0,
+          "difficulty": 8,
+          "notes": "",
+          "exercises": [
+            {
+              "name": "Barbell Bench Press",
+              "exerciseId": "ex_bench_press",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 70,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 70,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 70,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 4,
+                  "weight": 70,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "21:20"
+                }
+              ]
+            },
+            {
+              "name": "Incline Dumbbell Press",
+              "exerciseId": "ex_incline_db_press",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 24,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 24,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 24,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "21:20"
+                }
+              ]
+            },
+            {
+              "name": "Machine Chest Press",
+              "exerciseId": "ex_machine_chest_press",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 55,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 55,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 55,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "21:20"
+                }
+              ]
+            },
+            {
+              "name": "Pec Deck Fly",
+              "exerciseId": "ex_pec_deck",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 45,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 45,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 45,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:20"
+                }
+              ]
+            },
+            {
+              "name": "Overhead Barbell Press (OHP)",
+              "exerciseId": "ex_ohp",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 45,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 45,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 45,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "21:20"
+                }
+              ]
+            },
+            {
+              "name": "Cable Lateral Raise",
+              "exerciseId": "ex_cable_lateral_raise",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 7.5,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 7.5,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 7.5,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 4,
+                  "weight": 7.5,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:20"
+                }
+              ]
+            },
+            {
+              "name": "Cable Rope Tricep Pushdown",
+              "exerciseId": "ex_tricep_pushdown",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 25,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 25,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 25,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:20"
+                }
+              ]
+            },
+            {
+              "name": "Cable Overhead Triceps Extension",
+              "exerciseId": "ex_overhead_cable_triceps",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 20,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 20,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 20,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:20"
+                }
+              ]
+            }
+          ]
+        }
+      ],
       "coachFeedback": null,
       "autoClosedNote": "הדוח נסגר אוטומטית בחצות בסוף היום ונשמר במסד הנתונים."
     },
@@ -22767,541 +23299,14 @@
       "coachFeedback": null,
       "autoClosedNote": "הדוח נסגר אוטומטית בחצות בסוף היום ונשמר במסד הנתונים."
     },
-    "client_1_2026-10-19": {
-      "id": "client_1_2026-10-19",
-      "traineeId": "client_1",
-      "date": "2026-10-19",
-      "status": "draft",
-      "createdAt": "2026-10-19T18:16:08.533Z",
-      "updatedAt": "2026-10-19T18:20:04.372Z",
-      "finalizedAt": null,
-      "metrics": {
-        "morningWeightKg": null,
-        "sleepHours": 7.5,
-        "sleepQuality": 8,
-        "waterMl": 2500,
-        "steps": 9000,
-        "energyLevel": 4,
-        "hungerLevel": 2,
-        "stressLevel": 2,
-        "digestion": "good",
-        "traineeNotes": ""
-      },
-      "nutrition": {
-        "totalCalories": 0,
-        "totalProtein": 0,
-        "totalCarbs": 0,
-        "totalFat": 0,
-        "totalFiber": 30,
-        "totalSodium": 2100,
-        "targetCalories": 2250,
-        "targetProtein": 165,
-        "meals": []
-      },
-      "workouts": [
-        {
-          "id": "workout-1792433765857",
-          "routineId": "session_lower",
-          "name": "Lower Body Session",
-          "startedAt": "2026-10-19T18:15:22.043Z",
-          "completedAt": "2026-10-19T18:16:05.857Z",
-          "time": "21:16",
-          "durationMinutes": 1,
-          "completedSets": 3,
-          "totalSets": 26,
-          "totalVolume": 1960,
-          "difficulty": 8,
-          "notes": "",
-          "exercises": [
-            {
-              "name": "Barbell Back Squat",
-              "exerciseId": "ex_squat",
-              "sets": [
-                {
-                  "setNumber": 1,
-                  "weight": 85,
-                  "reps": 8,
-                  "completed": true,
-                  "time": "21:16"
-                },
-                {
-                  "setNumber": 2,
-                  "weight": 85,
-                  "reps": 8,
-                  "completed": true,
-                  "time": "21:16"
-                },
-                {
-                  "setNumber": 3,
-                  "weight": 85,
-                  "reps": 8,
-                  "completed": false,
-                  "time": "21:16"
-                },
-                {
-                  "setNumber": 4,
-                  "weight": 85,
-                  "reps": 8,
-                  "completed": false,
-                  "time": "21:16"
-                }
-              ]
-            },
-            {
-              "name": "Romanian Deadlift (RDL)",
-              "exerciseId": "ex_rdl",
-              "sets": [
-                {
-                  "setNumber": 1,
-                  "weight": 60,
-                  "reps": 10,
-                  "completed": true,
-                  "time": "21:16"
-                },
-                {
-                  "setNumber": 2,
-                  "weight": 60,
-                  "reps": 10,
-                  "completed": false,
-                  "time": "21:16"
-                },
-                {
-                  "setNumber": 3,
-                  "weight": 60,
-                  "reps": 10,
-                  "completed": false,
-                  "time": "21:16"
-                }
-              ]
-            },
-            {
-              "name": "45-Degree Leg Press",
-              "exerciseId": "ex_leg_press",
-              "sets": [
-                {
-                  "setNumber": 1,
-                  "weight": 130,
-                  "reps": 10,
-                  "completed": false,
-                  "time": "21:16"
-                },
-                {
-                  "setNumber": 2,
-                  "weight": 130,
-                  "reps": 10,
-                  "completed": false,
-                  "time": "21:16"
-                },
-                {
-                  "setNumber": 3,
-                  "weight": 130,
-                  "reps": 10,
-                  "completed": false,
-                  "time": "21:16"
-                }
-              ]
-            },
-            {
-              "name": "Bulgarian Split Squat",
-              "exerciseId": "ex_bulgarian_split_squat",
-              "sets": [
-                {
-                  "setNumber": 1,
-                  "weight": 14,
-                  "reps": 10,
-                  "completed": false,
-                  "time": "21:16"
-                },
-                {
-                  "setNumber": 2,
-                  "weight": 14,
-                  "reps": 10,
-                  "completed": false,
-                  "time": "21:16"
-                },
-                {
-                  "setNumber": 3,
-                  "weight": 14,
-                  "reps": 10,
-                  "completed": false,
-                  "time": "21:16"
-                }
-              ]
-            },
-            {
-              "name": "Leg Extension Machine",
-              "exerciseId": "ex_leg_extension",
-              "sets": [
-                {
-                  "setNumber": 1,
-                  "weight": 45,
-                  "reps": 12,
-                  "completed": false,
-                  "time": "21:16"
-                },
-                {
-                  "setNumber": 2,
-                  "weight": 45,
-                  "reps": 12,
-                  "completed": false,
-                  "time": "21:16"
-                },
-                {
-                  "setNumber": 3,
-                  "weight": 45,
-                  "reps": 12,
-                  "completed": false,
-                  "time": "21:16"
-                }
-              ]
-            },
-            {
-              "name": "Lying Leg Curl",
-              "exerciseId": "ex_hamstring_curl",
-              "sets": [
-                {
-                  "setNumber": 1,
-                  "weight": 40,
-                  "reps": 12,
-                  "completed": false,
-                  "time": "21:16"
-                },
-                {
-                  "setNumber": 2,
-                  "weight": 40,
-                  "reps": 12,
-                  "completed": false,
-                  "time": "21:16"
-                },
-                {
-                  "setNumber": 3,
-                  "weight": 40,
-                  "reps": 12,
-                  "completed": false,
-                  "time": "21:16"
-                }
-              ]
-            },
-            {
-              "name": "Standing Calf Raise",
-              "exerciseId": "ex_calf_raise",
-              "sets": [
-                {
-                  "setNumber": 1,
-                  "weight": 40,
-                  "reps": 15,
-                  "completed": false,
-                  "time": "21:16"
-                },
-                {
-                  "setNumber": 2,
-                  "weight": 40,
-                  "reps": 15,
-                  "completed": false,
-                  "time": "21:16"
-                },
-                {
-                  "setNumber": 3,
-                  "weight": 40,
-                  "reps": 15,
-                  "completed": false,
-                  "time": "21:16"
-                },
-                {
-                  "setNumber": 4,
-                  "weight": 40,
-                  "reps": 15,
-                  "completed": false,
-                  "time": "21:16"
-                }
-              ]
-            },
-            {
-              "name": "Hanging Leg Raise",
-              "exerciseId": "ex_hanging_leg_raise",
-              "sets": [
-                {
-                  "setNumber": 1,
-                  "weight": 0,
-                  "reps": 12,
-                  "completed": false,
-                  "time": "21:16"
-                },
-                {
-                  "setNumber": 2,
-                  "weight": 0,
-                  "reps": 12,
-                  "completed": false,
-                  "time": "21:16"
-                },
-                {
-                  "setNumber": 3,
-                  "weight": 0,
-                  "reps": 12,
-                  "completed": false,
-                  "time": "21:16"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "workout-1792434002068",
-          "routineId": "session_push",
-          "name": "Push Session",
-          "startedAt": "2026-10-19T18:19:57.925Z",
-          "completedAt": "2026-10-19T18:20:02.067Z",
-          "time": "21:20",
-          "durationMinutes": 1,
-          "completedSets": 0,
-          "totalSets": 26,
-          "totalVolume": 0,
-          "difficulty": 8,
-          "notes": "",
-          "exercises": [
-            {
-              "name": "Barbell Bench Press",
-              "exerciseId": "ex_bench_press",
-              "sets": [
-                {
-                  "setNumber": 1,
-                  "weight": 70,
-                  "reps": 8,
-                  "completed": false,
-                  "time": "21:20"
-                },
-                {
-                  "setNumber": 2,
-                  "weight": 70,
-                  "reps": 8,
-                  "completed": false,
-                  "time": "21:20"
-                },
-                {
-                  "setNumber": 3,
-                  "weight": 70,
-                  "reps": 8,
-                  "completed": false,
-                  "time": "21:20"
-                },
-                {
-                  "setNumber": 4,
-                  "weight": 70,
-                  "reps": 8,
-                  "completed": false,
-                  "time": "21:20"
-                }
-              ]
-            },
-            {
-              "name": "Incline Dumbbell Press",
-              "exerciseId": "ex_incline_db_press",
-              "sets": [
-                {
-                  "setNumber": 1,
-                  "weight": 24,
-                  "reps": 10,
-                  "completed": false,
-                  "time": "21:20"
-                },
-                {
-                  "setNumber": 2,
-                  "weight": 24,
-                  "reps": 10,
-                  "completed": false,
-                  "time": "21:20"
-                },
-                {
-                  "setNumber": 3,
-                  "weight": 24,
-                  "reps": 10,
-                  "completed": false,
-                  "time": "21:20"
-                }
-              ]
-            },
-            {
-              "name": "Machine Chest Press",
-              "exerciseId": "ex_machine_chest_press",
-              "sets": [
-                {
-                  "setNumber": 1,
-                  "weight": 55,
-                  "reps": 10,
-                  "completed": false,
-                  "time": "21:20"
-                },
-                {
-                  "setNumber": 2,
-                  "weight": 55,
-                  "reps": 10,
-                  "completed": false,
-                  "time": "21:20"
-                },
-                {
-                  "setNumber": 3,
-                  "weight": 55,
-                  "reps": 10,
-                  "completed": false,
-                  "time": "21:20"
-                }
-              ]
-            },
-            {
-              "name": "Pec Deck Fly",
-              "exerciseId": "ex_pec_deck",
-              "sets": [
-                {
-                  "setNumber": 1,
-                  "weight": 45,
-                  "reps": 12,
-                  "completed": false,
-                  "time": "21:20"
-                },
-                {
-                  "setNumber": 2,
-                  "weight": 45,
-                  "reps": 12,
-                  "completed": false,
-                  "time": "21:20"
-                },
-                {
-                  "setNumber": 3,
-                  "weight": 45,
-                  "reps": 12,
-                  "completed": false,
-                  "time": "21:20"
-                }
-              ]
-            },
-            {
-              "name": "Overhead Barbell Press (OHP)",
-              "exerciseId": "ex_ohp",
-              "sets": [
-                {
-                  "setNumber": 1,
-                  "weight": 45,
-                  "reps": 8,
-                  "completed": false,
-                  "time": "21:20"
-                },
-                {
-                  "setNumber": 2,
-                  "weight": 45,
-                  "reps": 8,
-                  "completed": false,
-                  "time": "21:20"
-                },
-                {
-                  "setNumber": 3,
-                  "weight": 45,
-                  "reps": 8,
-                  "completed": false,
-                  "time": "21:20"
-                }
-              ]
-            },
-            {
-              "name": "Cable Lateral Raise",
-              "exerciseId": "ex_cable_lateral_raise",
-              "sets": [
-                {
-                  "setNumber": 1,
-                  "weight": 7.5,
-                  "reps": 12,
-                  "completed": false,
-                  "time": "21:20"
-                },
-                {
-                  "setNumber": 2,
-                  "weight": 7.5,
-                  "reps": 12,
-                  "completed": false,
-                  "time": "21:20"
-                },
-                {
-                  "setNumber": 3,
-                  "weight": 7.5,
-                  "reps": 12,
-                  "completed": false,
-                  "time": "21:20"
-                },
-                {
-                  "setNumber": 4,
-                  "weight": 7.5,
-                  "reps": 12,
-                  "completed": false,
-                  "time": "21:20"
-                }
-              ]
-            },
-            {
-              "name": "Cable Rope Tricep Pushdown",
-              "exerciseId": "ex_tricep_pushdown",
-              "sets": [
-                {
-                  "setNumber": 1,
-                  "weight": 25,
-                  "reps": 12,
-                  "completed": false,
-                  "time": "21:20"
-                },
-                {
-                  "setNumber": 2,
-                  "weight": 25,
-                  "reps": 12,
-                  "completed": false,
-                  "time": "21:20"
-                },
-                {
-                  "setNumber": 3,
-                  "weight": 25,
-                  "reps": 12,
-                  "completed": false,
-                  "time": "21:20"
-                }
-              ]
-            },
-            {
-              "name": "Cable Overhead Triceps Extension",
-              "exerciseId": "ex_overhead_cable_triceps",
-              "sets": [
-                {
-                  "setNumber": 1,
-                  "weight": 20,
-                  "reps": 12,
-                  "completed": false,
-                  "time": "21:20"
-                },
-                {
-                  "setNumber": 2,
-                  "weight": 20,
-                  "reps": 12,
-                  "completed": false,
-                  "time": "21:20"
-                },
-                {
-                  "setNumber": 3,
-                  "weight": 20,
-                  "reps": 12,
-                  "completed": false,
-                  "time": "21:20"
-                }
-              ]
-            }
-          ]
-        }
-      ],
-      "coachFeedback": null
-    },
     "JWhQFuuEWDbD5w5rwPwnQ8vuiKA2_2026-10-19": {
       "id": "JWhQFuuEWDbD5w5rwPwnQ8vuiKA2_2026-10-19",
       "traineeId": "JWhQFuuEWDbD5w5rwPwnQ8vuiKA2",
       "date": "2026-10-19",
-      "status": "draft",
+      "status": "auto_closed",
       "createdAt": "2026-10-19T19:49:24.856Z",
-      "updatedAt": "2026-10-19T19:54:16.384Z",
-      "finalizedAt": null,
+      "updatedAt": "2026-10-19T21:00:57.946Z",
+      "finalizedAt": "2026-10-19T23:59:59.000Z",
       "metrics": {
         "morningWeightKg": 31.5,
         "sleepHours": 7.5,
@@ -24378,10 +24383,169 @@
           ]
         }
       ],
-      "coachFeedback": null
+      "coachFeedback": null,
+      "autoClosedNote": "הדוח נסגר אוטומטית בחצות בסוף היום ונשמר במסד הנתונים."
     }
   },
+  "users": [
+    {
+      "id": "usr_mgr",
+      "userId": "usr_mgr",
+      "name": "מנהל מערכת ראשי",
+      "fullName": "מנהל מערכת ראשי",
+      "email": "manager@fitpulse.com",
+      "role": "manager",
+      "isTrainer": true,
+      "status": "active",
+      "approvalStatus": "approved",
+      "createdAt": "2026-09-01T00:00:00.000Z"
+    },
+    {
+      "id": "usr_coach",
+      "userId": "usr_coach",
+      "name": "מאמן ראשי",
+      "fullName": "מאמן ראשי",
+      "email": "coach@fitpulse.com",
+      "role": "coach",
+      "isTrainer": true,
+      "status": "active",
+      "approvalStatus": "approved",
+      "createdAt": "2026-09-01T00:00:00.000Z"
+    },
+    {
+      "id": "usr_c1",
+      "userId": "usr_c1",
+      "name": "דניאל כהן",
+      "fullName": "דניאל כהן",
+      "email": "daniel@fitpulse.com",
+      "role": "trainee",
+      "isTrainer": false,
+      "traineeId": "client_1",
+      "routine": "Push-Pull-Legs 4D",
+      "status": "active",
+      "approvalStatus": "approved",
+      "createdAt": "2026-09-01T00:00:00.000Z"
+    },
+    {
+      "id": "usr_c2",
+      "userId": "usr_c2",
+      "name": "שירה לוי",
+      "fullName": "שירה לוי",
+      "email": "shira@fitpulse.com",
+      "role": "trainee",
+      "isTrainer": false,
+      "traineeId": "client_2",
+      "routine": "Upper / Lower 4D",
+      "status": "active",
+      "approvalStatus": "approved",
+      "createdAt": "2026-09-05T00:00:00.000Z"
+    },
+    {
+      "id": "usr_c3",
+      "userId": "usr_c3",
+      "name": "רון אברהם",
+      "fullName": "רון אברהם",
+      "email": "ron@fitpulse.com",
+      "role": "trainee",
+      "isTrainer": false,
+      "traineeId": "client_3",
+      "routine": "Full Body 3D",
+      "status": "active",
+      "approvalStatus": "approved",
+      "createdAt": "2026-09-10T00:00:00.000Z"
+    },
+    {
+      "id": "usr_c4",
+      "userId": "usr_c4",
+      "name": "יעל שטרן",
+      "fullName": "יעל שטרן",
+      "email": "yael@fitpulse.com",
+      "role": "trainee",
+      "isTrainer": false,
+      "traineeId": "client_4",
+      "routine": "Glutes & Legs Focus",
+      "status": "active",
+      "approvalStatus": "approved",
+      "createdAt": "2026-09-12T00:00:00.000Z"
+    },
+    {
+      "id": "test_coach_99",
+      "userId": "test_coach_99",
+      "name": "???? ??? (????)",
+      "fullName": "???? ??? (????)",
+      "email": "yossi.coach@example.com",
+      "isTrainer": true,
+      "role": "coach",
+      "status": "active",
+      "approvalStatus": "approved",
+      "avatar": "??",
+      "profileImageUrl": null,
+      "specialty": "???? ??? ???????",
+      "selfTraining": true,
+      "targetCalories": 2200,
+      "targetProtein": 160,
+      "targetWater": 3000,
+      "createdAt": "2026-10-19T21:29:53.237Z",
+      "approvedAt": "2026-10-19T21:30:10.533Z",
+      "approvedBy": "usr_mgr"
+    },
+    {
+      "id": "N2HkpQ5OffZvxp5JhXDjkXlitQn1",
+      "userId": "N2HkpQ5OffZvxp5JhXDjkXlitQn1",
+      "name": "אריק איינשטיין",
+      "fullName": "אריק איינשטיין",
+      "email": "some.private.adress@gmail.com",
+      "isTrainer": false,
+      "role": "trainee",
+      "status": "pending_approval",
+      "approvalStatus": "pending",
+      "avatar": "https://lh3.googleusercontent.com/a/ACg8ocKmmjGjPYSPdl21gmgz2GVa2I7WU-uC_-8KgqoMpi8-CrHHYA=s96-c",
+      "profileImageUrl": "https://lh3.googleusercontent.com/a/ACg8ocKmmjGjPYSPdl21gmgz2GVa2I7WU-uC_-8KgqoMpi8-CrHHYA=s96-c",
+      "specialty": "אימון כושר ותזונת ספורט",
+      "selfTraining": true,
+      "targetCalories": 2200,
+      "targetProtein": 160,
+      "targetWater": 3000,
+      "createdAt": {
+        "_delegate": {
+          "_methodName": "FieldValue.serverTimestamp"
+        }
+      }
+    }
+  ],
   "auditLogs": [
+    {
+      "id": "log_1792446587705_n85p8",
+      "type": "USER_REGISTRATION_SUBMITTED",
+      "description": "הוגשה בקשת הרשמה (מתאמן): אריק איינשטיין (some.private.adress@gmail.com) - ממתין לאישור מנהל",
+      "meta": {
+        "userId": "N2HkpQ5OffZvxp5JhXDjkXlitQn1",
+        "role": "trainee",
+        "email": "some.private.adress@gmail.com"
+      },
+      "timestamp": "2026-10-19T21:49:47.705Z"
+    },
+    {
+      "id": "log_1792445410548_sf768",
+      "type": "USER_APPROVED",
+      "description": "אושר חשבון משתמש חדש (מאמן): ???? ??? (????) (yossi.coach@example.com) ע\"י מנהל מערכת",
+      "meta": {
+        "userId": "test_coach_99",
+        "role": "coach"
+      },
+      "timestamp": "2026-10-19T21:30:10.548Z"
+    },
+    {
+      "id": "log_1792445393242_f93fv",
+      "type": "USER_REGISTRATION_SUBMITTED",
+      "description": "הוגשה בקשת הרשמה (מאמן): ???? ??? (????) (yossi.coach@example.com) - ממתין לאישור מנהל",
+      "meta": {
+        "userId": "test_coach_99",
+        "role": "coach",
+        "email": "yossi.coach@example.com"
+      },
+      "timestamp": "2026-10-19T21:29:53.242Z"
+    },
     {
       "id": "log_init_1",
       "type": "SYSTEM_BOOT",

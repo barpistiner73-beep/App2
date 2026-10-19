@@ -18,8 +18,13 @@ service cloud.firestore {
     //      - fullName: string (required, 1-100 characters)
     //      - email: string (required, valid email address format, max 150 chars)
     //      - isTrainer: bool (required, toggles trainer persona capabilities)
+    //      - role: string (optional, enum: 'trainee' | 'coach' | 'manager')
+    //      - status: string (optional, enum: 'pending_approval' | 'active' | 'suspended' | 'rejected')
+    //      - approvalStatus: string (optional, enum: 'pending' | 'approved' | 'rejected')
     //      - profileImageUrl: string (optional, valid http/https URL or empty string, max 1000 chars)
     //      - createdAt: timestamp (required, immutable, recent timestamp on creation)
+    //      - approvedAt: timestamp (optional, managed by manager)
+    //      - approvedBy: string (optional, 1-128 chars, UID of manager)
     //
     // 2. trainerships/{relationId}
     //    Document ID: Deterministic pattern `${trainerId}_${traineeId}`.
@@ -37,6 +42,8 @@ service cloud.firestore {
     //    and all 4 permission flags MUST be strictly true.
     //    Coach Provisioning Invariant: A verified trainer can create an 'active' relation
     //    when onboarding a trainee.
+    //    Manager Invariant: System managers can view, create (e.g. provisioning a trainer's
+    //    self-training relation upon approval), and update trainership relations.
     //
     // 3. users/{userId}/dailyLogs/{logId}
     //    Document ID: Date key (e.g., 'YYYY-MM-DD') or auto-generated ID.
@@ -125,15 +132,39 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    // Check if current authenticated user has manager role/claim or bootstrap email
+    function isManagerUser() {
+      return isAuthenticated() && (
+        (request.auth.token != null && (
+          ('email' in request.auth.token && (
+            request.auth.token.email == 'manager@fitpulse.com' ||
+            request.auth.token.email.matches('(?i)^manager@fitpulse\\.com$')
+          )) ||
+          ('role' in request.auth.token && (request.auth.token.role == 'manager' || request.auth.token.role == 'admin')) ||
+          ('manager' in request.auth.token && request.auth.token.manager == true) ||
+          ('admin' in request.auth.token && request.auth.token.admin == true)
+        )) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         'role' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data &&
+         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'manager' ||
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'))
+      );
+    }
+
     // Check if current user has trainer role/claim
     function isTrainerUser() {
       return isAuthenticated() && (
+        isManagerUser() ||
         (request.auth.token != null && (
           ('isTrainer' in request.auth.token && request.auth.token.isTrainer == true) ||
           ('role' in request.auth.token && (request.auth.token.role == 'trainer' || request.auth.token.role == 'coach'))
         )) ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isTrainer == true)
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isTrainer == true ||
+          ('role' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data &&
+           (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'coach' ||
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'trainer'))
+        ))
       );
     }
 
@@ -228,16 +259,24 @@ service cloud.firestore {
     // Domain Validator Functions (Used on BOTH Create and Update)
     // =========================================================================
 
-    // 1. User Profile Validator
+    // 1. User Profile Validator (includes onboarding and approval lifecycle)
     function isValidUser(data) {
       return hasRequiredFields(data, ['userId', 'fullName', 'email', 'isTrainer', 'createdAt']) &&
-        hasOnlyAllowedFields(data, ['userId', 'fullName', 'email', 'isTrainer', 'profileImageUrl', 'createdAt']) &&
+        hasOnlyAllowedFields(data, [
+          'userId', 'fullName', 'email', 'isTrainer', 'role', 'status', 'approvalStatus',
+          'profileImageUrl', 'createdAt', 'approvedAt', 'approvedBy'
+        ]) &&
         data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
         data.fullName is string && data.fullName.size() >= 1 && data.fullName.size() <= 100 &&
         data.email is string && data.email.size() <= 150 && isValidEmail(data.email) &&
         data.isTrainer is bool &&
         data.createdAt is timestamp &&
-        (!('profileImageUrl' in data) || (data.profileImageUrl is string && data.profileImageUrl.size() <= 1000 && (data.profileImageUrl == '' || isValidUrl(data.profileImageUrl))));
+        (!('role' in data) || (data.role is string && data.role in ['trainee', 'coach', 'manager'])) &&
+        (!('status' in data) || (data.status is string && data.status in ['pending_approval', 'active', 'suspended', 'rejected'])) &&
+        (!('approvalStatus' in data) || (data.approvalStatus is string && data.approvalStatus in ['pending', 'approved', 'rejected'])) &&
+        (!('approvedAt' in data) || data.approvedAt == null || data.approvedAt is timestamp) &&
+        (!('approvedBy' in data) || data.approvedBy == null || (data.approvedBy is string && data.approvedBy.size() >= 1 && data.approvedBy.size() <= 128)) &&
+        (!('profileImageUrl' in data) || data.profileImageUrl == null || (data.profileImageUrl is string && data.profileImageUrl.size() <= 1000 && (data.profileImageUrl == '' || isValidUrl(data.profileImageUrl))));
     }
 
     // 2. Trainership Permissions Map Validator
@@ -411,26 +450,44 @@ service cloud.firestore {
     // 1. Users Collection
     // -------------------------------------------------------------------------
     match /users/{userId} {
-      // Document owner can read their profile; connected users/coaches can view profiles;
+      // Document owner can read their profile; managers can read; connected users/coaches can view profiles;
       // coaches with isTrainer==true can be viewed by authenticated users.
-      // Blanket listing is disallowed to prevent bulk user scraping and PII exposure.
       allow get: if isOwner(userId) ||
+                    isManagerUser() ||
                     isConnectedUser(userId) ||
                     (isAuthenticated() && resource.data.isTrainer == true);
-      allow list: if false;
 
-      // Only the user themselves can create their profile.
+      // Managers can list users (especially status == 'pending_approval');
+      // Authenticated users can list trainers (isTrainer == true) or look up their own profile by email
+      allow list: if isAuthenticated() && (
+        isManagerUser() ||
+        resource.data.isTrainer == true ||
+        (request.auth.token != null && 'email' in request.auth.token && resource.data.email == request.auth.token.email)
+      );
+
+      // Only the user themselves can create their profile on registration.
+      // Status can be 'pending_approval' or 'active'.
       allow create: if isOwner(userId) &&
                        request.resource.data.userId == userId &&
                        isValidUser(request.resource.data) &&
-                       isRecent(request.resource.data.createdAt);
+                       isRecent(request.resource.data.createdAt) &&
+                       (!('status' in request.resource.data) || request.resource.data.status in ['pending_approval', 'active']) &&
+                       (!('approvalStatus' in request.resource.data) || request.resource.data.approvalStatus in ['pending', 'approved']) &&
+                       (!('role' in request.resource.data) || request.resource.data.role != 'manager' || isManagerUser()) &&
+                       (!('approvedAt' in request.resource.data) || isManagerUser()) &&
+                       (!('approvedBy' in request.resource.data) || isManagerUser());
 
-      // Only the user themselves can update their profile.
-      // Protects against spoofing UID or modifying immutable createdAt.
-      allow update: if isOwner(userId) &&
+      // Profile updates:
+      // 1. Manager can update user document to approve/activate them (status, approvalStatus, approvedAt, approvedBy, role).
+      // 2. Owner can update their profile (cannot modify isTrainer, role, status, approvalStatus, approvedAt, approvedBy).
+      allow update: if isAuthenticated() &&
                        isValidUser(request.resource.data) &&
                        request.resource.data.userId == resource.data.userId &&
-                       request.resource.data.createdAt == resource.data.createdAt;
+                       request.resource.data.createdAt == resource.data.createdAt &&
+                       (
+                         isManagerUser() ||
+                         (isOwner(userId) && areImmutableFieldsUnchanged(['isTrainer', 'role', 'status', 'approvalStatus', 'approvedAt', 'approvedBy']))
+                       );
 
       // Raw client-side document deletion disallowed.
       allow delete: if false;
@@ -463,23 +520,28 @@ service cloud.firestore {
     // Path: trainerships/{relationId}
     // -------------------------------------------------------------------------
     match /trainerships/{relationId} {
-      // Both the trainer and trainee can read their relationship document.
+      // Both the trainer and trainee, as well as system managers, can read relationship documents.
       allow read: if isAuthenticated() &&
-                     (request.auth.uid == resource.data.trainerId ||
+                     (isManagerUser() ||
+                      request.auth.uid == resource.data.trainerId ||
                       request.auth.uid == resource.data.traineeId);
 
-      // Creation allowed if caller is trainer or trainee.
+      // Creation allowed if caller is manager, trainer, or trainee.
       // Must use deterministic ID `${trainerId}_${traineeId}`.
+      // System manager can provision trainer self-training relation upon approval.
       // Self-training (trainerId == traineeId) automatically activates with full permissions.
       // Verified coach can create active trainership when provisioning a trainee.
       // Standard coach/trainee invites initiate in 'pending' status.
       allow create: if isAuthenticated() &&
-                       (request.auth.uid == request.resource.data.trainerId ||
+                       (isManagerUser() ||
+                        request.auth.uid == request.resource.data.trainerId ||
                         request.auth.uid == request.resource.data.traineeId) &&
                        relationId == (request.resource.data.trainerId + '_' + request.resource.data.traineeId) &&
                        isValidTrainership(request.resource.data) &&
                        isRecent(request.resource.data.createdAt) &&
                        (
+                         // Managers can create valid active or pending trainership (including self-training on approval)
+                         isManagerUser() ||
                          // Self-training is active with full permissions
                          (request.resource.data.trainerId == request.resource.data.traineeId &&
                           request.resource.data.status == 'active' &&
@@ -492,18 +554,21 @@ service cloud.firestore {
                          (request.resource.data.status == 'pending')
                        );
 
-      // Updates allowed for trainer or trainee.
-      // Core relationship identities and creation timestamp are immutable.
+      // Updates allowed for manager, trainer, or trainee.
+      // Core relationship identities are immutable.
       // Prevents trainers from unilaterally escalating permissions or activating pending invites.
       allow update: if isAuthenticated() &&
-                       (request.auth.uid == resource.data.trainerId ||
+                       (isManagerUser() ||
+                        request.auth.uid == resource.data.trainerId ||
                         request.auth.uid == resource.data.traineeId) &&
                        isValidTrainership(request.resource.data) &&
                        request.resource.data.trainerId == resource.data.trainerId &&
                        request.resource.data.traineeId == resource.data.traineeId &&
-                       request.resource.data.createdAt == resource.data.createdAt &&
+                       (request.resource.data.createdAt == resource.data.createdAt || (isManagerUser() && isRecent(request.resource.data.createdAt))) &&
                        (!('relationId' in request.resource.data) || request.resource.data.relationId == resource.data.relationId) &&
                        (
+                         // Managers have full update authority over relations
+                         isManagerUser() ||
                          // Self-training relationship remains locked in 'active' state with full permissions
                          (resource.data.trainerId == resource.data.traineeId &&
                           request.resource.data.status == 'active' &&

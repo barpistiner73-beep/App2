@@ -23,7 +23,9 @@ class FitPulseDatabase {
   constructor() {
     this.data = {
       trainees: [],
-      dailyReports: {} // Keyed by `${traineeId}_${date}`
+      dailyReports: {}, // Keyed by `${traineeId}_${date}`
+      users: [],
+      auditLogs: []
     };
     this.init();
   }
@@ -115,10 +117,40 @@ class FitPulseDatabase {
         console.log('[Database] No existing DB found. Seeding initial data with 14-day history...');
         this.seedInitialData();
       }
+    } else {
+      // If loaded from folders, still read DB_FILE for users and auditLogs
+      if (fs.existsSync(DB_FILE)) {
+        try {
+          const raw = fs.readFileSync(DB_FILE, 'utf8');
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed.users) && parsed.users.length) {
+            this.data.users = parsed.users;
+          }
+          if (Array.isArray(parsed.auditLogs) && parsed.auditLogs.length) {
+            this.data.auditLogs = parsed.auditLogs;
+          }
+        } catch (e) {}
+      }
+    }
+
+    if (!Array.isArray(this.data.users) || !this.data.users.length) {
+      this.seedSystemUsers();
     }
 
     // Run auto-close on startup
     this.autoClosePastReports();
+  }
+
+  seedSystemUsers() {
+    this.data.users = [
+      { id: 'usr_mgr', userId: 'usr_mgr', name: 'מנהל מערכת ראשי', fullName: 'מנהל מערכת ראשי', email: 'manager@fitpulse.com', role: 'manager', isTrainer: true, status: 'active', approvalStatus: 'approved', createdAt: '2026-09-01T00:00:00.000Z' },
+      { id: 'usr_coach', userId: 'usr_coach', name: 'מאמן ראשי', fullName: 'מאמן ראשי', email: 'coach@fitpulse.com', role: 'coach', isTrainer: true, status: 'active', approvalStatus: 'approved', createdAt: '2026-09-01T00:00:00.000Z' },
+      { id: 'usr_c1', userId: 'usr_c1', name: 'דניאל כהן', fullName: 'דניאל כהן', email: 'daniel@fitpulse.com', role: 'trainee', isTrainer: false, traineeId: 'client_1', routine: 'Push-Pull-Legs 4D', status: 'active', approvalStatus: 'approved', createdAt: '2026-09-01T00:00:00.000Z' },
+      { id: 'usr_c2', userId: 'usr_c2', name: 'שירה לוי', fullName: 'שירה לוי', email: 'shira@fitpulse.com', role: 'trainee', isTrainer: false, traineeId: 'client_2', routine: 'Upper / Lower 4D', status: 'active', approvalStatus: 'approved', createdAt: '2026-09-05T00:00:00.000Z' },
+      { id: 'usr_c3', userId: 'usr_c3', name: 'רון אברהם', fullName: 'רון אברהם', email: 'ron@fitpulse.com', role: 'trainee', isTrainer: false, traineeId: 'client_3', routine: 'Full Body 3D', status: 'active', approvalStatus: 'approved', createdAt: '2026-09-10T00:00:00.000Z' },
+      { id: 'usr_c4', userId: 'usr_c4', name: 'יעל שטרן', fullName: 'יעל שטרן', email: 'yael@fitpulse.com', role: 'trainee', isTrainer: false, traineeId: 'client_4', routine: 'Glutes & Legs Focus', status: 'active', approvalStatus: 'approved', createdAt: '2026-09-12T00:00:00.000Z' }
+    ];
+    this.save();
   }
 
   save() {
@@ -936,6 +968,146 @@ class FitPulseDatabase {
       } catch (e) {}
     }
     return null;
+  }
+
+  // =========================================================================
+  // USER ACCOUNT & PENDING APPROVAL MANAGEMENT
+  // =========================================================================
+
+  getUsers(filter = {}) {
+    if (!Array.isArray(this.data.users)) this.data.users = [];
+    return this.data.users.filter(u => {
+      if (filter.role && filter.role !== 'all' && u.role !== filter.role) return false;
+      if (filter.status && u.status !== filter.status) return false;
+      return true;
+    });
+  }
+
+  getPendingApprovals() {
+    if (!Array.isArray(this.data.users)) this.data.users = [];
+    return this.data.users.filter(u => u.status === 'pending_approval' || u.approvalStatus === 'pending');
+  }
+
+  getUserByIdOrEmail(identifier) {
+    if (!Array.isArray(this.data.users)) this.data.users = [];
+    const lower = String(identifier || '').trim().toLowerCase();
+    return this.data.users.find(u =>
+      (u.id && u.id.toLowerCase() === lower) ||
+      (u.userId && u.userId.toLowerCase() === lower) ||
+      (u.email && u.email.toLowerCase() === lower)
+    ) || null;
+  }
+
+  registerUser(userData) {
+    if (!Array.isArray(this.data.users)) this.data.users = [];
+    const uid = userData.id || userData.userId || `usr_${Date.now()}`;
+    const email = (userData.email || '').trim();
+    const isTrainer = userData.isTrainer === true || userData.role === 'coach';
+    const role = isTrainer ? 'coach' : 'trainee';
+    const fullName = (userData.name || userData.fullName || email.split('@')[0] || 'משתמש חדש').trim();
+
+    const existingIndex = this.data.users.findIndex(u =>
+      (u.id && u.id === uid) ||
+      (u.userId && u.userId === uid) ||
+      (email && u.email && u.email.toLowerCase() === email.toLowerCase())
+    );
+
+    const userDoc = {
+      id: uid,
+      userId: uid,
+      name: fullName,
+      fullName: fullName,
+      email: email,
+      isTrainer,
+      role,
+      status: 'pending_approval',
+      approvalStatus: 'pending',
+      avatar: userData.avatar || userData.profileImageUrl || (fullName.slice(0, 2)),
+      profileImageUrl: userData.profileImageUrl || userData.avatar || null,
+      specialty: userData.specialty || '',
+      selfTraining: userData.selfTraining !== false,
+      targetCalories: Number(userData.targetCalories) || 2200,
+      targetProtein: Number(userData.targetProtein) || 160,
+      targetWater: Number(userData.targetWater) || 3000,
+      createdAt: userData.createdAt || new Date().toISOString()
+    };
+
+    if (existingIndex >= 0) {
+      this.data.users[existingIndex] = { ...this.data.users[existingIndex], ...userDoc };
+    } else {
+      this.data.users.push(userDoc);
+    }
+    this.save();
+    this.logActivity('USER_REGISTRATION_SUBMITTED', `הוגשה בקשת הרשמה (${isTrainer ? 'מאמן' : 'מתאמן'}): ${fullName} (${email}) - ממתין לאישור מנהל`, { userId: uid, role, email });
+    return userDoc;
+  }
+
+  approveUser(userId, managerId = 'usr_mgr') {
+    if (!Array.isArray(this.data.users)) this.data.users = [];
+    const user = this.data.users.find(u =>
+      (u.id && u.id === userId) ||
+      (u.userId && u.userId === userId) ||
+      (u.email && u.email.toLowerCase() === String(userId).toLowerCase())
+    );
+    if (!user) {
+      throw new Error(`משתמש (${userId}) לא נמצא במסד הנתונים.`);
+    }
+
+    user.status = 'active';
+    user.approvalStatus = 'approved';
+    user.approvedAt = new Date().toISOString();
+    user.approvedBy = managerId;
+
+    // If trainee: provision initial trainee folder if needed
+    if (!user.isTrainer && user.role === 'trainee') {
+      const traineeId = user.id;
+      const tIndex = this.data.trainees.findIndex(t => t.id === traineeId);
+      const traineeObj = {
+        id: traineeId,
+        name: user.name || user.fullName,
+        avatar: user.avatar || user.name.slice(0, 2),
+        age: 26,
+        gender: 'other',
+        weight: 70,
+        height: 175,
+        targetCalories: user.targetCalories || 2200,
+        targetProtein: user.targetProtein || 160,
+        targetCarbs: 220,
+        targetFat: 65,
+        targetWaterMl: user.targetWater || 3000,
+        targetSleepHours: 8,
+        assignedRoutine: 'Full Body 3D',
+        notes: 'חשבון מתאמן חדש מאושר'
+      };
+      if (tIndex >= 0) {
+        this.data.trainees[tIndex] = { ...this.data.trainees[tIndex], ...traineeObj };
+      } else {
+        this.data.trainees.push(traineeObj);
+      }
+      this.syncTraineeStatsToDisk(traineeId);
+    }
+
+    this.save();
+    this.logActivity('USER_APPROVED', `אושר חשבון משתמש חדש (${user.isTrainer ? 'מאמן' : 'מתאמן'}): ${user.name} (${user.email}) ע"י מנהל מערכת`, { userId: user.id, role: user.role });
+    return user;
+  }
+
+  rejectUser(userId, reason = 'לא אושר על ידי מנהל מערכת') {
+    if (!Array.isArray(this.data.users)) this.data.users = [];
+    const user = this.data.users.find(u =>
+      (u.id && u.id === userId) ||
+      (u.userId && u.userId === userId) ||
+      (u.email && u.email.toLowerCase() === String(userId).toLowerCase())
+    );
+    if (!user) {
+      throw new Error(`משתמש (${userId}) לא נמצא במסד הנתונים.`);
+    }
+    user.status = 'rejected';
+    user.approvalStatus = 'rejected';
+    user.rejectedReason = reason;
+    this.save();
+    this.logActivity('USER_REJECTED', `נדחתה בקשת הרשמה (${user.id}) ע"י מנהל מערכת: ${reason}`);
+    return user;
   }
 }
 

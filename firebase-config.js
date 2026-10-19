@@ -87,63 +87,367 @@ const FitPulseFirebase = {
       const userCredential = await this.auth.signInWithPopup(provider);
       const user = userCredential.user;
 
-      // Check if user profile already exists in Firestore 'users'
+      // 1. Check if user already exists in 'users' collection by Auth UID
       let profile = await this.getUserProfile(user.uid);
-      if (!profile) {
-        // First-time sign-up from Google! Create unified user profile in 'users'
-        const newProfile = {
-          userId: user.uid,
-          fullName: (user.displayName || user.email.split('@')[0]).slice(0, 100),
-          email: user.email,
-          isTrainer: false, // Default role is trainee per domain logic
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        };
-        if (user.photoURL && user.photoURL.startsWith('http')) {
-          newProfile.profileImageUrl = user.photoURL.slice(0, 1000);
-        }
-        try {
-          await this.db.collection('users').doc(user.uid).set(newProfile);
-          profile = newProfile;
-        } catch (err) {
-          console.warn("[FitPulse Firebase] User doc write notice:", err.message);
-          profile = newProfile;
-        }
 
-        // Also write to trainees collection for roster compatibility
+      // 2. Fallback check by email in 'users'
+      if (!profile && user.email) {
         try {
-          await this.db.collection('trainees').doc(user.uid).set({
-            id: user.uid,
-            name: newProfile.fullName,
-            email: user.email,
-            role: 'trainee',
-            avatar: user.photoURL || newProfile.fullName.slice(0, 2),
-            targetCalories: 2200,
-            targetProtein: 160,
-            targetCarbs: 220,
-            targetFat: 70,
-            targetWater: 3000,
-            createdAt: new Date().toISOString()
-          }, { merge: true });
-        } catch (err) {}
+          const snapshot = await this.db.collection('users')
+            .where('email', '==', user.email)
+            .limit(1)
+            .get();
+          if (!snapshot.empty) {
+            profile = snapshot.docs[0].data();
+          }
+        } catch (e) {
+          console.warn("[FitPulse Firebase] Email lookup notice:", e.message);
+        }
       }
 
-      this.logAudit('USER_LOGIN_GOOGLE', `התחברות/הרשמה עם Google: ${user.email} (${user.uid})`);
-      return { user, profile };
+      // If user DOES NOT exist in the database, do NOT create placeholder data!
+      // Return isNewUser: true so the frontend routes to the Onboarding / Account-Type page.
+      if (!profile) {
+        return { user, profile: null, isNewUser: true, isPendingApproval: false };
+      }
+
+      // Check if user account requires / is waiting for system manager approval
+      if (profile.status === 'pending_approval' || profile.approvalStatus === 'pending') {
+        this.logAudit('USER_LOGIN_PENDING', `כניסת משתמש הממתין לאישור מנהל: ${user.email} (${user.uid})`);
+        return { user, profile, isNewUser: false, isPendingApproval: true };
+      }
+
+      if (profile.status === 'rejected' || profile.approvalStatus === 'rejected') {
+        return { user, profile, isNewUser: false, isRejected: true };
+      }
+
+      this.logAudit('USER_LOGIN_GOOGLE', `כניסת משתמש קיים עם Google: ${user.email} (${user.uid})`);
+      return { user, profile, isNewUser: false, isPendingApproval: false };
     } catch (err) {
       console.warn("[FitPulse Firebase] Google Sign-In error:", err.message);
       throw err;
     }
   },
 
-  async getUserProfile(uid) {
-    if (!this.isConfigured || !this.db) return null;
-    try {
-      const doc = await this.db.collection('users').doc(uid).get();
-      return doc.exists ? doc.data() : null;
-    } catch (e) {
-      console.warn("[FitPulse Firebase] Error fetching user profile:", e);
-      return null;
+  // Complete Onboarding & Account Registration for Google or newly signing up users
+  // Note: Per requirements, both Trainee and Trainer accounts require System Manager permission.
+  async completeUserRegistration(user, regData) {
+    const uid = user.uid || user.id;
+    const isTrainer = regData.role === 'coach';
+    const fullName = (regData.fullName || user.displayName || user.email.split('@')[0] || 'משתמש חדש').trim().slice(0, 100);
+    const email = user.email;
+    const now = (typeof firebase !== 'undefined' && firebase.firestore?.FieldValue?.serverTimestamp)
+      ? firebase.firestore.FieldValue.serverTimestamp()
+      : new Date().toISOString();
+
+    // 1. Unified User Document
+    const userDoc = {
+      userId: uid,
+      id: uid,
+      fullName,
+      name: fullName,
+      email,
+      isTrainer,
+      role: regData.role || (isTrainer ? 'coach' : 'trainee'),
+      status: 'pending_approval',
+      approvalStatus: 'pending',
+      specialty: regData.specialty || '',
+      selfTraining: regData.selfTraining !== false,
+      targetCalories: Number(regData.targetCalories) || 2200,
+      targetProtein: Number(regData.targetProtein) || 160,
+      targetWater: Number(regData.targetWater) || 3000,
+      createdAt: now
+    };
+
+    const photoUrl = regData.profileImageUrl || user.photoURL;
+    if (photoUrl && typeof photoUrl === 'string' && photoUrl.startsWith('http')) {
+      userDoc.profileImageUrl = photoUrl.slice(0, 1000);
+      userDoc.avatar = photoUrl.slice(0, 1000);
     }
+
+    // 2. Persist to Firestore if configured
+    if (this.isConfigured && this.db) {
+      try {
+        const firestorePayload = {
+          userId: uid,
+          fullName,
+          email,
+          isTrainer,
+          role: userDoc.role,
+          status: 'pending_approval',
+          approvalStatus: 'pending',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        if (userDoc.profileImageUrl) {
+          firestorePayload.profileImageUrl = userDoc.profileImageUrl;
+        }
+        await this.db.collection('users').doc(uid).set(firestorePayload);
+      } catch (err) {
+        console.warn("[FitPulse Firebase] Firestore user doc write notice:", err.message);
+      }
+    }
+
+    // 3. Persist to Server backend (guarantees manager can see and approve even across browser restarts)
+    try {
+      await fetch('/api/users/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userDoc)
+      });
+    } catch (sErr) {
+      console.warn("[FitPulse Firebase] Server pending registration notice:", sErr.message);
+    }
+
+    // 4. Save to localStorage for instant client recovery
+    try {
+      const localPending = JSON.parse(localStorage.getItem('fitpulse_pending_users') || '[]');
+      const filtered = localPending.filter(u => u.userId !== uid && u.id !== uid && u.email !== email);
+      filtered.push({ ...userDoc, createdAt: new Date().toISOString() });
+      localStorage.setItem('fitpulse_pending_users', JSON.stringify(filtered));
+    } catch (lErr) {}
+
+    // 5. If Trainee: register initial clean trainee profile card
+    if (!isTrainer && this.isConfigured && this.db) {
+      const traineeDoc = {
+        id: uid,
+        traineeId: uid,
+        uid: uid,
+        name: fullName,
+        email,
+        role: 'trainee',
+        avatar: userDoc.profileImageUrl || fullName.slice(0, 2),
+        targetCalories: Number(regData.targetCalories) || 2200,
+        targetProtein: Number(regData.targetProtein) || 160,
+        targetWaterMl: Number(regData.targetWater) || 3000,
+        targetSleepHours: Number(regData.targetSleep) || 8,
+        createdAt: new Date().toISOString()
+      };
+      try {
+        await this.db.collection('trainees').doc(uid).set(traineeDoc, { merge: true });
+      } catch (err) {
+        console.warn("[FitPulse Firebase] Trainees collection notice:", err.message);
+      }
+    }
+
+    this.logAudit('USER_REGISTRATION_SUBMITTED', `הוגשה בקשת הרשמת משתמש חדש (${isTrainer ? 'מאמן' : 'מתאמן'}): ${email} (${uid}) - ממתין לאישור מנהל`);
+    return {
+      userId: uid,
+      id: uid,
+      fullName,
+      email,
+      isTrainer,
+      role: userDoc.role,
+      status: 'pending_approval',
+      approvalStatus: 'pending',
+      profileImageUrl: userDoc.profileImageUrl || null
+    };
+  },
+
+  // Manager: Fetch all user registrations awaiting approval (Cloud + Server + Local)
+  async getPendingApprovals() {
+    const listMap = new Map();
+
+    // 1. Fetch from Server API
+    try {
+      const res = await fetch('/api/users/pending');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.pendingUsers)) {
+          data.pendingUsers.forEach(u => {
+            const key = u.id || u.userId || u.email;
+            if (key) listMap.set(key, u);
+          });
+        }
+      }
+    } catch (sErr) {
+      console.warn("[FitPulse Firebase] Could not fetch server pending users:", sErr.message);
+    }
+
+    // 2. Fetch from Cloud Firestore if available
+    if (this.isConfigured && this.db) {
+      try {
+        const snap = await this.db.collection('users')
+          .where('status', '==', 'pending_approval')
+          .get();
+        snap.forEach(doc => {
+          const d = doc.data();
+          const key = d.userId || d.id || d.email;
+          if (key && !listMap.has(key)) {
+            listMap.set(key, d);
+          }
+        });
+      } catch (err) {
+        console.warn("[FitPulse Firebase] Firestore pending query notice:", err.message);
+      }
+    }
+
+    // 3. Merge with localStorage pending
+    try {
+      const localPending = JSON.parse(localStorage.getItem('fitpulse_pending_users') || '[]');
+      if (Array.isArray(localPending)) {
+        localPending.forEach(u => {
+          const key = u.userId || u.id || u.email;
+          if (key && (u.status === 'pending_approval' || u.approvalStatus === 'pending') && !listMap.has(key)) {
+            listMap.set(key, u);
+          }
+        });
+      }
+    } catch (e) {}
+
+    return Array.from(listMap.values());
+  },
+
+  // Manager: Approve user registration (activates account and creates self-coaching if trainer)
+  async approveUser(userId) {
+    const managerUid = this.auth?.currentUser?.uid || 'usr_mgr';
+    let approvedUser = null;
+
+    // 1. Approve on Server API
+    try {
+      const res = await fetch('/api/users/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, managerId: managerUid })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.user) {
+          approvedUser = data.user;
+        }
+      }
+    } catch (sErr) {
+      console.warn("[FitPulse Firebase] Server approve notice:", sErr.message);
+    }
+
+    // 2. Approve on Cloud Firestore
+    if (this.isConfigured && this.db) {
+      try {
+        const userRef = this.db.collection('users').doc(userId);
+        const snap = await userRef.get();
+        if (snap.exists) {
+          const userData = snap.data();
+          const now = firebase.firestore.FieldValue.serverTimestamp();
+          await userRef.update({
+            status: 'active',
+            approvalStatus: 'approved',
+            approvedAt: now,
+            approvedBy: managerUid
+          });
+
+          // If Trainer: ensure self-training relation is provisioned
+          if (userData.isTrainer) {
+            const selfRelId = `${userId}_${userId}`;
+            try {
+              await this.db.collection('trainerships').doc(selfRelId).set({
+                relationId: selfRelId,
+                trainerId: userId,
+                traineeId: userId,
+                status: 'active',
+                permissions: {
+                  canViewSleep: true,
+                  canViewNutrition: true,
+                  canViewWorkouts: true,
+                  canViewDailyLogs: true
+                },
+                createdAt: now
+              }, { merge: true });
+            } catch (tErr) {
+              console.warn("[FitPulse Firebase] Self-training relation notice:", tErr.message);
+            }
+          }
+          if (!approvedUser) approvedUser = { ...userData, status: 'active', approvalStatus: 'approved' };
+        }
+      } catch (fbErr) {
+        console.warn("[FitPulse Firebase] Firestore approve notice:", fbErr.message);
+      }
+    }
+
+    // 3. Update localStorage
+    try {
+      const localPending = JSON.parse(localStorage.getItem('fitpulse_pending_users') || '[]');
+      const updated = localPending.map(u => (u.userId === userId || u.id === userId) ? { ...u, status: 'active', approvalStatus: 'approved' } : u);
+      localStorage.setItem('fitpulse_pending_users', JSON.stringify(updated));
+    } catch (e) {}
+
+    this.logAudit('USER_APPROVED', `אושר חשבון משתמש חדש (${approvedUser?.isTrainer ? 'מאמן' : 'מתאמן'}): ${approvedUser?.fullName || approvedUser?.email || userId} ע"י מנהל מערכת`);
+    return approvedUser || { userId, status: 'active', approvalStatus: 'approved' };
+  },
+
+  // Manager: Reject user registration
+  async rejectUser(userId, reason = 'לא אושר על ידי מנהל מערכת') {
+    // 1. Server reject
+    try {
+      await fetch('/api/users/reject', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, reason })
+      });
+    } catch (e) {}
+
+    // 2. Firestore reject
+    if (this.isConfigured && this.db) {
+      try {
+        const userRef = this.db.collection('users').doc(userId);
+        await userRef.update({
+          status: 'rejected',
+          approvalStatus: 'rejected'
+        });
+      } catch (fbErr) {
+        console.warn("[FitPulse Firebase] Firestore reject notice:", fbErr.message);
+      }
+    }
+
+    // 3. Local storage reject
+    try {
+      const localPending = JSON.parse(localStorage.getItem('fitpulse_pending_users') || '[]');
+      const updated = localPending.map(u => (u.userId === userId || u.id === userId) ? { ...u, status: 'rejected', approvalStatus: 'rejected' } : u);
+      localStorage.setItem('fitpulse_pending_users', JSON.stringify(updated));
+    } catch (e) {}
+
+    this.logAudit('USER_REJECTED', `נדחה חשבון (${userId}) ע"י מנהל מערכת: ${reason}`);
+    return true;
+  },
+
+  async getUserProfile(uid) {
+    let profile = null;
+
+    // 1. Firestore profile check
+    if (this.isConfigured && this.db) {
+      try {
+        const doc = await this.db.collection('users').doc(uid).get();
+        if (doc.exists) {
+          profile = doc.data();
+        }
+      } catch (e) {
+        console.warn("[FitPulse Firebase] Error fetching user profile from Firestore:", e.message);
+      }
+    }
+
+    // 2. Server status check
+    if (!profile || profile.status === 'pending_approval') {
+      try {
+        const res = await fetch(`/api/users/status?userId=${encodeURIComponent(uid)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.user) {
+            profile = { ...profile, ...data.user };
+          }
+        }
+      } catch (sErr) {}
+    }
+
+    // 3. LocalStorage check
+    if (!profile || profile.status === 'pending_approval') {
+      try {
+        const localPending = JSON.parse(localStorage.getItem('fitpulse_pending_users') || '[]');
+        const found = localPending.find(u => u.userId === uid || u.id === uid);
+        if (found) {
+          profile = { ...profile, ...found };
+        }
+      } catch (lErr) {}
+    }
+
+    return profile;
   },
 
   async signOut() {

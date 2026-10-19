@@ -575,6 +575,39 @@
         </div>
       </div>
 
+      <!-- Pending Registration Approvals Section for System Manager -->
+      <section class="manager-section manager-pending-section" id="managerPendingApprovalsSection">
+        <div class="coach-section-header-flex">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div class="pending-badge-icon" style="font-size: 1.5rem;">⏳</div>
+            <div>
+              <h3>בקשות הרשמה הממתינות לאישור מנהל (Pending Approvals)</h3>
+              <p>חשבונות חדשים שנרשמו (מתאמנים ומאמנים) וממתינים לקבלת הרשאה וכניסה ראשונית למערכת.</p>
+            </div>
+          </div>
+          <span class="manager-pending-badge" id="managerPendingCountBadge">0 ממתינים</span>
+        </div>
+        <div id="managerPendingListContainer" class="manager-pending-list-container">
+          <div class="empty-pending-banner" id="emptyPendingNotice">
+            <span>✓ אין בקשות הרשמה הממתינות לאישור כרגע. כל החשבונות מאושרים ופעילים.</span>
+          </div>
+          <div class="table-scroll-container" id="pendingApprovalsTableWrapper" hidden>
+            <table class="coach-history-table manager-pending-table">
+              <thead>
+                <tr>
+                  <th>משתמש</th>
+                  <th>אימייל</th>
+                  <th>תפקיד מבוקש</th>
+                  <th>תאריך הרשמה</th>
+                  <th>פעולות מנהל</th>
+                </tr>
+              </thead>
+              <tbody id="managerPendingTableRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
       <!-- Live Activity Log & Audit Trail -->
       <section class="manager-section">
         <div class="coach-section-header-flex">
@@ -976,6 +1009,132 @@
           </div>
         </div>
       </div>
+
+      <!-- VIEW 3: ONBOARDING / REGISTRATION (FOR NEW USERS FROM GOOGLE OAUTH OR SIGN-UP) -->
+      <div class="auth-view" id="authViewOnboarding" hidden>
+        <div class="onboarding-header">
+          <div class="onboarding-avatar-preview">
+            <img id="onboardingAvatarImg" src="" alt="Google Avatar" class="onboarding-avatar-circle" hidden>
+            <div id="onboardingAvatarFallback" class="onboarding-avatar-circle fallback">👤</div>
+          </div>
+          <div class="onboarding-title-wrap">
+            <span class="eyebrow eyebrow-purple">משתמש חדש במערכת · הרשמה מהירה</span>
+            <h2 class="onboarding-heading">הגדרת חשבון והתאמה אישית</h2>
+            <p class="onboarding-subheading">זיהינו שהתחברת לראשונה עם Google. בחר את סוג החשבון הרצוי להמשך:</p>
+          </div>
+        </div>
+
+        <form class="auth-form onboarding-form" id="authOnboardingForm">
+          <!-- Account Type / Role Selection Radio Cards -->
+          <div class="onboarding-role-selection">
+            <label class="role-select-card active" id="roleCardTrainee">
+              <input type="radio" name="onboardingRole" value="trainee" checked>
+              <div class="role-card-badge">🏋️</div>
+              <div class="role-card-text">
+                <strong>חשבון מתאמן</strong>
+                <span>מעקב תזונה יומי, רישום אימונים ומדדי גוף, קבלת ליווי ממאמן</span>
+              </div>
+            </label>
+
+            <label class="role-select-card" id="roleCardCoach">
+              <input type="radio" name="onboardingRole" value="coach">
+              <div class="role-card-badge">👑</div>
+              <div class="role-card-text">
+                <strong>חשבון מאמן (Trainer)</strong>
+                <span>ניהול מתאמנים, מעקב דוחות יומיים, בניית תוכניות אימון + אימון עצמי</span>
+              </div>
+            </label>
+          </div>
+
+          <!-- Pre-filled User Details from Google -->
+          <div class="form-grid-2">
+            <div class="auth-field-group">
+              <label for="onboardingFullName">שם מלא</label>
+              <input type="text" id="onboardingFullName" required placeholder="ישראל ישראלי">
+            </div>
+            <div class="auth-field-group">
+              <label for="onboardingEmail">כתובת אימייל (מאומת ע"י Google)</label>
+              <input type="email" id="onboardingEmail" readonly dir="ltr" class="readonly-input">
+            </div>
+          </div>
+
+          <!-- Dynamic Role Fields: Trainee Goals -->
+          <div class="onboarding-role-section" id="onboardingTraineeSection">
+            <span class="section-micro-label" style="display:block; margin: 8px 0 6px; font-size: 0.8rem; color: #94a3b8; font-weight: 600;">יעדי תזונה ואורח חיים מומלצים להתחלה:</span>
+            <div class="form-grid-3">
+              <div class="auth-field-group">
+                <label for="onboardingCalories">יעד קלוריות יומי (kcal)</label>
+                <input type="number" id="onboardingCalories" value="2200" min="1000" max="8000" step="50">
+              </div>
+              <div class="auth-field-group">
+                <label for="onboardingProtein">יעד חלבון (גרם)</label>
+                <input type="number" id="onboardingProtein" value="160" min="30" max="500" step="5">
+              </div>
+              <div class="auth-field-group">
+                <label for="onboardingWater">יעד מים יומי (מ"ל)</label>
+                <input type="number" id="onboardingWater" value="3000" min="1000" max="10000" step="250">
+              </div>
+            </div>
+          </div>
+
+          <!-- Dynamic Role Fields: Coach Specialization -->
+          <div class="onboarding-role-section" id="onboardingCoachSection" hidden>
+            <div class="auth-field-group">
+              <label for="onboardingSpecialty">התמחות מקצועית / תיאור קצר</label>
+              <input type="text" id="onboardingSpecialty" placeholder="מאמן כושר אישי, תזונת ספורט וחיטוב" value="אימון כושר ותזונת ספורט">
+            </div>
+            <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: #e2e8f0; margin-top: 8px;">
+              <input type="checkbox" id="onboardingSelfTraining" checked>
+              <span>הפעל חיבור אימון עצמי (Self-Coaching) - מאפשר לנהל גם את האימונים והתזונה האישיים שלך כמאמן</span>
+            </label>
+          </div>
+
+          <div id="onboardingErrorMessage" class="auth-error-msg" hidden></div>
+
+          <div class="form-actions-row" style="margin-top: 10px;">
+            <button type="button" class="btn-action-ghost" id="onboardingCancelBtn">חזרה להתחברות</button>
+            <button type="submit" class="auth-submit-btn" id="onboardingSubmitBtn" style="flex: 2;">
+              <span>סיום הרשמה וכניסה לאפליקציה ✓</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- VIEW 4: PENDING MANAGER APPROVAL -->
+      <div class="auth-view" id="authViewPendingApproval" hidden>
+        <div class="pending-approval-card">
+          <div class="pending-icon-circle">
+            <span class="pending-hourglass">⏳</span>
+          </div>
+          <div class="onboarding-avatar-preview" style="margin-top: 10px;">
+            <img id="pendingUserAvatarImg" src="" alt="Avatar" class="onboarding-avatar-circle" hidden>
+            <div id="pendingUserAvatarFallback" class="onboarding-avatar-circle fallback">👤</div>
+          </div>
+          <h2 class="pending-heading">החשבון ממתין לאישור מנהל מערכת</h2>
+          <div class="pending-user-summary">
+            <div class="pending-user-name" id="pendingUserName">משתמש חדש</div>
+            <div class="pending-user-email" id="pendingUserEmail">user@example.com</div>
+            <div class="pending-user-role-tag" id="pendingUserRoleBadge">מתאמן (ממתין לאישור)</div>
+          </div>
+
+          <div class="pending-info-box">
+            <p><strong>ההרשמה נקלטה בהצלחה!</strong></p>
+            <p>מטעמי אבטחה, בקרת איכות וניהול מקצועי, כל חשבון חדש במערכת (בין אם כמתאמן ובין אם כמאמן) נדרש לעבור אישור ישיר על ידי מנהל המערכת לפני פתיחת הגישה המלאה.</p>
+            <p class="pending-hint">לאחר אישור החשבון ע"י המנהל, תוכל להיכנס וכל הרשומות שלך יתחילו נקיות ומסודרות לחלוטין.</p>
+          </div>
+
+          <div id="pendingStatusNotice" class="auth-notice-msg" hidden></div>
+
+          <div class="pending-actions-row">
+            <button type="button" class="btn-action-primary" id="checkApprovalStatusBtn">
+              <span>🔄 בדוק סטטוס אישור כעת</span>
+            </button>
+            <button type="button" class="btn-action-ghost" id="pendingApprovalLogoutBtn">
+              <span>התנתקות ויציאה</span>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -985,6 +1144,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
   <script src="firebase-config.js"></script>
   <script src="data.js"></script>
+  <script src="data/israeli_culinary_database/israeli_food_data.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js" defer></script>
   <script src="app.js"></script>
 </body>

@@ -98,6 +98,61 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 201, { success: true, trainee: created });
       }
 
+      // --- User & Pending Approval API Routes ---
+      // GET /api/users/pending (Fetch all pending trainer & trainee approvals)
+      if (pathname === '/api/users/pending' && method === 'GET') {
+        const pendingUsers = db.getPendingApprovals();
+        return sendJson(res, 200, { success: true, count: pendingUsers.length, pendingUsers });
+      }
+
+      // GET /api/users/status?userId=...&email=... (User checking approval status)
+      if (pathname === '/api/users/status' && method === 'GET') {
+        const identifier = parsedUrl.query.userId || parsedUrl.query.email;
+        if (!identifier) {
+          return sendJson(res, 400, { success: false, error: 'Missing userId or email' });
+        }
+        const user = db.getUserByIdOrEmail(identifier);
+        return sendJson(res, 200, { success: true, user });
+      }
+
+      // POST /api/users/register (Submit registration for manager approval)
+      if (pathname === '/api/users/register' && method === 'POST') {
+        const body = await parseJsonBody(req);
+        if (!body.email && !body.userId && !body.id) {
+          return sendJson(res, 400, { success: false, error: 'User identifier or email required' });
+        }
+        const user = db.registerUser(body);
+        return sendJson(res, 201, { success: true, user });
+      }
+
+      // POST /api/users/approve (Manager approves trainer or trainee)
+      if (pathname === '/api/users/approve' && method === 'POST') {
+        const body = await parseJsonBody(req);
+        if (!body.userId) {
+          return sendJson(res, 400, { success: false, error: 'userId is required' });
+        }
+        const approved = db.approveUser(body.userId, body.managerId || 'usr_mgr');
+        return sendJson(res, 200, { success: true, user: approved });
+      }
+
+      // POST /api/users/reject (Manager rejects user)
+      if (pathname === '/api/users/reject' && method === 'POST') {
+        const body = await parseJsonBody(req);
+        if (!body.userId) {
+          return sendJson(res, 400, { success: false, error: 'userId is required' });
+        }
+        const rejected = db.rejectUser(body.userId, body.reason);
+        return sendJson(res, 200, { success: true, user: rejected });
+      }
+
+      // GET /api/users (Manager user directory)
+      if (pathname === '/api/users' && method === 'GET') {
+        const role = parsedUrl.query.role || null;
+        const status = parsedUrl.query.status || null;
+        const users = db.getUsers({ role, status });
+        return sendJson(res, 200, { success: true, users });
+      }
+
       // GET /api/system/status (App Manager system & Firebase monitor)
       if (pathname === '/api/system/status' && method === 'GET') {
         const trainees = db.getTrainees();

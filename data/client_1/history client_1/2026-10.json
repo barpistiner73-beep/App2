@@ -2883,10 +2883,10 @@
       "id": "client_1_2026-10-19",
       "traineeId": "client_1",
       "date": "2026-10-19",
-      "status": "draft",
+      "status": "auto_closed",
       "createdAt": "2026-10-19T18:16:08.533Z",
-      "updatedAt": "2026-10-19T18:20:04.372Z",
-      "finalizedAt": null,
+      "updatedAt": "2026-10-19T21:00:57.923Z",
+      "finalizedAt": "2026-10-19T23:59:59.000Z",
       "metrics": {
         "morningWeightKg": null,
         "sleepHours": 7.5,
@@ -3404,7 +3404,8 @@
           ]
         }
       ],
-      "coachFeedback": null
+      "coachFeedback": null,
+      "autoClosedNote": "הדוח נסגר אוטומטית בחצות בסוף היום ונשמר במסד הנתונים."
     }
   ]
 }

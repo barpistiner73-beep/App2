@@ -15,9 +15,32 @@
     dailyReports: 'fitpulse_daily_reports'
   };
 
+  function getUserStorageKey(key) {
+    if (!state?.currentUser) return key;
+    const u = state.currentUser;
+    const isDemo = (u.id && u.id.startsWith('usr_')) || 
+                   (u.email && (u.email === 'daniel@fitpulse.com' || u.email === 'shira@fitpulse.com' || u.email === 'coach@fitpulse.com' || u.email === 'manager@fitpulse.com'));
+    if (isDemo) return key;
+    const scopedKeys = [
+      STORAGE_KEYS.profile,
+      STORAGE_KEYS.workouts,
+      STORAGE_KEYS.nutrition,
+      STORAGE_KEYS.weights,
+      STORAGE_KEYS.water,
+      STORAGE_KEYS.sleep,
+      STORAGE_KEYS.dailyReports,
+      STORAGE_KEYS.customRoutines
+    ];
+    if (scopedKeys.includes(key)) {
+      return `${key}_${u.id || u.uid}`;
+    }
+    return key;
+  }
+
   function readStorage(key, fallback) {
     try {
-      const value = localStorage.getItem(key);
+      const storageKey = getUserStorageKey(key);
+      const value = localStorage.getItem(storageKey);
       return value ? JSON.parse(value) : fallback;
     } catch (error) {
       console.error(`Could not read FitPulse data from local storage (${key}).`, error);
@@ -27,7 +50,8 @@
 
   function writeStorage(key, value) {
     try {
-      localStorage.setItem(key, JSON.stringify(value));
+      const storageKey = getUserStorageKey(key);
+      localStorage.setItem(storageKey, JSON.stringify(value));
       return true;
     } catch (error) {
       console.error(`Could not save FitPulse data to local storage (${key}).`, error);
@@ -1963,6 +1987,30 @@
       console.warn('[Coach] Could not fetch trainees from server, using local list:', err);
     }
 
+    const isDemoCoach = !state.currentUser || (state.currentUser.id && state.currentUser.id.startsWith('usr_')) || 
+                        (state.currentUser.email && (state.currentUser.email === 'coach@fitpulse.com' || state.currentUser.email === 'manager@fitpulse.com'));
+
+    // For a real coach: start with a clean roster without Daniel Cohen and demo trainees
+    if (!isDemoCoach) {
+      const coachId = state.currentUser.id;
+      trainees = trainees.filter(t => t.coachId === coachId || t.trainerId === coachId);
+      // If self-training enabled, include self profile
+      if (state.currentUser.selfTraining !== false) {
+        const selfTrainee = {
+          id: coachId,
+          name: `${state.currentUser.name} (אימון עצמי)`,
+          avatar: state.currentUser.avatar || '👑',
+          role: 'self',
+          targetCalories: state.profile.targetCalories || 2400,
+          targetProtein: state.profile.targetProtein || 170,
+          weight: state.profile.weight || 75,
+          targetSleepHours: state.profile.targetSleepHours || 8,
+          hasWorkedOutToday: false
+        };
+        trainees.unshift(selfTrainee);
+      }
+    }
+
     const searchInput = byId('coachTraineeSearch');
     const query = (searchInput?.value || '').trim().toLocaleLowerCase();
     const activityFilter = byId('coachTraineeFilter');
@@ -2003,19 +2051,21 @@
       profileBar.replaceChildren();
       const meta = createElement('div', 'coach-trainee-meta');
       const avatar = createElement('div', 'coach-trainee-avatar', currentTrainee.avatar || currentTrainee.name.slice(0, 2));
-      const info = createElement('div', 'coach-trainee-info');
+      const ageGenderText = currentTrainee.age
+        ? ` (${currentTrainee.age}${currentTrainee.gender ? ` · ${currentTrainee.gender === 'male' ? 'גבר' : 'אישה'}` : ''})`
+        : '';
       info.append(
-        createElement('strong', '', `${currentTrainee.name} (${currentTrainee.age} · ${currentTrainee.gender === 'male' ? 'גבר' : 'אישה'})`),
-        createElement('span', '', `תוכנית משויכת: ${currentTrainee.assignedRoutine || 'Push-Pull-Legs 4D'} · גובה: ${currentTrainee.height || 180} ס"מ`)
+        createElement('strong', '', `${currentTrainee.name}${ageGenderText}`),
+        createElement('span', '', `תוכנית משויכת: ${currentTrainee.assignedRoutine || 'בניית תוכנית חדשה'} · גובה: ${currentTrainee.height || 175} ס"מ`)
       );
       meta.append(avatar, info);
 
       const stats = createElement('div', 'coach-trainee-stats');
       [
-        ['משקל עדכני', `${currentTrainee.weight} ק"ג`],
-        ['יעד קלוריות', `${formatNumber(currentTrainee.targetCalories)} קק"ל`],
-        ['יעד חלבון', `${formatNumber(currentTrainee.targetProtein)}g`],
-        ['יעד מים', `${formatNumber(currentTrainee.targetWaterMl)} מ"ל`]
+        ['משקל עדכני', `${currentTrainee.weight || 75} ק"ג`],
+        ['יעד קלוריות', `${formatNumber(currentTrainee.targetCalories || 2200)} קק"ל`],
+        ['יעד חלבון', `${formatNumber(currentTrainee.targetProtein || 160)}g`],
+        ['יעד מים', `${formatNumber(currentTrainee.targetWaterMl || 3000)} מ"ל`]
       ].forEach(([label, val]) => {
         const box = createElement('div', 'coach-stat-box');
         box.append(createElement('span', 'stat-label', label), createElement('strong', 'stat-val', val));
@@ -2068,8 +2118,14 @@
     const grid = byId('coachTraineesGrid');
     if (grid) {
       grid.replaceChildren();
-      filteredTrainees.forEach(trainee => {
-        const card = createElement('article', 'coach-card');
+      if (!filteredTrainees.length) {
+        const emptyDiv = createElement('div', 'empty-pending-banner', 'אין עדיין מתאמנים משויכים לחשבונך. תוכל להוסיף מתאמן חדש בלחיצה על "הוספת מתאמן חדש" למעלה.');
+        emptyDiv.style.gridColumn = '1 / -1';
+        emptyDiv.style.padding = '24px 20px';
+        grid.append(emptyDiv);
+      } else {
+        filteredTrainees.forEach(trainee => {
+          const card = createElement('article', 'coach-card');
         const header = createElement('div', 'coach-card-header');
         header.append(createElement('span', 'coach-avatar', trainee.avatar || trainee.name.slice(0, 2)), createElement('div', '', trainee.name));
         card.append(header);
@@ -2100,7 +2156,7 @@
 
         grid.append(card);
       });
-      if (!filteredTrainees.length) grid.append(createElement('p', 'empty-state', 'לא נמצאו מתאמנים לפי החיפוש והסינון.'));
+      }
     }
   }
 
@@ -3898,24 +3954,91 @@
   function showAuthView(viewName) {
     const loginView = byId('authViewLogin');
     const guideView = byId('authViewGuide');
+    const onboardingView = byId('authViewOnboarding');
+    const pendingView = byId('authViewPendingApproval');
+    const tabSwitch = document.querySelector('.auth-tab-switch');
     const tabLogin = byId('authTabLoginBtn');
     const tabGuide = byId('authTabGuideBtn');
     const errorBox = byId('authErrorMessage');
-    if (errorBox) {
-      errorBox.hidden = true;
-      errorBox.textContent = '';
-    }
+    const onboardingErr = byId('onboardingErrorMessage');
+    const pendingNotice = byId('pendingStatusNotice');
+    if (errorBox) { errorBox.hidden = true; errorBox.textContent = ''; }
+    if (onboardingErr) { onboardingErr.hidden = true; onboardingErr.textContent = ''; }
+    if (pendingNotice) { pendingNotice.hidden = true; pendingNotice.textContent = ''; }
 
-    if (viewName === 'guide') {
-      if (loginView) { loginView.hidden = true; loginView.classList.remove('active'); }
+    // Hide all views first
+    if (loginView) { loginView.hidden = true; loginView.classList.remove('active'); }
+    if (guideView) { guideView.hidden = true; guideView.classList.remove('active'); }
+    if (onboardingView) { onboardingView.hidden = true; onboardingView.classList.remove('active'); }
+    if (pendingView) { pendingView.hidden = true; pendingView.classList.remove('active'); }
+
+    if (viewName === 'pending') {
+      if (pendingView) { pendingView.hidden = false; pendingView.classList.add('active'); }
+      if (tabSwitch) tabSwitch.style.display = 'none';
+    } else if (viewName === 'onboarding') {
+      if (onboardingView) { onboardingView.hidden = false; onboardingView.classList.add('active'); }
+      if (tabSwitch) tabSwitch.style.display = 'none'; // hide login/guide tabs during onboarding
+    } else if (viewName === 'guide') {
+      if (tabSwitch) tabSwitch.style.display = 'flex';
       if (guideView) { guideView.hidden = false; guideView.classList.add('active'); }
       if (tabLogin) tabLogin.classList.remove('active');
       if (tabGuide) tabGuide.classList.add('active');
     } else {
+      // default 'login'
+      if (tabSwitch) tabSwitch.style.display = 'flex';
       if (loginView) { loginView.hidden = false; loginView.classList.add('active'); }
-      if (guideView) { guideView.hidden = true; guideView.classList.remove('active'); }
       if (tabLogin) tabLogin.classList.add('active');
       if (tabGuide) tabGuide.classList.remove('active');
+    }
+  }
+
+  function reloadUserScopedState(user) {
+    const isDemo = (user.id && user.id.startsWith('usr_')) || 
+                   (user.email && (user.email === 'daniel@fitpulse.com' || user.email === 'shira@fitpulse.com' || user.email === 'coach@fitpulse.com' || user.email === 'manager@fitpulse.com'));
+
+    if (isDemo) {
+      if (user.role === 'trainee') {
+        state.profile.name = user.name;
+        if (user.traineeId) {
+          state.profile.demoTraineeId = user.traineeId;
+          state.selectedTraineeId = user.traineeId;
+        }
+      } else if (user.role === 'coach') {
+        state.profile.role = 'trainer_admin';
+      }
+    } else {
+      // REAL / NEW USER: STRICTLY CLEAN SLATE!
+      const userKey = user.id || user.uid;
+      state.profile = {
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        gender: 'other',
+        age: 25,
+        weight: null,
+        height: 175,
+        demoTraineeId: userKey,
+        targetCalories: Number(user.targetCalories) || 2200,
+        targetProtein: Number(user.targetProtein) || 160,
+        targetWaterMl: Number(user.targetWaterMl) || 3000,
+        targetSleepHours: Number(user.targetSleepHours) || 8
+      };
+      state.selectedTraineeId = userKey;
+
+      if (user.role === 'trainee') {
+        state.profile.role = 'trainee';
+        state.workoutLogs = readStorage(STORAGE_KEYS.workouts, {});
+        state.nutritionLogs = readStorage(STORAGE_KEYS.nutrition, {});
+        state.weightLogs = readStorage(STORAGE_KEYS.weights, []);
+        state.waterLogs = readStorage(STORAGE_KEYS.water, {});
+        state.sleepLogs = readStorage(STORAGE_KEYS.sleep, {});
+        state.dailyReports = readStorage(STORAGE_KEYS.dailyReports, {});
+        state.customRoutines = readStorage(STORAGE_KEYS.customRoutines, []);
+      } else if (user.role === 'coach') {
+        state.profile.role = 'trainer_admin';
+        state.coachHistoricalReports = [];
+        state.customRoutines = readStorage(STORAGE_KEYS.customRoutines, []);
+      }
     }
   }
 
@@ -3925,15 +4048,7 @@
     writeSession('fitpulse_auth_session', user);
     localStorage.removeItem('fitpulse_auth_session');
 
-    if (user.role === 'trainee') {
-      state.profile.name = user.name;
-      if (user.traineeId) {
-        state.profile.demoTraineeId = user.traineeId;
-        state.selectedTraineeId = user.traineeId;
-      }
-    } else if (user.role === 'coach') {
-      state.profile.role = 'trainer_admin';
-    }
+    reloadUserScopedState(user);
 
     const overlay = byId('authGateOverlay');
     if (overlay) {
@@ -4122,10 +4237,85 @@
           googleBtn.innerHTML = '<span>מתחבר לחשבון Google...</span>';
         }
 
-        const { user, profile } = await window.FitPulseFirebase.signInWithGoogle();
+        const { user, profile, isNewUser, isPendingApproval, isRejected } = await window.FitPulseFirebase.signInWithGoogle();
 
-        // Unified User Model: check isTrainer flag
-        const isTrainer = profile?.isTrainer === true;
+        // 1. If user DOES NOT exist in database -> Transition to Onboarding / Registration view
+        if (isNewUser || !profile) {
+          state.pendingGoogleUser = user;
+
+          const nameInput = byId('onboardingFullName');
+          const emailInput = byId('onboardingEmail');
+          const avatarImg = byId('onboardingAvatarImg');
+          const avatarFallback = byId('onboardingAvatarFallback');
+
+          if (nameInput) nameInput.value = user.displayName || user.email.split('@')[0] || '';
+          if (emailInput) emailInput.value = user.email || '';
+
+          if (user.photoURL && avatarImg) {
+            avatarImg.src = user.photoURL;
+            avatarImg.hidden = false;
+            if (avatarFallback) avatarFallback.hidden = true;
+          } else {
+            if (avatarImg) avatarImg.hidden = true;
+            if (avatarFallback) avatarFallback.hidden = false;
+          }
+
+          // Reset role card selection to trainee by default
+          const cardTrainee = byId('roleCardTrainee');
+          const cardCoach = byId('roleCardCoach');
+          if (cardTrainee) {
+            cardTrainee.classList.add('active');
+            const radio = cardTrainee.querySelector('input');
+            if (radio) radio.checked = true;
+          }
+          if (cardCoach) {
+            cardCoach.classList.remove('active');
+            const radio = cardCoach.querySelector('input');
+            if (radio) radio.checked = false;
+          }
+          if (byId('onboardingTraineeSection')) byId('onboardingTraineeSection').hidden = false;
+          if (byId('onboardingCoachSection')) byId('onboardingCoachSection').hidden = true;
+
+          showAuthView('onboarding');
+          return;
+        }
+
+        // 2. If user exists but is awaiting manager approval
+        if (isPendingApproval || profile.status === 'pending_approval' || profile.approvalStatus === 'pending') {
+          state.pendingGoogleUser = user;
+          const isTrainer = profile.isTrainer === true || profile.role === 'coach';
+          if (byId('pendingUserName')) byId('pendingUserName').textContent = profile.fullName || user.displayName || user.email.split('@')[0];
+          if (byId('pendingUserEmail')) byId('pendingUserEmail').textContent = user.email || profile.email;
+          if (byId('pendingUserRoleBadge')) {
+            byId('pendingUserRoleBadge').textContent = isTrainer ? 'מאמן (ממתין לאישור מנהל)' : 'מתאמן (ממתין לאישור מנהל)';
+          }
+          const img = byId('pendingUserAvatarImg');
+          const fallback = byId('pendingUserAvatarFallback');
+          if (user.photoURL && img) {
+            img.src = user.photoURL;
+            img.hidden = false;
+            if (fallback) fallback.hidden = true;
+          } else {
+            if (img) img.hidden = true;
+            if (fallback) fallback.hidden = false;
+          }
+          showAuthView('pending');
+          return;
+        }
+
+        if (isRejected || profile.status === 'rejected') {
+          if (errorBox) {
+            errorBox.textContent = 'חשבונך נדחה על ידי מנהל המערכת. אנא פנה למנהל האפליקציה.';
+            errorBox.hidden = false;
+          }
+          if (window.FitPulseFirebase?.signOut) {
+            try { await window.FitPulseFirebase.signOut(); } catch (e) {}
+          }
+          return;
+        }
+
+        // 3. Existing APPROVED user -> Direct Login!
+        const isTrainer = profile?.isTrainer === true || profile?.role === 'coach';
         const appUser = {
           id: user.uid,
           name: profile?.fullName || user.displayName || user.email.split('@')[0],
@@ -4159,6 +4349,215 @@
           }
         }
       }
+    });
+
+    // Onboarding Role Switcher Handlers & State
+    function setOnboardingRole(role) {
+      state.onboardingRole = role;
+      const isCoach = role === 'coach';
+      const cardTrainee = byId('roleCardTrainee');
+      const cardCoach = byId('roleCardCoach');
+      const secTrainee = byId('onboardingTraineeSection');
+      const secCoach = byId('onboardingCoachSection');
+
+      if (cardCoach) cardCoach.classList.toggle('active', isCoach);
+      if (cardTrainee) cardTrainee.classList.toggle('active', !isCoach);
+
+      const radioCoach = cardCoach?.querySelector('input');
+      const radioTrainee = cardTrainee?.querySelector('input');
+      if (radioCoach) radioCoach.checked = isCoach;
+      if (radioTrainee) radioTrainee.checked = !isCoach;
+
+      if (secCoach) secCoach.hidden = !isCoach;
+      if (secTrainee) secTrainee.hidden = isCoach;
+    }
+
+    byId('roleCardTrainee')?.addEventListener('click', (e) => {
+      setOnboardingRole('trainee');
+    });
+
+    byId('roleCardCoach')?.addEventListener('click', (e) => {
+      setOnboardingRole('coach');
+    });
+
+    document.querySelectorAll('input[name="onboardingRole"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        setOnboardingRole(e.target.value);
+      });
+    });
+
+    byId('onboardingCancelBtn')?.addEventListener('click', async () => {
+      state.pendingGoogleUser = null;
+      if (window.FitPulseFirebase?.signOut) {
+        try { await window.FitPulseFirebase.signOut(); } catch (e) { /* ignore */ }
+      }
+      showAuthView('login');
+    });
+
+    // Onboarding Form Submit Handler (Submits registration for Manager Approval)
+    byId('authOnboardingForm')?.addEventListener('submit', async event => {
+      event.preventDefault();
+      const errBox = byId('onboardingErrorMessage');
+      const submitBtn = byId('onboardingSubmitBtn');
+      if (errBox) { errBox.hidden = true; errBox.textContent = ''; }
+
+      const user = state.pendingGoogleUser;
+      if (!user) {
+        if (errBox) {
+          errBox.textContent = 'פג תוקף נתוני Google. יש להתחבר מחדש.';
+          errBox.hidden = false;
+        }
+        showAuthView('login');
+        return;
+      }
+
+      const roleInput = state.onboardingRole || document.querySelector('input[name="onboardingRole"]:checked')?.value || 'trainee';
+      const fullName = byId('onboardingFullName')?.value.trim();
+      if (!fullName) {
+        if (errBox) {
+          errBox.textContent = 'יש להזין שם מלא.';
+          errBox.hidden = false;
+        }
+        return;
+      }
+
+      const regPayload = {
+        role: roleInput,
+        fullName,
+        targetCalories: byId('onboardingCalories')?.value || 2200,
+        targetProtein: byId('onboardingProtein')?.value || 160,
+        targetWater: byId('onboardingWater')?.value || 3000,
+        specialty: byId('onboardingSpecialty')?.value || '',
+        selfTraining: byId('onboardingSelfTraining')?.checked ?? true
+      };
+
+      try {
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'מגיש בקשה למנהל המערכת...';
+        }
+
+        const registeredProfile = await window.FitPulseFirebase.completeUserRegistration(user, regPayload);
+
+        // Update local state.systemUsers so manager view sees them too
+        const existingIdx = state.systemUsers.findIndex(u => u.id === user.uid || u.email === user.email);
+        const newUserEntry = {
+          id: user.uid,
+          userId: user.uid,
+          name: registeredProfile.fullName,
+          email: user.email,
+          role: registeredProfile.role,
+          isTrainer: registeredProfile.role === 'coach',
+          status: 'pending_approval',
+          createdAt: new Date().toISOString()
+        };
+        if (existingIdx >= 0) {
+          state.systemUsers[existingIdx] = { ...state.systemUsers[existingIdx], ...newUserEntry };
+        } else {
+          state.systemUsers.push(newUserEntry);
+        }
+
+        // Populate Pending Approval view
+        if (byId('pendingUserName')) byId('pendingUserName').textContent = registeredProfile.fullName;
+        if (byId('pendingUserEmail')) byId('pendingUserEmail').textContent = user.email;
+        if (byId('pendingUserRoleBadge')) {
+          byId('pendingUserRoleBadge').textContent = registeredProfile.role === 'coach'
+            ? '👑 מאמן (ממתין לאישור מנהל)'
+            : '🏋️ מתאמן (ממתין לאישור מנהל)';
+        }
+        const img = byId('pendingUserAvatarImg');
+        const fallback = byId('pendingUserAvatarFallback');
+        if (user.photoURL && img) {
+          img.src = user.photoURL;
+          img.hidden = false;
+          if (fallback) fallback.hidden = true;
+        } else {
+          if (img) img.hidden = true;
+          if (fallback) fallback.hidden = false;
+        }
+
+        showAuthView('pending');
+      } catch (err) {
+        console.error("Registration error:", err);
+        if (errBox) {
+          errBox.textContent = `שגיאה בהגשת ההרשמה: ${err.message || 'נסה שוב'}`;
+          errBox.hidden = false;
+        }
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'סיום הרשמה והגשה לאישור מנהל ✓';
+        }
+      }
+    });
+
+    // Check Approval Status Button (User waiting for manager)
+    byId('checkApprovalStatusBtn')?.addEventListener('click', async () => {
+      const user = state.pendingGoogleUser;
+      const notice = byId('pendingStatusNotice');
+      const btn = byId('checkApprovalStatusBtn');
+      if (notice) { notice.hidden = true; notice.textContent = ''; }
+
+      if (!user) {
+        showAuthView('login');
+        return;
+      }
+
+      try {
+        if (btn) {
+          btn.disabled = true;
+          btn.textContent = 'בודק סטטוס מול הענן...';
+        }
+        const profile = await window.FitPulseFirebase?.getUserProfile(user.uid);
+        if (profile && (profile.status === 'active' || profile.approvalStatus === 'approved')) {
+          const isTrainer = profile.isTrainer === true || profile.role === 'coach';
+          const appUser = {
+            id: user.uid,
+            name: profile.fullName || user.displayName || user.email.split('@')[0],
+            email: user.email,
+            role: isTrainer ? 'coach' : 'trainee',
+            isTrainer,
+            avatar: profile.profileImageUrl || user.photoURL || null,
+            traineeId: isTrainer ? undefined : (profile.userId || user.uid)
+          };
+          state.pendingGoogleUser = null;
+          loginUser(appUser);
+          alert('✓ חשבונך אושר בהצלחה על ידי מנהל המערכת! ברוך הבא ל-FitPulse.');
+          return;
+        }
+
+        if (profile && profile.status === 'rejected') {
+          if (notice) {
+            notice.textContent = '✕ לצערנו, בקשת ההרשמה נדחתה על ידי מנהל המערכת.';
+            notice.hidden = false;
+          }
+          return;
+        }
+
+        if (notice) {
+          notice.textContent = '⏳ החשבון עדיין ממתין לאישור מנהל המערכת. נסה לבדוק שוב לאחר שהמנהל יאשר.';
+          notice.hidden = false;
+        }
+      } catch (err) {
+        if (notice) {
+          notice.textContent = `שגיאה בבדיקת סטטוס: ${err.message}`;
+          notice.hidden = false;
+        }
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = '🔄 בדוק סטטוס אישור כעת';
+        }
+      }
+    });
+
+    // Logout from Pending View
+    byId('pendingApprovalLogoutBtn')?.addEventListener('click', async () => {
+      state.pendingGoogleUser = null;
+      if (window.FitPulseFirebase?.signOut) {
+        try { await window.FitPulseFirebase.signOut(); } catch (e) {}
+      }
+      showAuthView('login');
     });
 
     byId('headerLogoutBtn')?.addEventListener('click', logoutUser);
@@ -4392,6 +4791,26 @@
       });
     }
 
+    try {
+      const uRes = await fetch('/api/users');
+      if (uRes.ok) {
+        const uData = await uRes.json();
+        if (uData.success && Array.isArray(uData.users)) {
+          uData.users.forEach(sUser => {
+            const idx = state.systemUsers.findIndex(u => u.id === sUser.id || (u.email && u.email.toLowerCase() === (sUser.email || '').toLowerCase()));
+            if (idx >= 0) {
+              state.systemUsers[idx] = { ...state.systemUsers[idx], ...sUser };
+            } else {
+              state.systemUsers.push(sUser);
+            }
+          });
+        }
+      }
+    } catch (uErr) {
+      console.warn('[AppManager] Could not fetch server users:', uErr.message);
+    }
+
+    renderManagerPendingApprovals();
     renderManagerUsersTable();
 
     if (!byId('managerPingFirebaseBtn')?.hasAttribute('data-bound')) {
@@ -4444,6 +4863,135 @@
         renderManagerUsersTable();
       });
     }
+  }
+
+  async function renderManagerPendingApprovals() {
+    const badge = byId('managerPendingCountBadge');
+    const emptyNotice = byId('emptyPendingNotice');
+    const tableWrapper = byId('pendingApprovalsTableWrapper');
+    const tbody = byId('managerPendingTableRows');
+    if (!tbody) return;
+
+    let cloudPending = [];
+    if (window.FitPulseFirebase?.getPendingApprovals) {
+      try {
+        cloudPending = await window.FitPulseFirebase.getPendingApprovals();
+      } catch (e) {
+        console.warn("[AppManager] Could not fetch cloud pending approvals:", e.message);
+      }
+    }
+
+    const localPending = (state.systemUsers || []).filter(u => u.status === 'pending_approval');
+    const combined = [...localPending];
+    cloudPending.forEach(cp => {
+      const exists = combined.some(u => (u.id === cp.userId || u.id === cp.uid || u.email === cp.email));
+      if (!exists) {
+        combined.push({
+          id: cp.userId || cp.uid,
+          name: cp.fullName || cp.email.split('@')[0],
+          email: cp.email,
+          role: cp.role || (cp.isTrainer ? 'coach' : 'trainee'),
+          status: 'pending_approval',
+          createdAt: cp.createdAt?.toDate ? cp.createdAt.toDate().toISOString() : new Date().toISOString()
+        });
+      }
+    });
+
+    if (badge) {
+      badge.textContent = `${combined.length} ממתינים`;
+      badge.style.background = combined.length ? 'rgba(245, 158, 11, 0.25)' : 'rgba(16, 185, 129, 0.15)';
+      badge.style.color = combined.length ? '#fbbf24' : '#34d399';
+    }
+
+    tbody.replaceChildren();
+
+    if (!combined.length) {
+      if (emptyNotice) emptyNotice.hidden = false;
+      if (tableWrapper) tableWrapper.hidden = true;
+      return;
+    }
+
+    if (emptyNotice) emptyNotice.hidden = true;
+    if (tableWrapper) tableWrapper.hidden = false;
+
+    combined.forEach(pUser => {
+      const tr = createElement('tr', '');
+
+      // Name & Avatar
+      const tdName = createElement('td', '');
+      const nameWrap = createElement('div', '');
+      nameWrap.style.display = 'flex';
+      nameWrap.style.alignItems = 'center';
+      nameWrap.style.gap = '8px';
+      const av = createElement('span', 'header-user-avatar', pUser.name ? pUser.name.slice(0, 2) : 'FP');
+      av.style.width = '26px';
+      av.style.height = '26px';
+      av.style.fontSize = '0.72rem';
+      const strong = createElement('strong', '', pUser.name || 'משתמש חדש');
+      nameWrap.append(av, strong);
+      tdName.append(nameWrap);
+
+      // Email
+      const tdEmail = createElement('td', 'timeline-sub', pUser.email || pUser.id);
+
+      // Role badge
+      const tdRole = createElement('td', '');
+      const isCoach = pUser.role === 'coach';
+      const roleBadge = createElement('span', `header-user-role-badge ${isCoach ? 'role-coach' : 'role-trainee'}`);
+      roleBadge.textContent = isCoach ? '👑 מאמן (Trainer)' : '🏋️ מתאמן (Trainee)';
+      tdRole.append(roleBadge);
+
+      // Date
+      const regDate = pUser.createdAt ? new Date(pUser.createdAt) : new Date();
+      const tdDate = createElement('td', 'timeline-sub', `${regDate.toLocaleDateString('he-IL')} ${regDate.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}`);
+
+      // Actions
+      const tdActions = createElement('td', '');
+      const approveBtn = createElement('button', 'btn-approve-user', '✓ אשר חשבון');
+      const rejectBtn = createElement('button', 'btn-reject-user', '✕ דחה');
+
+      approveBtn.addEventListener('click', async () => {
+        approveBtn.disabled = true;
+        approveBtn.textContent = 'מאשר...';
+        try {
+          if (window.FitPulseFirebase?.approveUser) {
+            await window.FitPulseFirebase.approveUser(pUser.id);
+          }
+          const found = state.systemUsers.find(u => u.id === pUser.id || u.email === pUser.email);
+          if (found) {
+            found.status = 'active';
+          } else {
+            state.systemUsers.push({ ...pUser, status: 'active' });
+          }
+          alert(`✓ החשבון של ${pUser.name} (${pUser.email}) אושר בהצלחה כ-${isCoach ? 'מאמן' : 'מתאמן'}!`);
+          renderAppManager();
+        } catch (err) {
+          alert(`שגיאה באישור המשתמש: ${err.message}`);
+          approveBtn.disabled = false;
+          approveBtn.textContent = '✓ אשר חשבון';
+        }
+      });
+
+      rejectBtn.addEventListener('click', async () => {
+        if (!confirm(`האם אתה בטוח שברצונך לדחות את בקשת ההרשמה של ${pUser.name}?`)) return;
+        rejectBtn.disabled = true;
+        try {
+          if (window.FitPulseFirebase?.rejectUser) {
+            await window.FitPulseFirebase.rejectUser(pUser.id);
+          }
+          const found = state.systemUsers.find(u => u.id === pUser.id || u.email === pUser.email);
+          if (found) found.status = 'rejected';
+          renderAppManager();
+        } catch (err) {
+          alert(`שגיאה בדחיית המשתמש: ${err.message}`);
+          rejectBtn.disabled = false;
+        }
+      });
+
+      tdActions.append(approveBtn, rejectBtn);
+      tr.append(tdName, tdEmail, tdRole, tdDate, tdActions);
+      tbody.append(tr);
+    });
   }
 
   function renderManagerUsersTable() {
@@ -4501,34 +5049,62 @@
       const tdRoutine = createElement('td', 'timeline-sub', user.routine || (user.role === 'manager' ? 'ניהול על' : user.role === 'coach' ? 'צוות אימון' : 'ללא תוכנית'));
 
       const tdStatus = createElement('td', '');
-      const statusBadge = createElement('span', 'manager-status-indicator status-online', user.status === 'active' ? 'פעיל' : 'מושעה');
+      let statusText = 'פעיל';
+      let statusClass = 'manager-status-indicator status-online';
+      if (user.status === 'pending_approval') {
+        statusText = 'ממתין לאישור';
+        statusClass = 'manager-status-indicator status-busy';
+      } else if (user.status === 'rejected' || user.status === 'suspended') {
+        statusText = 'מושעה';
+        statusClass = 'manager-status-indicator status-offline';
+      }
+      const statusBadge = createElement('span', statusClass, statusText);
       tdStatus.append(statusBadge);
 
       const tdActions = createElement('td', '');
-      const toggleRoleBtn = createElement('button', 'btn-action-ghost', user.role === 'trainee' ? 'שדרוג למאמן' : user.role === 'coach' ? 'שינוי למתאמן' : 'סמכות עליונה');
-      toggleRoleBtn.style.padding = '3px 8px';
-      toggleRoleBtn.style.fontSize = '0.72rem';
-
-      if (user.role === 'manager') {
-        toggleRoleBtn.disabled = true;
-        toggleRoleBtn.style.opacity = '0.5';
-      } else {
-        toggleRoleBtn.addEventListener('click', () => {
-          user.role = user.role === 'trainee' ? 'coach' : 'trainee';
-          if (window.FitPulseFirebase?.logAudit) {
-            window.FitPulseFirebase.logAudit('USER_ROLE_CHANGED', `שינוי תפקיד למשתמש ${user.name} ל-${user.role}`, {
-              userId: user.id,
-              newRole: user.role
-            });
-          }
-          renderManagerUsersTable();
-          if (state.currentUser?.id === user.id) {
-            applyRoleAuthority(user.role);
-            updateHeaderUserChip();
+      if (user.status === 'pending_approval') {
+        const approveQuickBtn = createElement('button', 'btn-approve-user', '✓ אשר כעת');
+        approveQuickBtn.addEventListener('click', async () => {
+          approveQuickBtn.disabled = true;
+          try {
+            if (window.FitPulseFirebase?.approveUser) {
+              await window.FitPulseFirebase.approveUser(user.id);
+            }
+            user.status = 'active';
+            renderAppManager();
+            alert(`✓ החשבון של ${user.name} אושר בהצלחה!`);
+          } catch (e) {
+            alert('שגיאה באישור: ' + e.message);
+            approveQuickBtn.disabled = false;
           }
         });
+        tdActions.append(approveQuickBtn);
+      } else {
+        const toggleRoleBtn = createElement('button', 'btn-action-ghost', user.role === 'trainee' ? 'שדרוג למאמן' : user.role === 'coach' ? 'שינוי למתאמן' : 'סמכות עליונה');
+        toggleRoleBtn.style.padding = '3px 8px';
+        toggleRoleBtn.style.fontSize = '0.72rem';
+
+        if (user.role === 'manager') {
+          toggleRoleBtn.disabled = true;
+          toggleRoleBtn.style.opacity = '0.5';
+        } else {
+          toggleRoleBtn.addEventListener('click', () => {
+            user.role = user.role === 'trainee' ? 'coach' : 'trainee';
+            if (window.FitPulseFirebase?.logAudit) {
+              window.FitPulseFirebase.logAudit('USER_ROLE_CHANGED', `שינוי תפקיד למשתמש ${user.name} ל-${user.role}`, {
+                userId: user.id,
+                newRole: user.role
+              });
+            }
+            renderManagerUsersTable();
+            if (state.currentUser?.id === user.id) {
+              applyRoleAuthority(user.role);
+              updateHeaderUserChip();
+            }
+          });
+        }
+        tdActions.append(toggleRoleBtn);
       }
-      tdActions.append(toggleRoleBtn);
 
       tr.append(tdName, tdEmail, tdRole, tdRoutine, tdStatus, tdActions);
       tbody.append(tr);

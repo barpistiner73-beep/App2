@@ -6,34 +6,24 @@
     "age": 25,
     "gender": "female",
     "heightCm": 167,
-    "currentWeightKg": 61.5,
-    "startingWeightKg": 64.7,
+    "currentWeightKg": 61.44,
     "targetWeightKg": 57.5
   },
   "targets": {
     "dailyCalories": 1850,
     "dailyProteinGrams": 130,
-    "dailyCarbsGrams": 190,
-    "dailyFatGrams": 55,
     "dailyWaterMl": 2500,
-    "dailySleepHours": 8,
-    "dailySteps": 10000
+    "dailySleepHours": 8
   },
   "activeRoutine": {
     "name": "Upper / Lower 4D",
-    "focus": "דגש על פלג גוף תחתון ושיפור כוח בסיסי",
-    "workoutsPerWeek": 4,
-    "lastWorkoutCompleted": "2026-10-17"
+    "focus": "דגש על פלג גוף תחתון ושיפור כוח בסיסי"
   },
   "activityMetrics": {
-    "totalMonthsTracked": 2,
     "totalReportsLogged": 48,
     "totalWorkoutsCompleted": 27,
-    "averageDailyCalories": 1747,
-    "averageDailyProteinGrams": 124,
-    "complianceRate": "94%",
     "latestCheckInDate": "2026-10-18",
-    "latestCheckInStatus": "draft"
+    "latestCheckInStatus": "auto_closed"
   },
-  "updatedAt": "2026-10-18T00:48:54.899Z"
+  "updatedAt": "2026-10-19T18:14:01.357Z"
 }

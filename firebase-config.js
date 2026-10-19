@@ -67,10 +67,21 @@ const FitPulseFirebase = {
     try {
       const userCredential = await this.auth.signInWithEmailAndPassword(email, password);
       this.logAudit('USER_LOGIN', `התחברות משתמש: ${email}`);
-      return userCredential.user;
+      return userCredential;
     } catch (err) {
       console.warn("[FitPulse Firebase] Sign in error:", err.message);
       throw err;
+    }
+  },
+
+  async getUserProfile(uid) {
+    if (!this.isConfigured || !this.db) return null;
+    try {
+      const doc = await this.db.collection('users').doc(uid).get();
+      return doc.exists ? doc.data() : null;
+    } catch (e) {
+      console.warn("[FitPulse Firebase] Error fetching user profile:", e);
+      return null;
     }
   },
 
@@ -99,6 +110,39 @@ const FitPulseFirebase = {
       const uid = userCredential.user.uid;
 
       if (this.db) {
+        const coachUid = this.auth?.currentUser?.uid;
+        const now = firebase.firestore.FieldValue.serverTimestamp();
+
+        // 1. Unified users/{userId} collection
+        const userRef = secondaryApp.firestore().collection('users').doc(uid);
+        await userRef.set({
+          userId: uid,
+          fullName: traineeData.name,
+          email: email,
+          isTrainer: false,
+          createdAt: now
+        }, { merge: true });
+
+        // 2. Establish trainership relation if coach is logged in
+        if (coachUid) {
+          const relationId = `${coachUid}_${uid}`;
+          // Secondary app (trainee) creates/accepts active trainership
+          await secondaryApp.firestore().collection('trainerships').doc(relationId).set({
+            relationId,
+            trainerId: coachUid,
+            traineeId: uid,
+            status: 'active',
+            permissions: {
+              canViewSleep: true,
+              canViewNutrition: true,
+              canViewWorkouts: true,
+              canViewDailyLogs: true
+            },
+            createdAt: now
+          }, { merge: true });
+        }
+
+        // 3. Legacy compatibility records
         const traineeDoc = {
           ...traineeData,
           uid,
@@ -107,14 +151,6 @@ const FitPulseFirebase = {
           createdAt: new Date().toISOString()
         };
         await this.db.collection('trainees').doc(traineeData.id || uid).set(traineeDoc, { merge: true });
-        await this.db.collection('users').doc(uid).set({
-          uid,
-          email,
-          role: 'trainee',
-          name: traineeData.name,
-          traineeId: traineeData.id || uid,
-          createdAt: new Date().toISOString()
-        }, { merge: true });
       }
 
       this.logAudit('USER_REGISTERED', `נרשם מתאמן חדש: ${traineeData.name} (${email}) ע"י המאמן`);

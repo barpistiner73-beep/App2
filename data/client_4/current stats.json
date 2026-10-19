@@ -6,34 +6,24 @@
     "age": 29,
     "gender": "female",
     "heightCm": 164,
-    "currentWeightKg": 58,
-    "startingWeightKg": 61.2,
+    "currentWeightKg": 58.1,
     "targetWeightKg": 54
   },
   "targets": {
     "dailyCalories": 1900,
     "dailyProteinGrams": 135,
-    "dailyCarbsGrams": 200,
-    "dailyFatGrams": 55,
     "dailyWaterMl": 2600,
-    "dailySleepHours": 8.5,
-    "dailySteps": 10000
+    "dailySleepHours": 8.5
   },
   "activeRoutine": {
     "name": "Glutes & Legs Focus",
-    "focus": "אימונים מתקדמים והעלאת צריכת חלבון",
-    "workoutsPerWeek": 4,
-    "lastWorkoutCompleted": "2026-10-17"
+    "focus": "אימונים מתקדמים והעלאת צריכת חלבון"
   },
   "activityMetrics": {
-    "totalMonthsTracked": 2,
     "totalReportsLogged": 48,
     "totalWorkoutsCompleted": 28,
-    "averageDailyCalories": 1920,
-    "averageDailyProteinGrams": 140,
-    "complianceRate": "94%",
     "latestCheckInDate": "2026-10-18",
-    "latestCheckInStatus": "draft"
+    "latestCheckInStatus": "auto_closed"
   },
-  "updatedAt": "2026-10-18T00:48:54.928Z"
+  "updatedAt": "2026-10-19T18:14:01.364Z"
 }

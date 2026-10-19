@@ -7,33 +7,23 @@
     "gender": "male",
     "heightCm": 181,
     "currentWeightKg": 82,
-    "startingWeightKg": 85.2,
     "targetWeightKg": 78
   },
   "targets": {
     "dailyCalories": 2400,
     "dailyProteinGrams": 175,
-    "dailyCarbsGrams": 240,
-    "dailyFatGrams": 70,
     "dailyWaterMl": 3000,
-    "dailySleepHours": 8,
-    "dailySteps": 10000
+    "dailySleepHours": 8
   },
   "activeRoutine": {
     "name": "Push-Pull-Legs 4D",
-    "focus": "מתאמן לקראת חיטוב ועלייה במסת שריר נקייה",
-    "workoutsPerWeek": 4,
-    "lastWorkoutCompleted": "2026-10-17"
+    "focus": "מתאמן לקראת חיטוב ועלייה במסת שריר נקייה"
   },
   "activityMetrics": {
-    "totalMonthsTracked": 2,
-    "totalReportsLogged": 48,
-    "totalWorkoutsCompleted": 30,
-    "averageDailyCalories": 2326,
-    "averageDailyProteinGrams": 177,
-    "complianceRate": "94%",
-    "latestCheckInDate": "2026-10-18",
+    "totalReportsLogged": 49,
+    "totalWorkoutsCompleted": 32,
+    "latestCheckInDate": "2026-10-19",
     "latestCheckInStatus": "draft"
   },
-  "updatedAt": "2026-10-18T00:48:54.873Z"
+  "updatedAt": "2026-10-19T18:20:04.398Z"
 }

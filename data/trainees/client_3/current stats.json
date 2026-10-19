@@ -6,34 +6,24 @@
     "age": 32,
     "gender": "male",
     "heightCm": 179,
-    "currentWeightKg": 89.2,
-    "startingWeightKg": 92.4,
+    "currentWeightKg": 89.3,
     "targetWeightKg": 85.2
   },
   "targets": {
     "dailyCalories": 2600,
     "dailyProteinGrams": 190,
-    "dailyCarbsGrams": 270,
-    "dailyFatGrams": 75,
     "dailyWaterMl": 3200,
-    "dailySleepHours": 7.5,
-    "dailySteps": 10000
+    "dailySleepHours": 7.5
   },
   "activeRoutine": {
     "name": "Full Body 3D",
-    "focus": "יעדי ירידה באחוזי שומן ושימור מסת שריר",
-    "workoutsPerWeek": 4,
-    "lastWorkoutCompleted": "2026-10-17"
+    "focus": "יעדי ירידה באחוזי שומן ושימור מסת שריר"
   },
   "activityMetrics": {
-    "totalMonthsTracked": 2,
     "totalReportsLogged": 48,
     "totalWorkoutsCompleted": 28,
-    "averageDailyCalories": 2620,
-    "averageDailyProteinGrams": 195,
-    "complianceRate": "94%",
     "latestCheckInDate": "2026-10-18",
-    "latestCheckInStatus": "draft"
+    "latestCheckInStatus": "auto_closed"
   },
-  "updatedAt": "2026-10-18T00:48:54.913Z"
+  "updatedAt": "2026-10-19T18:14:01.360Z"
 }

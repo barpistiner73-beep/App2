@@ -3,6 +3,13 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+DateTime _parseDateTime(dynamic value) {
+  if (value is Timestamp) return value.toDate();
+  if (value is String) return DateTime.tryParse(value) ?? DateTime.now();
+  if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
+  return DateTime.now();
+}
+
 // ============================================================================
 // 1. User Model
 // Path: users/{userId}
@@ -32,7 +39,7 @@ class UserModel {
       email: data['email'] as String? ?? '',
       isTrainer: data['isTrainer'] as bool? ?? false,
       profileImageUrl: data['profileImageUrl'] as String?,
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      createdAt: _parseDateTime(data['createdAt']),
     );
   }
 
@@ -153,8 +160,10 @@ class TrainershipModel {
       trainerId: data['trainerId'] as String? ?? '',
       traineeId: data['traineeId'] as String? ?? '',
       status: status,
-      permissions: TrainershipPermissions.fromMap(data['permissions'] as Map<String, dynamic>?),
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      permissions: TrainershipPermissions.fromMap(
+        data['permissions'] is Map ? (data['permissions'] as Map).cast<String, dynamic>() : null,
+      ),
+      createdAt: _parseDateTime(data['createdAt']),
     );
   }
 
@@ -202,7 +211,7 @@ class DailyLogModel {
       sleepHours: (data['sleepHours'] as num?)?.toDouble() ?? 0.0,
       waterIntakeMl: (data['waterIntakeMl'] as num?)?.toInt() ?? 0,
       dailyNotes: data['dailyNotes'] as String? ?? '',
-      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      updatedAt: _parseDateTime(data['updatedAt']),
     );
   }
 
@@ -249,7 +258,7 @@ class WorkoutTemplateModel {
       title: data['title'] as String? ?? '',
       description: data['description'] as String? ?? '',
       scheduledDay: data['scheduledDay'] ?? 'Monday',
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      createdAt: _parseDateTime(data['createdAt']),
     );
   }
 
@@ -338,7 +347,7 @@ class WorkoutLogModel {
       workoutLogId: doc.id,
       userId: data['userId'] as String? ?? '',
       templateId: data['templateId'] as String?,
-      completedAt: (data['completedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      completedAt: _parseDateTime(data['completedAt']),
       healthFeelingScore: (data['healthFeelingScore'] as num?)?.toInt() ?? 5,
       perceivedExertionRpe: (data['perceivedExertionRpe'] as num?)?.toInt() ?? 5,
       completionNotes: data['completionNotes'] as String? ?? '',
@@ -391,10 +400,13 @@ class NutritionGoalModel {
       traineeId: data['traineeId'] as String? ?? '',
       trainerId: data['trainerId'] as String?,
       targetCalories: (data['targetCalories'] as num?)?.toInt() ?? 2000,
-      targetProteinGrams: (data['targetProteinGrams'] as num?)?.toInt() ?? 150,
-      targetCarbsGrams: (data['targetCarbsGrams'] as num?)?.toInt() ?? 200,
-      targetFatsGrams: (data['targetFatsGrams'] as num?)?.toInt() ?? 70,
-      startDate: (data['startDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      targetProteinGrams: (data['targetProteinGrams'] as num?)?.toInt() ??
+          (data['targetProtein'] as num?)?.toInt() ?? 150,
+      targetCarbsGrams: (data['targetCarbsGrams'] as num?)?.toInt() ??
+          (data['targetCarbs'] as num?)?.toInt() ?? 200,
+      targetFatsGrams: (data['targetFatsGrams'] as num?)?.toInt() ??
+          (data['targetFat'] as num?)?.toInt() ?? 70,
+      startDate: _parseDateTime(data['startDate']),
       isActive: data['isActive'] as bool? ?? true,
     );
   }

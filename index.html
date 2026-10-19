@@ -62,16 +62,17 @@
       </nav>
 
       <div class="header-actions">
+        <button class="header-logout-btn" id="headerLoginBtn" type="button" style="display: none; background: rgba(124, 58, 237, 0.25); color: #c4b5fd;">כניסה למערכת</button>
         <div class="header-user-chip" id="headerUserChip">
-          <div class="header-user-avatar" id="headerUserAvatar">דכ</div>
+          <div class="header-user-avatar" id="headerUserAvatar">FP</div>
           <div class="header-user-info">
-            <span class="header-user-name" id="headerUserName">דניאל כהן</span>
+            <span class="header-user-name" id="headerUserName">משתמש</span>
             <span class="header-user-role-badge role-trainee" id="headerUserRoleBadge">מתאמן</span>
           </div>
-          <button class="header-logout-btn" id="headerLogoutBtn" type="button" title="התנתקות מהמערכת">יציאה</button>
+          <button class="header-logout-btn" id="headerLogoutBtn" type="button" title="התנתקות או החלפת משתמש">החלף משתמש / יציאה</button>
         </div>
         <button class="btn-action-primary" id="headerStartWorkoutBtn">
-          <span>להתחל אימון</span>
+          <span>התחל אימון</span>
         </button>
       </div>
     </div>
@@ -734,6 +735,8 @@
       <div class="exercise-swap-list" id="exerciseSwapList"></div>
       </div>
     </section>
+  </div>
+
   <!-- COACH REPORT DETAIL MODAL (DEEP DIVE DRILL-DOWN) -->
   <div class="dialog-backdrop" id="coachReportDetailModal" hidden>
     <section class="dialog-card coach-report-drilldown-dialog" role="dialog" aria-modal="true" aria-labelledby="drilldownTitle">
@@ -857,29 +860,47 @@
           </button>
         </form>
 
-        <!-- Fast Demo Accounts Bar -->
+        <!-- Fast Accounts Bar: Real Accounts & Demo Accounts -->
         <div class="auth-demo-section">
-          <span class="auth-demo-title">כניסה מהירה בלחיצה אחת (מצב הדגמה ובדיקות):</span>
+          <span class="auth-demo-title">כניסה מהירה בלחיצה לחשבונות אמת בענן (Firebase Live):</span>
+          <div class="auth-demo-pills" style="margin-bottom: 12px;">
+            <button type="button" class="auth-demo-pill" data-real-account="true" data-demo-role="coach" data-demo-email="coach.real@fitpulse.com" data-demo-pass="TrainerPass123!" data-demo-name="Coach Alex Cohen" style="border: 1px solid rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.08);">
+              <span class="demo-avatar coach">👑</span>
+              <div class="demo-info">
+                <strong>מאמן (חשבון אמת)</strong>
+                <small>coach.real@fitpulse.com</small>
+              </div>
+            </button>
+            <button type="button" class="auth-demo-pill" data-real-account="true" data-demo-role="trainee" data-demo-email="trainee.real@fitpulse.com" data-demo-pass="TraineePass123!" data-demo-name="Jordan Trainee" style="border: 1px solid rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.08);">
+              <span class="demo-avatar trainee">🏋️</span>
+              <div class="demo-info">
+                <strong>מתאמן (חשבון אמת)</strong>
+                <small>trainee.real@fitpulse.com</small>
+              </div>
+            </button>
+          </div>
+
+          <span class="auth-demo-title" style="font-size: 0.76rem; color: var(--text-dim);">חשבונות הדגמה לוקאליים מהירים:</span>
           <div class="auth-demo-pills">
             <button type="button" class="auth-demo-pill" data-demo-role="trainee" data-demo-email="daniel@fitpulse.com" data-demo-name="דניאל כהן">
               <span class="demo-avatar">דכ</span>
               <div class="demo-info">
-                <strong>מתאמן</strong>
+                <strong>מתאמן דמו</strong>
                 <small>דניאל כהן</small>
               </div>
             </button>
             <button type="button" class="auth-demo-pill" data-demo-role="coach" data-demo-email="coach@fitpulse.com" data-demo-name="מאמן ראשי">
               <span class="demo-avatar coach">👑</span>
               <div class="demo-info">
-                <strong>מאמן ראשי</strong>
-                <small>ניהול מתאמנים ודוחות</small>
+                <strong>מאמן דמו</strong>
+                <small>ניהול מתאמנים</small>
               </div>
             </button>
             <button type="button" class="auth-demo-pill" data-demo-role="manager" data-demo-email="manager@fitpulse.com" data-demo-name="מנהל מערכת">
               <span class="demo-avatar manager">🛡️</span>
               <div class="demo-info">
                 <strong>מנהל מערכת</strong>
-                <small>סמכות עליונה וניטור ענן</small>
+                <small>סמכות ענן</small>
               </div>
             </button>
           </div>

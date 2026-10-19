@@ -36,6 +36,28 @@
     }
   }
 
+  function readSession(key, fallback) {
+    try {
+      const value = sessionStorage.getItem(key);
+      return value ? JSON.parse(value) : fallback;
+    } catch (error) {
+      return fallback;
+    }
+  }
+
+  function writeSession(key, value) {
+    try {
+      if (value === null || value === undefined) {
+        sessionStorage.removeItem(key);
+      } else {
+        sessionStorage.setItem(key, JSON.stringify(value));
+      }
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
   function localDateKey(date) {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -83,7 +105,7 @@
     dailyReports: readStorage(STORAGE_KEYS.dailyReports, {}),
     coachHistoryRange: 14,
     coachHistoricalReports: [],
-    currentUser: readStorage('fitpulse_auth_session', null),
+    currentUser: readSession('fitpulse_auth_session', null),
     systemUsers: [
       { id: 'usr_mgr', name: 'מנהל מערכת ראשי', email: 'manager@fitpulse.com', role: 'manager', status: 'active', createdAt: '2026-09-01' },
       { id: 'usr_coach', name: 'מאמן ראשי', email: 'coach@fitpulse.com', role: 'coach', status: 'active', createdAt: '2026-09-01' },
@@ -2031,7 +2053,11 @@
 
     // Live real-time Firestore sync
     if (window.FitPulseFirebase?.isConfigured) {
-      window.FitPulseFirebase.subscribeToTraineeReports(state.selectedTraineeId, rangeDays, (cloudReports) => {
+      if (typeof state.activeReportsUnsub === 'function') {
+        state.activeReportsUnsub();
+        state.activeReportsUnsub = null;
+      }
+      state.activeReportsUnsub = window.FitPulseFirebase.subscribeToTraineeReports(state.selectedTraineeId, rangeDays, (cloudReports) => {
         if (cloudReports && cloudReports.length) {
           renderCoachReportsTable(cloudReports, currentTrainee);
         }
@@ -3625,12 +3651,19 @@
     if (session.timer) window.clearInterval(session.timer);
     if (session.restInterval) window.clearInterval(session.restInterval);
     const loggedSets = session.sequence.map(({ exerciseIndex, setNumber }) => {
-      const log = session.setLogs[`${exerciseIndex}-${setNumber}`];
-      return { ...log, exerciseName: getExercise(log.exerciseId || session.plan.exercises[exerciseIndex].exerciseId)?.name || 'Exercise',
-        exerciseId: log.exerciseId || session.plan.exercises[exerciseIndex].exerciseId, setNumber,
-        targetReps: Number(session.plan.exercises[exerciseIndex].reps) || 0,
-        muscleGroup: session.plan.exercises[exerciseIndex].muscleGroup || getExercise(log.exerciseId)?.muscle,
-        completed: session.completed.has(`${exerciseIndex}-${setNumber}`) };
+      const log = session.setLogs[`${exerciseIndex}-${setNumber}`] || {};
+      const exPlan = session.plan?.exercises?.[exerciseIndex] || {};
+      const exId = log.exerciseId || exPlan.exerciseId;
+      const exMeta = getExercise(exId);
+      return {
+        ...log,
+        exerciseName: exMeta?.name || exPlan.name || 'Exercise',
+        exerciseId: exId,
+        setNumber,
+        targetReps: Number(exPlan.reps) || 0,
+        muscleGroup: exPlan.muscleGroup || exMeta?.muscle || '',
+        completed: session.completed.has(`${exerciseIndex}-${setNumber}`)
+      };
     });
     const totalSets = session.sequence.length;
     const completedSets = loggedSets.filter(set => set.completed);
@@ -3802,6 +3835,7 @@
 
   function updateHeaderUserChip() {
     const chip = byId('headerUserChip');
+    const loginBtn = byId('headerLoginBtn');
     const avatar = byId('headerUserAvatar');
     const nameEl = byId('headerUserName');
     const badgeEl = byId('headerUserRoleBadge');
@@ -3809,9 +3843,11 @@
 
     if (!state.currentUser) {
       chip.style.display = 'none';
+      if (loginBtn) loginBtn.style.display = 'inline-flex';
       return;
     }
     chip.style.display = 'inline-flex';
+    if (loginBtn) loginBtn.style.display = 'none';
 
     const role = getUserRole();
     const displayName = state.currentUser.name || (role === 'manager' ? 'מנהל מערכת' : role === 'coach' ? 'מאמן ראשי' : 'מתאמן');
@@ -3886,7 +3922,8 @@
   function loginUser(user) {
     if (!user) return;
     state.currentUser = user;
-    writeStorage('fitpulse_auth_session', user);
+    writeSession('fitpulse_auth_session', user);
+    localStorage.removeItem('fitpulse_auth_session');
 
     if (user.role === 'trainee') {
       state.profile.name = user.name;
@@ -3929,6 +3966,7 @@
   function logoutUser() {
     const prevUser = state.currentUser;
     state.currentUser = null;
+    sessionStorage.removeItem('fitpulse_auth_session');
     localStorage.removeItem('fitpulse_auth_session');
 
     if (window.FitPulseFirebase?.signOut) {
@@ -3956,11 +3994,32 @@
     byId('authTabLoginBtn')?.addEventListener('click', () => showAuthView('login'));
     byId('authTabGuideBtn')?.addEventListener('click', () => showAuthView('guide'));
     byId('guideGoToLoginBtn')?.addEventListener('click', () => showAuthView('login'));
+    byId('headerLoginBtn')?.addEventListener('click', () => {
+      const overlay = byId('authGateOverlay');
+      if (overlay) {
+        overlay.hidden = false;
+        overlay.style.display = 'flex';
+      }
+      showAuthView('login');
+    });
 
     document.querySelectorAll('.auth-demo-pill').forEach(pill => {
       pill.addEventListener('click', () => {
-        const role = pill.getAttribute('data-demo-role') || 'trainee';
         const email = pill.getAttribute('data-demo-email') || '';
+        const pass = pill.getAttribute('data-demo-pass') || '';
+        const isReal = pill.getAttribute('data-real-account') === 'true';
+
+        const emailInput = byId('authEmailInput');
+        const passInput = byId('authPasswordInput');
+        if (emailInput) emailInput.value = email;
+        if (passInput) passInput.value = pass || '123456';
+
+        if (isReal && pass) {
+          byId('authLoginForm')?.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+          return;
+        }
+
+        const role = pill.getAttribute('data-demo-role') || 'trainee';
         const name = pill.getAttribute('data-demo-name') || '';
         const found = state.systemUsers.find(u => u.email === email) || {
           id: 'usr_' + role,
@@ -3992,12 +4051,19 @@
       if (window.FitPulseFirebase?.signIn && emailInput.includes('@')) {
         try {
           const userCred = await window.FitPulseFirebase.signIn(emailInput, passwordInput);
-          if (userCred?.user) {
-            authenticatedUser = state.systemUsers.find(u => u.email.toLowerCase() === emailInput.toLowerCase()) || {
-              id: userCred.user.uid,
-              email: userCred.user.email,
-              name: userCred.user.displayName || emailInput.split('@')[0],
-              role: emailInput.includes('manager') ? 'manager' : emailInput.includes('coach') ? 'coach' : 'trainee'
+          const user = userCred?.user || userCred;
+          if (user && user.uid) {
+            let profile = null;
+            if (window.FitPulseFirebase?.getUserProfile) {
+              profile = await window.FitPulseFirebase.getUserProfile(user.uid);
+            }
+            const isTrainer = profile?.isTrainer === true || emailInput.includes('coach') || emailInput.includes('trainer');
+            authenticatedUser = {
+              id: user.uid,
+              email: user.email || emailInput,
+              name: profile?.fullName || user.displayName || emailInput.split('@')[0],
+              role: emailInput.includes('manager') ? 'manager' : isTrainer ? 'coach' : 'trainee',
+              traineeId: isTrainer ? undefined : (profile?.userId || user.uid)
             };
           }
         } catch (fbErr) {
@@ -4036,6 +4102,13 @@
     });
 
     byId('headerLogoutBtn')?.addEventListener('click', logoutUser);
+
+    // If not authenticated in the current session, or URL requests #login, force gate
+    if (!sessionStorage.getItem('fitpulse_auth_session') || window.location.hash === '#login') {
+      state.currentUser = null;
+      localStorage.removeItem('fitpulse_auth_session');
+      sessionStorage.removeItem('fitpulse_auth_session');
+    }
 
     if (state.currentUser) {
       const overlay = byId('authGateOverlay');
@@ -4521,10 +4594,29 @@
         if (byId('barcodeScannerDialog') && !byId('barcodeScannerDialog').hidden) {
           stopBarcodeScanner();
           byId('barcodeScannerDialog').hidden = true;
+          return;
         }
-        closeExerciseLibrary();
-        closeExerciseSwap();
-        byId('createWorkoutDialog')?.remove();
+        if (byId('exerciseSwapDialog') && !byId('exerciseSwapDialog').hidden) {
+          closeExerciseSwap();
+          return;
+        }
+        if (byId('exerciseLibraryDialog') && !byId('exerciseLibraryDialog').hidden) {
+          closeExerciseLibrary();
+          return;
+        }
+        if (byId('coachReportDetailModal') && !byId('coachReportDetailModal').hidden) {
+          byId('coachReportDetailModal').hidden = true;
+          return;
+        }
+        if (byId('coachRegisterTraineeModal') && !byId('coachRegisterTraineeModal').hidden) {
+          byId('coachRegisterTraineeModal').hidden = true;
+          return;
+        }
+        if (byId('createWorkoutDialog')) {
+          if (confirm('האם לסגור את עורך האימון? שינויים שלא נשמרו יאבדו.')) {
+            byId('createWorkoutDialog')?.remove();
+          }
+        }
       }
     });
     document.querySelectorAll('[data-open-tab]').forEach(button => {
@@ -4621,6 +4713,11 @@
       const modal = byId('coachReportDetailModal');
       if (modal) modal.hidden = true;
     });
+    byId('coachReportDetailModal')?.addEventListener('click', event => {
+      if (event.target === byId('coachReportDetailModal')) {
+        byId('coachReportDetailModal').hidden = true;
+      }
+    });
 
     // Daily Trainee Report events
     byId('dailyReportPrevDayBtn')?.addEventListener('click', () => {
@@ -4689,6 +4786,10 @@
     byId('timeCrunchToggleBtn')?.addEventListener('click', toggleTimeCrunchMode);
     byId('finishWorkoutBtn')?.addEventListener('click', finishWorkout);
     window.addEventListener('hashchange', () => {
+      if (window.location.hash === '#login') {
+        logoutUser();
+        return;
+      }
       if (window.location.hash === '#/admin/dashboard') {
         if (!isTrainerRole()) {
           alert('הנתיב מוגן בתצוגה המקומית. יש להיכנס למצב מאמן הדגמה, שאינו אימות מאובטח.');

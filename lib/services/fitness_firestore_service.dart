@@ -277,19 +277,19 @@ class FitnessFirestoreService {
 
   /// Sets a new active nutrition goal and marks previous active goals as inactive
   Future<void> setActiveNutritionGoal(NutritionGoalModel goal) async {
-    await _firestore.runTransaction((transaction) async {
-      final activeQuery = await _firestore
-          .collection('nutritionGoals')
-          .where('traineeId', '==', goal.traineeId)
-          .where('isActive', '==', true)
-          .get();
+    final batch = _firestore.batch();
+    final activeQuery = await _firestore
+        .collection('nutritionGoals')
+        .where('traineeId', '==', goal.traineeId)
+        .where('isActive', '==', true)
+        .get();
 
-      for (final doc in activeQuery.docs) {
-        transaction.update(doc.reference, {'isActive': false});
-      }
+    for (final doc in activeQuery.docs) {
+      batch.update(doc.reference, {'isActive': false});
+    }
 
-      final newGoalRef = _firestore.collection('nutritionGoals').doc();
-      transaction.set(newGoalRef, goal.toMap());
-    });
+    final newGoalRef = _firestore.collection('nutritionGoals').doc();
+    batch.set(newGoalRef, goal.toMap());
+    await batch.commit();
   }
 }

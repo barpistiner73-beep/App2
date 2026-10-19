@@ -35,6 +35,8 @@ service cloud.firestore {
     //      - updatedAt: timestamp (optional, server timestamp)
     //    Self-Training Invariant: When trainerId == traineeId, status MUST be 'active'
     //    and all 4 permission flags MUST be strictly true.
+    //    Coach Provisioning Invariant: A verified trainer can create an 'active' relation
+    //    when onboarding a trainee.
     //
     // 3. users/{userId}/dailyLogs/{logId}
     //    Document ID: Date key (e.g., 'YYYY-MM-DD') or auto-generated ID.
@@ -95,6 +97,18 @@ service cloud.firestore {
     //      - startDate: timestamp (required, immutable)
     //      - isActive: bool (required, active status toggle)
     //
+    // 8. trainees/{traineeId}
+    //    Document ID: Trainee identifier (matching UID or client key).
+    //    Fields: Client profile and roster data (name, age, weight, height, target macros, routine).
+    //
+    // 9. dailyReports/{reportId}
+    //    Document ID: Report identifier (e.g. `${traineeId}_${date}`).
+    //    Fields: Complete daily check-in, nutrition, workouts, and coach feedback.
+    //
+    // 10. auditLogs/{logId}
+    //    Document ID: Auto-generated log ID.
+    //    Fields: System and operational audit logs (type, description, meta, timestamp).
+    //
     // =========================================================================
 
     // =========================================================================
@@ -109,6 +123,18 @@ service cloud.firestore {
     // Check if current authenticated user matches given UID
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Check if current user has trainer role/claim
+    function isTrainerUser() {
+      return isAuthenticated() && (
+        (request.auth.token != null && (
+          ('isTrainer' in request.auth.token && request.auth.token.isTrainer == true) ||
+          ('role' in request.auth.token && (request.auth.token.role == 'trainer' || request.auth.token.role == 'coach'))
+        )) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isTrainer == true)
+      );
     }
 
     // Verify timestamp was generated recently (within 5 minutes, allowing 1 minute forward clock skew)
@@ -336,6 +362,47 @@ service cloud.firestore {
         (!('goalId' in data) || (data.goalId is string && data.goalId.size() <= 100));
     }
 
+    // 8. Trainee Document Validator (Client Roster)
+    function isValidTraineeDoc(data) {
+      return hasOnlyAllowedFields(data, [
+        'id', 'traineeId', 'uid', 'name', 'email', 'role', 'age', 'weight', 'height', 'gender',
+        'avatar', 'profile', 'targets', 'targetCalories', 'targetProtein', 'targetWaterMl',
+        'targetSleepHours', 'activeWorkout', 'activeRoutine', 'hasWorkedOutToday', 'notes',
+        'createdAt', 'updatedAt'
+      ]) &&
+      (!('name' in data) || (data.name is string && data.name.size() <= 100)) &&
+      (!('email' in data) || (data.email is string && data.email.size() <= 150)) &&
+      (!('role' in data) || (data.role is string && data.role.size() <= 50)) &&
+      (!('age' in data) || (data.age is number && data.age >= 0 && data.age <= 150)) &&
+      (!('weight' in data) || (data.weight is number && data.weight >= 0 && data.weight <= 500)) &&
+      (!('height' in data) || (data.height is number && data.height >= 0 && data.height <= 300)) &&
+      (!('targetCalories' in data) || (data.targetCalories is number && data.targetCalories >= 0 && data.targetCalories <= 15000)) &&
+      (!('targetProtein' in data) || (data.targetProtein is number && data.targetProtein >= 0 && data.targetProtein <= 1000)) &&
+      (!('targetWaterMl' in data) || (data.targetWaterMl is number && data.targetWaterMl >= 0 && data.targetWaterMl <= 20000)) &&
+      (!('targetSleepHours' in data) || (data.targetSleepHours is number && data.targetSleepHours >= 0 && data.targetSleepHours <= 24)) &&
+      (!('activeWorkout' in data) || (data.activeWorkout is string && data.activeWorkout.size() <= 200)) &&
+      (!('hasWorkedOutToday' in data) || data.hasWorkedOutToday is bool) &&
+      (!('notes' in data) || (data.notes is string && data.notes.size() <= 2000));
+    }
+
+    // 9. Daily Report Document Validator (Client Feed)
+    function isValidDailyReportDoc(data) {
+      return hasRequiredFields(data, ['traineeId']) &&
+        hasOnlyAllowedFields(data, [
+          'id', 'traineeId', 'date', 'status', 'createdAt', 'finalizedAt', 'updatedAt',
+          'checkIn', 'nutrition', 'workouts', 'coachFeedback', 'autoClosedNote'
+        ]) &&
+        data.traineeId is string && data.traineeId.size() >= 1 && data.traineeId.size() <= 128 &&
+        (!('id' in data) || (data.id is string && data.id.size() <= 100)) &&
+        (!('date' in data) || (data.date is string && data.date.size() <= 30)) &&
+        (!('status' in data) || (data.status is string && data.status.size() <= 50)) &&
+        (!('checkIn' in data) || data.checkIn is map) &&
+        (!('nutrition' in data) || data.nutrition is map) &&
+        (!('workouts' in data) || (data.workouts is list && data.workouts.size() <= 50)) &&
+        (!('coachFeedback' in data) || data.coachFeedback is map) &&
+        (!('autoClosedNote' in data) || (data.autoClosedNote is string && data.autoClosedNote.size() <= 1000));
+    }
+
     // =========================================================================
     // Security Rules by Collection
     // =========================================================================
@@ -404,7 +471,8 @@ service cloud.firestore {
       // Creation allowed if caller is trainer or trainee.
       // Must use deterministic ID `${trainerId}_${traineeId}`.
       // Self-training (trainerId == traineeId) automatically activates with full permissions.
-      // External coach invite must initiate in 'pending' status to prevent unauthorized access grants.
+      // Verified coach can create active trainership when provisioning a trainee.
+      // Standard coach/trainee invites initiate in 'pending' status.
       allow create: if isAuthenticated() &&
                        (request.auth.uid == request.resource.data.trainerId ||
                         request.auth.uid == request.resource.data.traineeId) &&
@@ -412,11 +480,16 @@ service cloud.firestore {
                        isValidTrainership(request.resource.data) &&
                        isRecent(request.resource.data.createdAt) &&
                        (
+                         // Self-training is active with full permissions
                          (request.resource.data.trainerId == request.resource.data.traineeId &&
                           request.resource.data.status == 'active' &&
                           hasFullPermissions(request.resource.data.permissions)) ||
-                         (request.resource.data.trainerId != request.resource.data.traineeId &&
-                          request.resource.data.status == 'pending')
+                         // Coach provisioning: authenticated coach creating active trainership for a trainee
+                         (request.auth.uid == request.resource.data.trainerId &&
+                          isTrainerUser() &&
+                          request.resource.data.status == 'active') ||
+                         // Standard invite initiated as pending
+                         (request.resource.data.status == 'pending')
                        );
 
       // Updates allowed for trainer or trainee.
@@ -555,6 +628,83 @@ service cloud.firestore {
 
       // Trainee owner can delete goals
       allow delete: if isOwner(resource.data.traineeId);
+    }
+
+    // -------------------------------------------------------------------------
+    // 8. Trainees Collection (Client Roster)
+    // Path: trainees/{traineeId}
+    // -------------------------------------------------------------------------
+    match /trainees/{traineeId} {
+      // Read: if authenticated and (self || trainer || connected trainer)
+      allow read: if isAuthenticated() && (
+        request.auth.uid == traineeId ||
+        isTrainerUser() ||
+        hasActiveTrainership(request.auth.uid, traineeId)
+      );
+
+      // Write (create/update): if authenticated and (self || trainer)
+      allow create, update: if isAuthenticated() && (
+        request.auth.uid == traineeId ||
+        isTrainerUser()
+      ) && isValidTraineeDoc(request.resource.data);
+
+      // Delete: Trainee owner or coach
+      allow delete: if isAuthenticated() && (
+        request.auth.uid == traineeId ||
+        isTrainerUser()
+      );
+    }
+
+    // -------------------------------------------------------------------------
+    // 9. Daily Reports Collection (Client Feed)
+    // Path: dailyReports/{reportId}
+    // -------------------------------------------------------------------------
+    match /dailyReports/{reportId} {
+      // Read: if authenticated and (own report || trainer with canViewDailyLogs || trainer)
+      allow read: if isAuthenticated() && (
+        resource.data.traineeId == request.auth.uid ||
+        trainerCanViewDailyLogs(request.auth.uid, resource.data.traineeId) ||
+        isTrainerUser()
+      );
+
+      // Create: if authenticated and trainee creating their own report
+      allow create: if isAuthenticated() &&
+                       request.resource.data.traineeId == request.auth.uid &&
+                       isValidDailyReportDoc(request.resource.data);
+
+      // Update: Trainee updating own report OR Coach updating coachFeedback and updatedAt
+      allow update: if isAuthenticated() &&
+                       isValidDailyReportDoc(request.resource.data) &&
+                       request.resource.data.traineeId == resource.data.traineeId &&
+                       (
+                         (resource.data.traineeId == request.auth.uid) ||
+                         (trainerCanViewDailyLogs(request.auth.uid, resource.data.traineeId) &&
+                          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['coachFeedback', 'updatedAt']))
+                       );
+
+      // Delete: if authenticated and trainee owner
+      allow delete: if isAuthenticated() && resource.data.traineeId == request.auth.uid;
+    }
+
+    // -------------------------------------------------------------------------
+    // 10. Audit Logs Collection
+    // Path: auditLogs/{logId}
+    // -------------------------------------------------------------------------
+    match /auditLogs/{logId} {
+      // Read: if authenticated and isTrainer
+      allow read: if isAuthenticated() && isTrainerUser();
+
+      // Create: if authenticated and type is string
+      allow create: if isAuthenticated() &&
+                       request.resource.data.type is string &&
+                       request.resource.data.type.size() >= 1 &&
+                       request.resource.data.type.size() <= 100 &&
+                       hasOnlyAllowedFields(request.resource.data, ['type', 'description', 'meta', 'timestamp']) &&
+                       (!('description' in request.resource.data) || (request.resource.data.description is string && request.resource.data.description.size() <= 2000)) &&
+                       (!('meta' in request.resource.data) || request.resource.data.meta is map);
+
+      // Audit logs are append-only; updates and deletions are strictly disallowed
+      allow update, delete: if false;
     }
 
     // -------------------------------------------------------------------------

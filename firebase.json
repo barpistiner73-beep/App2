@@ -24,7 +24,11 @@
       "emailPassword": true,
       "googleSignIn": {
         "oAuthBrandDisplayName": "fitnessnutritionapp-ab381",
-        "supportEmail": "support@fitnessnutritionapp-ab381.firebaseapp.com"
+        "supportEmail": "support@fitnessnutritionapp-ab381.firebaseapp.com",
+        "authorizedRedirectUris": [
+          "https://fitnessnutritionapp-ab381.firebaseapp.com/__/auth/handler",
+          "http://localhost"
+        ]
       }
     }
   }

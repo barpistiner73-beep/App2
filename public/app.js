@@ -4101,6 +4101,66 @@
       }
     });
 
+    // Google Sign-In / Sign-Up Event Handler
+    byId('authGoogleSignInBtn')?.addEventListener('click', async () => {
+      const errorBox = byId('authErrorMessage');
+      const googleBtn = byId('authGoogleSignInBtn');
+      if (errorBox) { errorBox.hidden = true; errorBox.textContent = ''; }
+
+      if (!window.FitPulseFirebase?.signInWithGoogle) {
+        if (errorBox) {
+          errorBox.textContent = 'שירות Firebase Auth אינו זמין כעת.';
+          errorBox.hidden = false;
+        }
+        return;
+      }
+
+      try {
+        if (googleBtn) {
+          googleBtn.disabled = true;
+          googleBtn.dataset.originalText = googleBtn.innerHTML;
+          googleBtn.innerHTML = '<span>מתחבר לחשבון Google...</span>';
+        }
+
+        const { user, profile } = await window.FitPulseFirebase.signInWithGoogle();
+
+        // Unified User Model: check isTrainer flag
+        const isTrainer = profile?.isTrainer === true;
+        const appUser = {
+          id: user.uid,
+          name: profile?.fullName || user.displayName || user.email.split('@')[0],
+          email: user.email,
+          role: isTrainer ? 'coach' : 'trainee',
+          isTrainer,
+          avatar: profile?.profileImageUrl || user.photoURL || null,
+          traineeId: isTrainer ? undefined : (profile?.userId || user.uid)
+        };
+
+        loginUser(appUser);
+      } catch (err) {
+        console.error("Google sign in error:", err);
+        if (errorBox) {
+          if (err.code === 'auth/popup-closed-by-user') {
+            errorBox.textContent = 'חלון ההתחברות של Google נסגר לפני סיום הפעולה.';
+          } else if (err.code === 'auth/unauthorized-domain') {
+            errorBox.textContent = 'הדומיין המקומי טרם אושר ב-Firebase Console (יש לוודא ש-localhost מופיע ב-Authorized Domains).';
+          } else if (err.code === 'auth/popup-blocked') {
+            errorBox.textContent = 'חלון ההתחברות נחסם ע"י הדפדפן. יש לאשר חלונות קופצים (Popups) עבור אתר זה.';
+          } else {
+            errorBox.textContent = `שגיאה בהתחברות באמצעות Google: ${err.message || 'נסה שוב'}`;
+          }
+          errorBox.hidden = false;
+        }
+      } finally {
+        if (googleBtn) {
+          googleBtn.disabled = false;
+          if (googleBtn.dataset.originalText) {
+            googleBtn.innerHTML = googleBtn.dataset.originalText;
+          }
+        }
+      }
+    });
+
     byId('headerLogoutBtn')?.addEventListener('click', logoutUser);
 
     // If not authenticated in the current session, or URL requests #login, force gate

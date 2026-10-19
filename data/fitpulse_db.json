@@ -23293,6 +23293,1112 @@
         }
       ],
       "coachFeedback": null
+    },
+    "JWhQFuuEWDbD5w5rwPwnQ8vuiKA2_2026-10-19": {
+      "id": "JWhQFuuEWDbD5w5rwPwnQ8vuiKA2_2026-10-19",
+      "traineeId": "JWhQFuuEWDbD5w5rwPwnQ8vuiKA2",
+      "date": "2026-10-19",
+      "status": "draft",
+      "createdAt": "2026-10-19T19:49:24.856Z",
+      "updatedAt": "2026-10-19T19:54:16.384Z",
+      "finalizedAt": null,
+      "metrics": {
+        "morningWeightKg": 31.5,
+        "sleepHours": 7.5,
+        "sleepQuality": 8,
+        "waterMl": 2500,
+        "steps": 9000,
+        "energyLevel": 4,
+        "hungerLevel": 2,
+        "stressLevel": 2,
+        "digestion": "good",
+        "traineeNotes": ""
+      },
+      "nutrition": {
+        "totalCalories": 2752,
+        "totalProtein": 124.69999999999999,
+        "totalCarbs": 224.67499999999998,
+        "totalFat": 150.5,
+        "totalFiber": 30,
+        "totalSodium": 2100,
+        "targetCalories": 2300,
+        "targetProtein": 165,
+        "meals": [
+          {
+            "id": "1792439655085-a3ug26",
+            "loggedAt": "2026-10-19T19:54:15.085Z",
+            "time": "22:54",
+            "name": "McDonald's Big Mac",
+            "amount": 215,
+            "unitName": "גרם",
+            "calories": 550.4,
+            "protein": 24.939999999999998,
+            "carbs": 44.934999999999995,
+            "fat": 30.099999999999998,
+            "source": "Branded reference estimate; check the current package label."
+          },
+          {
+            "id": "1792439655260-gjmh60",
+            "loggedAt": "2026-10-19T19:54:15.260Z",
+            "time": "22:54",
+            "name": "McDonald's Big Mac",
+            "amount": 215,
+            "unitName": "גרם",
+            "calories": 550.4,
+            "protein": 24.939999999999998,
+            "carbs": 44.934999999999995,
+            "fat": 30.099999999999998,
+            "source": "Branded reference estimate; check the current package label."
+          },
+          {
+            "id": "1792439655428-al05qz",
+            "loggedAt": "2026-10-19T19:54:15.428Z",
+            "time": "22:54",
+            "name": "McDonald's Big Mac",
+            "amount": 215,
+            "unitName": "גרם",
+            "calories": 550.4,
+            "protein": 24.939999999999998,
+            "carbs": 44.934999999999995,
+            "fat": 30.099999999999998,
+            "source": "Branded reference estimate; check the current package label."
+          },
+          {
+            "id": "1792439655559-76ss94",
+            "loggedAt": "2026-10-19T19:54:15.559Z",
+            "time": "22:54",
+            "name": "McDonald's Big Mac",
+            "amount": 215,
+            "unitName": "גרם",
+            "calories": 550.4,
+            "protein": 24.939999999999998,
+            "carbs": 44.934999999999995,
+            "fat": 30.099999999999998,
+            "source": "Branded reference estimate; check the current package label."
+          },
+          {
+            "id": "1792439655718-s1w2de",
+            "loggedAt": "2026-10-19T19:54:15.717Z",
+            "time": "22:54",
+            "name": "McDonald's Big Mac",
+            "amount": 215,
+            "unitName": "גרם",
+            "calories": 550.4,
+            "protein": 24.939999999999998,
+            "carbs": 44.934999999999995,
+            "fat": 30.099999999999998,
+            "source": "Branded reference estimate; check the current package label."
+          }
+        ]
+      },
+      "workouts": [
+        {
+          "id": "workout-1792433765857",
+          "routineId": "session_lower",
+          "name": "Lower Body Session",
+          "startedAt": "2026-10-19T18:15:22.043Z",
+          "completedAt": "2026-10-19T18:16:05.857Z",
+          "time": "21:16",
+          "durationMinutes": 1,
+          "completedSets": 3,
+          "totalSets": 26,
+          "totalVolume": 1960,
+          "difficulty": 8,
+          "notes": "",
+          "exercises": [
+            {
+              "name": "Barbell Back Squat",
+              "exerciseId": "ex_squat",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 85,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 85,
+                  "reps": 8,
+                  "completed": true,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 85,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 4,
+                  "weight": 85,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "21:16"
+                }
+              ]
+            },
+            {
+              "name": "Romanian Deadlift (RDL)",
+              "exerciseId": "ex_rdl",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 60,
+                  "reps": 10,
+                  "completed": true,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 60,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 60,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "21:16"
+                }
+              ]
+            },
+            {
+              "name": "45-Degree Leg Press",
+              "exerciseId": "ex_leg_press",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 130,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 130,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 130,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "21:16"
+                }
+              ]
+            },
+            {
+              "name": "Bulgarian Split Squat",
+              "exerciseId": "ex_bulgarian_split_squat",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 14,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 14,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 14,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "21:16"
+                }
+              ]
+            },
+            {
+              "name": "Leg Extension Machine",
+              "exerciseId": "ex_leg_extension",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 45,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 45,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 45,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:16"
+                }
+              ]
+            },
+            {
+              "name": "Lying Leg Curl",
+              "exerciseId": "ex_hamstring_curl",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 40,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 40,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 40,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:16"
+                }
+              ]
+            },
+            {
+              "name": "Standing Calf Raise",
+              "exerciseId": "ex_calf_raise",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 40,
+                  "reps": 15,
+                  "completed": false,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 40,
+                  "reps": 15,
+                  "completed": false,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 40,
+                  "reps": 15,
+                  "completed": false,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 4,
+                  "weight": 40,
+                  "reps": 15,
+                  "completed": false,
+                  "time": "21:16"
+                }
+              ]
+            },
+            {
+              "name": "Hanging Leg Raise",
+              "exerciseId": "ex_hanging_leg_raise",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 0,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 0,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:16"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 0,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:16"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "workout-1792434002068",
+          "routineId": "session_push",
+          "name": "Push Session",
+          "startedAt": "2026-10-19T18:19:57.925Z",
+          "completedAt": "2026-10-19T18:20:02.067Z",
+          "time": "21:20",
+          "durationMinutes": 1,
+          "completedSets": 0,
+          "totalSets": 26,
+          "totalVolume": 0,
+          "difficulty": 8,
+          "notes": "",
+          "exercises": [
+            {
+              "name": "Barbell Bench Press",
+              "exerciseId": "ex_bench_press",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 70,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 70,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 70,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 4,
+                  "weight": 70,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "21:20"
+                }
+              ]
+            },
+            {
+              "name": "Incline Dumbbell Press",
+              "exerciseId": "ex_incline_db_press",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 24,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 24,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 24,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "21:20"
+                }
+              ]
+            },
+            {
+              "name": "Machine Chest Press",
+              "exerciseId": "ex_machine_chest_press",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 55,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 55,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 55,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "21:20"
+                }
+              ]
+            },
+            {
+              "name": "Pec Deck Fly",
+              "exerciseId": "ex_pec_deck",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 45,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 45,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 45,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:20"
+                }
+              ]
+            },
+            {
+              "name": "Overhead Barbell Press (OHP)",
+              "exerciseId": "ex_ohp",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 45,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 45,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 45,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "21:20"
+                }
+              ]
+            },
+            {
+              "name": "Cable Lateral Raise",
+              "exerciseId": "ex_cable_lateral_raise",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 7.5,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 7.5,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 7.5,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 4,
+                  "weight": 7.5,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:20"
+                }
+              ]
+            },
+            {
+              "name": "Cable Rope Tricep Pushdown",
+              "exerciseId": "ex_tricep_pushdown",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 25,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 25,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 25,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:20"
+                }
+              ]
+            },
+            {
+              "name": "Cable Overhead Triceps Extension",
+              "exerciseId": "ex_overhead_cable_triceps",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 20,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 20,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:20"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 20,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "21:20"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "workout-1792439363916",
+          "routineId": "session_push",
+          "name": "Push Session",
+          "startedAt": "2026-10-19T19:49:19.768Z",
+          "completedAt": "2026-10-19T19:49:23.916Z",
+          "time": "22:49",
+          "durationMinutes": 1,
+          "completedSets": 0,
+          "totalSets": 26,
+          "totalVolume": 0,
+          "difficulty": 8,
+          "notes": "",
+          "exercises": [
+            {
+              "name": "Barbell Bench Press",
+              "exerciseId": "ex_bench_press",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 70,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 70,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 70,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 4,
+                  "weight": 70,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "22:49"
+                }
+              ]
+            },
+            {
+              "name": "Incline Dumbbell Press",
+              "exerciseId": "ex_incline_db_press",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 24,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 24,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 24,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "22:49"
+                }
+              ]
+            },
+            {
+              "name": "Machine Chest Press",
+              "exerciseId": "ex_machine_chest_press",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 55,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 55,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 55,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "22:49"
+                }
+              ]
+            },
+            {
+              "name": "Pec Deck Fly",
+              "exerciseId": "ex_pec_deck",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 45,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 45,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 45,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "22:49"
+                }
+              ]
+            },
+            {
+              "name": "Overhead Barbell Press (OHP)",
+              "exerciseId": "ex_ohp",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 45,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 45,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 45,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "22:49"
+                }
+              ]
+            },
+            {
+              "name": "Cable Lateral Raise",
+              "exerciseId": "ex_cable_lateral_raise",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 7.5,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 7.5,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 7.5,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 4,
+                  "weight": 7.5,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "22:49"
+                }
+              ]
+            },
+            {
+              "name": "Cable Rope Tricep Pushdown",
+              "exerciseId": "ex_tricep_pushdown",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 25,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 25,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 25,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "22:49"
+                }
+              ]
+            },
+            {
+              "name": "Cable Overhead Triceps Extension",
+              "exerciseId": "ex_overhead_cable_triceps",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 20,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 20,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 20,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "22:49"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "workout-1792439399765",
+          "routineId": "session_legs",
+          "name": "Legs Session",
+          "startedAt": "2026-10-19T19:49:28.788Z",
+          "completedAt": "2026-10-19T19:49:59.764Z",
+          "time": "22:49",
+          "durationMinutes": 1,
+          "completedSets": 0,
+          "totalSets": 27,
+          "totalVolume": 0,
+          "difficulty": 8,
+          "notes": "",
+          "exercises": [
+            {
+              "name": "Barbell Back Squat",
+              "exerciseId": "ex_squat",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 90,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 90,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 90,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 4,
+                  "weight": 90,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 1,
+                  "weight": 85,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 85,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 85,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "22:49"
+                }
+              ]
+            },
+            {
+              "name": "45-Degree Leg Press",
+              "exerciseId": "ex_leg_press",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 140,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 140,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 140,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 4,
+                  "weight": 140,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "22:49"
+                }
+              ]
+            },
+            {
+              "name": "Bulgarian Split Squat",
+              "exerciseId": "ex_bulgarian_split_squat",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 14,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 14,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 14,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "22:49"
+                }
+              ]
+            },
+            {
+              "name": "Leg Extension Machine",
+              "exerciseId": "ex_leg_extension",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 50,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 50,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 50,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "22:49"
+                }
+              ]
+            },
+            {
+              "name": "Lying Leg Curl",
+              "exerciseId": "ex_hamstring_curl",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 45,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 45,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 45,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "22:49"
+                }
+              ]
+            },
+            {
+              "name": "Barbell Hip Thrust",
+              "exerciseId": "ex_hip_thrust",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 80,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 80,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 80,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "22:49"
+                }
+              ]
+            },
+            {
+              "name": "Standing Calf Raise",
+              "exerciseId": "ex_calf_raise",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 45,
+                  "reps": 15,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 45,
+                  "reps": 15,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 45,
+                  "reps": 15,
+                  "completed": false,
+                  "time": "22:49"
+                },
+                {
+                  "setNumber": 4,
+                  "weight": 45,
+                  "reps": 15,
+                  "completed": false,
+                  "time": "22:49"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "coachFeedback": null
     }
-  }
+  },
+  "auditLogs": [
+    {
+      "id": "log_init_1",
+      "type": "SYSTEM_BOOT",
+      "description": "מערכת FitPulse ושרת Firebase הופעלו בהצלחה",
+      "timestamp": "2026-10-19T18:18:21.707Z"
+    },
+    {
+      "id": "log_init_2",
+      "type": "FIRESTORE_CONNECTED",
+      "description": "חיבור תקין למסד Cloud Firestore באזור me-west1",
+      "timestamp": "2026-10-19T18:28:21.707Z"
+    },
+    {
+      "id": "log_init_3",
+      "type": "AUTH_READY",
+      "description": "ספק אימות Firebase Auth מוגדר ופעיל (אימייל וסיסמה)",
+      "timestamp": "2026-10-19T18:36:41.707Z"
+    }
+  ]
 }

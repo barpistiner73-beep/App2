@@ -74,6 +74,67 @@ const FitPulseFirebase = {
     }
   },
 
+  async signInWithGoogle() {
+    if (!this.isConfigured || !this.auth) {
+      throw new Error("Firebase Auth אינו מוגדר או מאותחל");
+    }
+    try {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      provider.addScope('profile');
+      provider.addScope('email');
+      provider.setCustomParameters({ prompt: 'select_account' });
+
+      const userCredential = await this.auth.signInWithPopup(provider);
+      const user = userCredential.user;
+
+      // Check if user profile already exists in Firestore 'users'
+      let profile = await this.getUserProfile(user.uid);
+      if (!profile) {
+        // First-time sign-up from Google! Create unified user profile in 'users'
+        const newProfile = {
+          userId: user.uid,
+          fullName: (user.displayName || user.email.split('@')[0]).slice(0, 100),
+          email: user.email,
+          isTrainer: false, // Default role is trainee per domain logic
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        if (user.photoURL && user.photoURL.startsWith('http')) {
+          newProfile.profileImageUrl = user.photoURL.slice(0, 1000);
+        }
+        try {
+          await this.db.collection('users').doc(user.uid).set(newProfile);
+          profile = newProfile;
+        } catch (err) {
+          console.warn("[FitPulse Firebase] User doc write notice:", err.message);
+          profile = newProfile;
+        }
+
+        // Also write to trainees collection for roster compatibility
+        try {
+          await this.db.collection('trainees').doc(user.uid).set({
+            id: user.uid,
+            name: newProfile.fullName,
+            email: user.email,
+            role: 'trainee',
+            avatar: user.photoURL || newProfile.fullName.slice(0, 2),
+            targetCalories: 2200,
+            targetProtein: 160,
+            targetCarbs: 220,
+            targetFat: 70,
+            targetWater: 3000,
+            createdAt: new Date().toISOString()
+          }, { merge: true });
+        } catch (err) {}
+      }
+
+      this.logAudit('USER_LOGIN_GOOGLE', `התחברות/הרשמה עם Google: ${user.email} (${user.uid})`);
+      return { user, profile };
+    } catch (err) {
+      console.warn("[FitPulse Firebase] Google Sign-In error:", err.message);
+      throw err;
+    }
+  },
+
   async getUserProfile(uid) {
     if (!this.isConfigured || !this.db) return null;
     try {

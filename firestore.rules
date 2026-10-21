@@ -116,6 +116,32 @@ service cloud.firestore {
     //    Document ID: Auto-generated log ID.
     //    Fields: System and operational audit logs (type, description, meta, timestamp).
     //
+    // 11. foods/{foodId}
+    //    Document ID: Food slug (e.g. 'il_retail_tnuva_white_cheese_5') or auto-generated ID.
+    //    Fields:
+    //      - id: string (optional, max 200 chars)
+    //      - name: string (required, 1-200 chars, Hebrew name of food/dish/product)
+    //      - nameEn: string (optional, max 200 chars)
+    //      - brand: string (optional, max 100 chars)
+    //      - category: string (required, 1-100 chars)
+    //      - categoryName: string (optional, max 100 chars)
+    //      - unitName: string (optional, max 100 chars)
+    //      - defaultGrams: number (optional, range >= 0 and <= 10000)
+    //      - calories: number (required, range >= 0 and <= 15000)
+    //      - protein: number (required, range >= 0 and <= 1000)
+    //      - carbs: number (required, range >= 0 and <= 1000)
+    //      - fat: number (required, range >= 0 and <= 1000)
+    //      - fiber: number (optional, range >= 0 and <= 500)
+    //      - sodium: number (optional, range >= 0 and <= 50000)
+    //      - sugar: number (optional, range >= 0 and <= 1000)
+    //      - dietaryTags: list of strings (optional, max 20 items)
+    //      - locationType: string (optional, max 200 chars)
+    //      - region: string (optional, max 200 chars)
+    //      - address: string (optional, max 300 chars)
+    //      - verified: bool (optional)
+    //      - createdAt: timestamp or string (optional)
+    //      - updatedAt: timestamp or string (optional)
+    //
     // =========================================================================
 
     // =========================================================================
@@ -440,6 +466,39 @@ service cloud.firestore {
         (!('workouts' in data) || (data.workouts is list && data.workouts.size() <= 50)) &&
         (!('coachFeedback' in data) || data.coachFeedback is map) &&
         (!('autoClosedNote' in data) || (data.autoClosedNote is string && data.autoClosedNote.size() <= 1000));
+    }
+
+    // 10. Food Item Validator (Israeli Food & Culinary Database)
+    function isValidFoodDoc(data) {
+      return hasRequiredFields(data, ['name', 'category', 'calories', 'protein', 'carbs', 'fat']) &&
+        hasOnlyAllowedFields(data, [
+          'id', 'name', 'nameEn', 'brand', 'category', 'categoryName', 'unitName',
+          'defaultGrams', 'calories', 'protein', 'carbs', 'fat', 'fiber', 'sodium',
+          'sugar', 'dietaryTags', 'locationType', 'region', 'address', 'verified',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.name is string && data.name.size() >= 1 && data.name.size() <= 200 &&
+        data.category is string && data.category.size() >= 1 && data.category.size() <= 100 &&
+        data.calories is number && data.calories >= 0 && data.calories <= 15000 &&
+        data.protein is number && data.protein >= 0 && data.protein <= 1000 &&
+        data.carbs is number && data.carbs >= 0 && data.carbs <= 1000 &&
+        data.fat is number && data.fat >= 0 && data.fat <= 1000 &&
+        (!('id' in data) || data.id == null || (data.id is string && data.id.size() <= 200)) &&
+        (!('nameEn' in data) || data.nameEn == null || (data.nameEn is string && data.nameEn.size() <= 200)) &&
+        (!('brand' in data) || data.brand == null || (data.brand is string && data.brand.size() <= 100)) &&
+        (!('categoryName' in data) || data.categoryName == null || (data.categoryName is string && data.categoryName.size() <= 100)) &&
+        (!('unitName' in data) || data.unitName == null || (data.unitName is string && data.unitName.size() <= 100)) &&
+        (!('defaultGrams' in data) || data.defaultGrams == null || (data.defaultGrams is number && data.defaultGrams >= 0 && data.defaultGrams <= 10000)) &&
+        (!('fiber' in data) || data.fiber == null || (data.fiber is number && data.fiber >= 0 && data.fiber <= 500)) &&
+        (!('sodium' in data) || data.sodium == null || (data.sodium is number && data.sodium >= 0 && data.sodium <= 50000)) &&
+        (!('sugar' in data) || data.sugar == null || (data.sugar is number && data.sugar >= 0 && data.sugar <= 1000)) &&
+        (!('dietaryTags' in data) || data.dietaryTags == null || (data.dietaryTags is list && data.dietaryTags.size() <= 20)) &&
+        (!('locationType' in data) || data.locationType == null || (data.locationType is string && data.locationType.size() <= 200)) &&
+        (!('region' in data) || data.region == null || (data.region is string && data.region.size() <= 200)) &&
+        (!('address' in data) || data.address == null || (data.address is string && data.address.size() <= 300)) &&
+        (!('verified' in data) || data.verified == null || data.verified is bool) &&
+        (!('createdAt' in data) || data.createdAt == null || data.createdAt is timestamp || (data.createdAt is string && data.createdAt.size() <= 50)) &&
+        (!('updatedAt' in data) || data.updatedAt == null || data.updatedAt is timestamp || (data.updatedAt is string && data.updatedAt.size() <= 50));
     }
 
     // =========================================================================
@@ -770,6 +829,23 @@ service cloud.firestore {
 
       // Audit logs are append-only; updates and deletions are strictly disallowed
       allow update, delete: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // 11. Foods Collection (Israeli Food & Culinary Database)
+    // Path: foods/{foodId}
+    // -------------------------------------------------------------------------
+    match /foods/{foodId} {
+      // Read: open to all authenticated and guest users for nutritional logging and search
+      allow read: if true;
+
+      // Create & Update: Authenticated users (managers, coaches, and trainees) with valid food schema
+      allow create, update: if isAuthenticated() &&
+                               (isManagerUser() || isTrainerUser() || true) &&
+                               isValidFoodDoc(request.resource.data);
+
+      // Delete: Managers and coaches only
+      allow delete: if isAuthenticated() && (isManagerUser() || isTrainerUser());
     }
 
     // -------------------------------------------------------------------------

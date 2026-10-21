@@ -1,23 +1,8 @@
 {
   "title": "FitPulse Israeli Culinary & Food Database",
-  "version": "2.0.0",
-  "cycle": 5,
-  "totalItems": 590,
-  "breakdown": {
-    "retailAndSupermarket": 540,
-    "restaurantsAndStreetFood": 50,
-    "regionalSpecialties": 0
-  },
-  "categories": {
-    "dairy_protein": 360,
-    "supermarket_staples": 180,
-    "hummus_falafel": 10,
-    "shawarma_meat": 5,
-    "street_food": 5,
-    "signature_regional": 10,
-    "healthy_fitness": 5,
-    "sweets_desserts": 10,
-    "bakery_pastry": 5
-  },
-  "lastUpdated": "2026-10-19T20:33:37.234Z"
+  "version": "2.1.0",
+  "cycle": 1,
+  "totalItems": 99,
+  "firestoreSync": "active",
+  "lastUpdated": "2026-10-19T22:10:07.971Z"
 }

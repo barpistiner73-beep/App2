@@ -270,6 +270,82 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 200, { success: true, message: 'Past reports auto-closed successfully' });
       }
 
+      // --- Israeli Culinary & Food Database Endpoints ---
+      // GET /api/foods?query=...&category=...
+      if (pathname === '/api/foods' && method === 'GET') {
+        const query = (parsedUrl.query.query || '').trim().toLowerCase();
+        const category = parsedUrl.query.category || 'all';
+        const catalogPath = path.join(__dirname, 'data', 'israeli_culinary_database', 'foods_catalog.json');
+        let foodsList = [];
+        try {
+          if (fs.existsSync(catalogPath)) {
+            foodsList = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
+          }
+        } catch (e) {
+          console.error('[Server Foods API] Error loading catalog:', e.message);
+        }
+
+        const filtered = foodsList.filter(food => {
+          const catMatches = category === 'all' || food.category === category;
+          if (!catMatches) return false;
+          if (!query) return true;
+          const searchable = [food.name, food.nameEn, food.brand, food.categoryName, ...(food.dietaryTags || [])]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase();
+          return searchable.includes(query);
+        });
+
+        return sendJson(res, 200, { success: true, count: filtered.length, totalCatalog: foodsList.length, foods: filtered });
+      }
+
+      // POST /api/foods (Add new food item)
+      if (pathname === '/api/foods' && method === 'POST') {
+        const body = await parseJsonBody(req);
+        if (!body.name || body.calories === undefined) {
+          return sendJson(res, 400, { success: false, error: 'Food name and calories are required' });
+        }
+        const catalogPath = path.join(__dirname, 'data', 'israeli_culinary_database', 'foods_catalog.json');
+        let foodsList = [];
+        try {
+          if (fs.existsSync(catalogPath)) {
+            foodsList = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
+          }
+        } catch (e) {}
+
+        const newFood = {
+          id: body.id || `il_custom_${Date.now()}`,
+          name: body.name,
+          nameEn: body.nameEn || '',
+          brand: body.brand || '',
+          category: body.category || 'supermarket_staples',
+          categoryName: body.categoryName || '',
+          unitName: body.unitName || '100 גרם',
+          defaultGrams: Number(body.defaultGrams || 100),
+          calories: Number(body.calories || 0),
+          protein: Number(body.protein || 0),
+          carbs: Number(body.carbs || 0),
+          fat: Number(body.fat || 0),
+          fiber: Number(body.fiber || 0),
+          sodium: Number(body.sodium || 0),
+          sugar: Number(body.sugar || 0),
+          dietaryTags: Array.isArray(body.dietaryTags) ? body.dietaryTags : (body.tags || []),
+          locationType: body.locationType || '',
+          region: body.region || '',
+          address: body.address || '',
+          verified: Boolean(body.verified),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+
+        const existingIdx = foodsList.findIndex(f => f.id === newFood.id);
+        if (existingIdx >= 0) foodsList[existingIdx] = newFood;
+        else foodsList.unshift(newFood);
+
+        fs.writeFileSync(catalogPath, JSON.stringify(foodsList, null, 2), 'utf8');
+        return sendJson(res, 201, { success: true, food: newFood });
+      }
+
       return sendJson(res, 404, { success: false, error: 'API endpoint not found' });
     } catch (err) {
       console.error('[Server API Error]', err);

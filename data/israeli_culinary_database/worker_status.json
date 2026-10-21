@@ -1,10 +1,11 @@
 {
   "status": "active_running",
-  "cycle": 330,
-  "startedAt": "2026-10-19T20:32:37.196Z",
-  "lastPulseAt": "2026-10-19T21:54:54.504Z",
-  "totalItems": 38940,
-  "newItemsThisPulse": 118,
-  "memoryUsageMb": 196,
-  "activeFocus": "Expanding Israeli supermarket retail items and regional eateries"
+  "cycle": 15,
+  "startedAt": "2026-10-19T22:10:07.967Z",
+  "lastPulseAt": "2026-10-19T22:24:08.092Z",
+  "totalItems": 99,
+  "newItemsThisPulse": 0,
+  "firestoreConnected": true,
+  "memoryUsageMb": 9,
+  "activeFocus": "Continuously expanding Israeli culinary, supermarket and regional eatery database"
 }

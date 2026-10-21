@@ -6870,6 +6870,81 @@
       "coachFeedback": null,
       "autoClosedNote": "הדוח נסגר אוטומטית בחצות בסוף היום ונשמר במסד הנתונים."
     },
+    "client_1_2026-10-20": {
+      "id": "client_1_2026-10-20",
+      "traineeId": "client_1",
+      "date": "2026-10-20",
+      "status": "auto_closed",
+      "createdAt": "2026-10-19T22:20:25.866Z",
+      "updatedAt": "2026-10-21T22:41:46.431Z",
+      "finalizedAt": "2026-10-20T23:59:59.000Z",
+      "metrics": {
+        "morningWeightKg": null,
+        "sleepHours": 7.5,
+        "sleepQuality": 8,
+        "waterMl": 2500,
+        "steps": 9000,
+        "energyLevel": 4,
+        "hungerLevel": 2,
+        "stressLevel": 2,
+        "digestion": "good",
+        "traineeNotes": ""
+      },
+      "nutrition": {
+        "totalCalories": 1650.2,
+        "totalProtein": 76.94,
+        "totalCarbs": 91.945,
+        "totalFat": 106.25,
+        "totalFiber": 30,
+        "totalSodium": 2100,
+        "targetCalories": 2250,
+        "targetProtein": 165,
+        "meals": [
+          {
+            "id": "1792448425205-kbl6s4",
+            "loggedAt": "2026-10-19T22:20:25.205Z",
+            "time": "01:20",
+            "name": "McDonald's Big Mac",
+            "amount": 215,
+            "unitName": "גרם",
+            "calories": 550.4,
+            "protein": 24.939999999999998,
+            "carbs": 44.934999999999995,
+            "fat": 30.099999999999998,
+            "source": "Branded reference estimate; check the current package label."
+          },
+          {
+            "id": "1792448426473-8m5ryq",
+            "loggedAt": "2026-10-19T22:20:26.473Z",
+            "time": "01:20",
+            "name": "McDonald's Chicken McNuggets",
+            "amount": 160,
+            "unitName": "גרם",
+            "calories": 420.8,
+            "protein": 24,
+            "carbs": 24.96,
+            "fat": 24,
+            "source": "Branded reference estimate; check the current package label."
+          },
+          {
+            "id": "1792448427196-uigmms",
+            "loggedAt": "2026-10-19T22:20:27.196Z",
+            "time": "01:20",
+            "name": "Halloumi Salad with Dressing",
+            "amount": 350,
+            "unitName": "גרם",
+            "calories": 679,
+            "protein": 28,
+            "carbs": 22.05,
+            "fat": 52.15,
+            "source": "Restaurant recipe estimate; ingredients and portions vary."
+          }
+        ]
+      },
+      "workouts": [],
+      "coachFeedback": null,
+      "autoClosedNote": "הדוח נסגר אוטומטית בחצות בסוף היום ונשמר במסד הנתונים."
+    },
     "client_2_2026-09-01": {
       "id": "client_2_2026-09-01",
       "traineeId": "client_2",
@@ -24497,8 +24572,8 @@
       "email": "some.private.adress@gmail.com",
       "isTrainer": false,
       "role": "trainee",
-      "status": "pending_approval",
-      "approvalStatus": "pending",
+      "status": "rejected",
+      "approvalStatus": "rejected",
       "avatar": "https://lh3.googleusercontent.com/a/ACg8ocKmmjGjPYSPdl21gmgz2GVa2I7WU-uC_-8KgqoMpi8-CrHHYA=s96-c",
       "profileImageUrl": "https://lh3.googleusercontent.com/a/ACg8ocKmmjGjPYSPdl21gmgz2GVa2I7WU-uC_-8KgqoMpi8-CrHHYA=s96-c",
       "specialty": "אימון כושר ותזונת ספורט",
@@ -24510,10 +24585,64 @@
         "_delegate": {
           "_methodName": "FieldValue.serverTimestamp"
         }
-      }
+      },
+      "rejectedReason": "לא אושר על ידי מנהל מערכת"
+    },
+    {
+      "id": "hzQZZunYMSgiwYzUTouErbk2DZn1",
+      "userId": "hzQZZunYMSgiwYzUTouErbk2DZn1",
+      "name": "אילון הלוי",
+      "fullName": "אילון הלוי",
+      "email": "eilon.halevy20@gmail.com",
+      "isTrainer": true,
+      "role": "coach",
+      "status": "active",
+      "approvalStatus": "approved",
+      "avatar": "https://lh3.googleusercontent.com/a/ACg8ocKQ-T1A4axutf_mkNMRX7e_HKsrMUr4t-5Uu9mB04GDFSVq_g=s96-c",
+      "profileImageUrl": "https://lh3.googleusercontent.com/a/ACg8ocKQ-T1A4axutf_mkNMRX7e_HKsrMUr4t-5Uu9mB04GDFSVq_g=s96-c",
+      "specialty": "אימון כושר ותזונת ספורט",
+      "selfTraining": true,
+      "targetCalories": 2200,
+      "targetProtein": 160,
+      "targetWater": 3000,
+      "createdAt": {
+        "_delegate": {
+          "_methodName": "FieldValue.serverTimestamp"
+        }
+      },
+      "approvedAt": "2026-10-21T22:47:49.604Z",
+      "approvedBy": "hzQZZunYMSgiwYzUTouErbk2DZn1"
     }
   ],
   "auditLogs": [
+    {
+      "id": "log_1792622869616_llhru",
+      "type": "USER_APPROVED",
+      "description": "אושר חשבון משתמש חדש (מאמן): אילון הלוי (eilon.halevy20@gmail.com) ע\"י מנהל מערכת",
+      "meta": {
+        "userId": "hzQZZunYMSgiwYzUTouErbk2DZn1",
+        "role": "coach"
+      },
+      "timestamp": "2026-10-21T22:47:49.616Z"
+    },
+    {
+      "id": "log_1792622847360_9mo1b",
+      "type": "USER_REGISTRATION_SUBMITTED",
+      "description": "הוגשה בקשת הרשמה (מאמן): אילון הלוי (eilon.halevy20@gmail.com) - ממתין לאישור מנהל",
+      "meta": {
+        "userId": "hzQZZunYMSgiwYzUTouErbk2DZn1",
+        "role": "coach",
+        "email": "eilon.halevy20@gmail.com"
+      },
+      "timestamp": "2026-10-21T22:47:27.360Z"
+    },
+    {
+      "id": "log_1792622774767_1phj9",
+      "type": "USER_REJECTED",
+      "description": "נדחתה בקשת הרשמה (N2HkpQ5OffZvxp5JhXDjkXlitQn1) ע\"י מנהל מערכת: לא אושר על ידי מנהל מערכת",
+      "meta": {},
+      "timestamp": "2026-10-21T22:46:14.767Z"
+    },
     {
       "id": "log_1792446587705_n85p8",
       "type": "USER_REGISTRATION_SUBMITTED",

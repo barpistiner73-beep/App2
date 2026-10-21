@@ -768,6 +768,86 @@ const FitPulseFirebase = {
 
     await batch.commit();
     console.log("[FitPulse Firebase] Initial 14-day history seeded to Firestore.");
+  },
+
+  // -------------------------------------------------------------------------
+  // Foods Collection Service Methods
+  // -------------------------------------------------------------------------
+  async getFoods(limitCount = 200) {
+    if (!this.isConfigured || !this.db) return [];
+    try {
+      const snap = await this.db.collection('foods').limit(limitCount).get();
+      const list = [];
+      snap.forEach(doc => {
+        list.push({ id: doc.id, ...doc.data() });
+      });
+      return list;
+    } catch (err) {
+      console.warn("[FitPulse Firebase] getFoods notice:", err.message);
+      return [];
+    }
+  },
+
+  async searchFirestoreFoods(queryText = '', category = 'all') {
+    if (!this.isConfigured || !this.db) return [];
+    try {
+      let ref = this.db.collection('foods');
+      if (category && category !== 'all') {
+        ref = ref.where('category', '==', category);
+      }
+      const snap = await ref.limit(100).get();
+      const results = [];
+      const q = (queryText || '').trim().toLowerCase();
+      snap.forEach(doc => {
+        const data = doc.data();
+        const searchable = [data.name, data.nameEn, data.brand, data.categoryName, ...(data.dietaryTags || [])]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        if (!q || searchable.includes(q)) {
+          results.push({ id: doc.id, ...data });
+        }
+      });
+      return results;
+    } catch (err) {
+      console.warn("[FitPulse Firebase] searchFirestoreFoods notice:", err.message);
+      return [];
+    }
+  },
+
+  async addFood(food) {
+    if (!this.isConfigured || !this.db) return null;
+    try {
+      const docId = food.id || `il_custom_${Date.now()}`;
+      const payload = {
+        name: food.name,
+        nameEn: food.nameEn || '',
+        brand: food.brand || '',
+        category: food.category || 'supermarket_staples',
+        categoryName: food.categoryName || '',
+        unitName: food.unitName || '100 גרם',
+        defaultGrams: Number(food.defaultGrams || 100),
+        calories: Number(food.calories || 0),
+        protein: Number(food.protein || 0),
+        carbs: Number(food.carbs || 0),
+        fat: Number(food.fat || 0),
+        fiber: Number(food.fiber || 0),
+        sodium: Number(food.sodium || 0),
+        sugar: Number(food.sugar || 0),
+        dietaryTags: Array.isArray(food.dietaryTags) ? food.dietaryTags : (food.tags || []),
+        locationType: food.locationType || '',
+        region: food.region || '',
+        address: food.address || '',
+        verified: Boolean(food.verified),
+        createdAt: food.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      await this.db.collection('foods').doc(docId).set(payload, { merge: true });
+      return { id: docId, ...payload };
+    } catch (err) {
+      console.error("[FitPulse Firebase] addFood error:", err);
+      throw err;
+    }
   }
 };
 

@@ -5444,6 +5444,45 @@
   function init() {
     if (window.FitPulseFirebase) {
       window.FitPulseFirebase.init();
+      // Synchronize latest foods from Cloud Firestore foods collection
+      if (typeof window.FitPulseFirebase.getFoods === 'function') {
+        window.FitPulseFirebase.getFoods(250).then(firestoreFoods => {
+          if (firestoreFoods && firestoreFoods.length > 0 && window.FIT_DATA && Array.isArray(window.FIT_DATA.foodsDatabase)) {
+            const existingIds = new Set(window.FIT_DATA.foodsDatabase.map(f => f.id));
+            let addedCount = 0;
+            firestoreFoods.forEach(food => {
+              if (!existingIds.has(food.id)) {
+                window.FIT_DATA.foodsDatabase.push({
+                  id: food.id,
+                  name: food.name,
+                  nameEn: food.nameEn || '',
+                  brand: food.brand || '',
+                  category: food.category || 'street_food',
+                  categoryName: food.categoryName || '',
+                  unitName: food.unitName || '100 גרם',
+                  defaultGrams: food.defaultGrams || 100,
+                  calories: food.calories || 0,
+                  protein: food.protein || 0,
+                  carbs: food.carbs || 0,
+                  fat: food.fat || 0,
+                  fiber: food.fiber || 0,
+                  sodium: food.sodium || 0,
+                  sugar: food.sugar || 0,
+                  tags: food.dietaryTags || [],
+                  icon: food.category === 'dairy_protein' ? '🥛' : food.category === 'hummus_falafel' ? '🧆' : food.category === 'shawarma_meat' ? '🥩' : food.category === 'bakery_pastry' ? '🥐' : food.category === 'sweets_desserts' ? '🍦' : food.category === 'supermarket_staples' ? '🛒' : food.category === 'healthy_fitness' ? '💪' : food.category === 'street_food' ? '🌯' : '🍽️',
+                  source: 'Cloud Firestore foods collection'
+                });
+                existingIds.add(food.id);
+                addedCount++;
+              }
+            });
+            console.log(`[FitPulse Firebase] Synchronized ${firestoreFoods.length} foods (${addedCount} new) from Cloud Firestore 'foods' collection.`);
+            if (state.activeTab === 'tab-nutrition') {
+              renderNutrition();
+            }
+          }
+        }).catch(e => console.warn('[FitPulse Firebase] Foods sync notice:', e.message));
+      }
     }
     addProgressControls();
     bindEvents();

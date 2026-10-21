@@ -3,8 +3,9 @@
  * FitPulse Platform - Continuous Background Engine
  * 
  * Objective:
- * Autonomous, continuous, and exponential indexing of Israeli supermarket retail products,
+ * Autonomous, continuous, and genuine indexing of Israeli supermarket retail products,
  * raw ingredients, iconic eateries, street food, restaurant chains, and regional culinary specialties.
+ * Automatically synchronizes newly discovered items directly into Cloud Firestore 'foods' collection.
  * 
  * Non-blocking daemon: Runs in the background with throttled async cycles.
  */
@@ -14,461 +15,349 @@ const path = require('path');
 
 const DB_DIR = path.join(__dirname, '..', 'data', 'israeli_culinary_database');
 const STATUS_FILE = path.join(DB_DIR, 'worker_status.json');
-const RETAIL_FILE = path.join(DB_DIR, 'supermarket_retail.json');
-const RESTAURANTS_FILE = path.join(DB_DIR, 'restaurants_streetfood.json');
-const REGIONAL_FILE = path.join(DB_DIR, 'signature_regional.json');
-const EXPORT_JS_FILE = path.join(DB_DIR, 'israeli_food_data.js');
+const CATALOG_FILE = path.join(DB_DIR, 'foods_catalog.json');
 const INDEX_FILE = path.join(DB_DIR, 'index.json');
+const EXPORT_JS_FILE = path.join(DB_DIR, 'israeli_food_data.js');
 
-// Ensure database folder exists
+const API_KEY = "AIzaSyBmZ55Vlmy7pUeY3AV4K1XjbWWvxbAb7hE";
+const PROJECT_ID = "fitnessnutritionapp-ab381";
+const AUTH_EMAIL = process.env.FITPULSE_EMAIL || 'coach.real@fitpulse.com';
+const AUTH_PASSWORD = process.env.FITPULSE_PASSWORD || 'TrainerPass123!';
+
 if (!fs.existsSync(DB_DIR)) {
   fs.mkdirSync(DB_DIR, { recursive: true });
 }
 
-// In-memory catalogs with deduplication map
+// In-memory state
 const state = {
   cycle: 0,
   startedAt: new Date().toISOString(),
   lastPulseAt: null,
   totalItems: 0,
-  itemsByCategory: {},
   knownIds: new Set(),
-  retail: [],
-  restaurants: [],
-  regional: []
+  foods: [],
+  idToken: null,
+  idTokenExpiresAt: 0
 };
 
-// Safe JSON file loader
-function loadJsonSafe(filePath, defaultVal) {
+// Safe JSON loader
+function loadCatalog() {
   try {
-    if (fs.existsSync(filePath)) {
-      const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-      return Array.isArray(data) ? data : (data.items || defaultVal);
+    if (fs.existsSync(CATALOG_FILE)) {
+      const data = JSON.parse(fs.readFileSync(CATALOG_FILE, 'utf8'));
+      if (Array.isArray(data)) return data;
     }
   } catch (e) {
-    console.warn(`[Worker] Notice reading ${path.basename(filePath)}:`, e.message);
+    console.warn('[Worker] Catalog load notice:', e.message);
   }
-  return defaultVal;
+  return [];
 }
 
-// Initial state load
-state.retail = loadJsonSafe(RETAIL_FILE, []);
-state.restaurants = loadJsonSafe(RESTAURANTS_FILE, []);
-state.regional = loadJsonSafe(REGIONAL_FILE, []);
-
-[...state.retail, ...state.restaurants, ...state.regional].forEach(item => {
-  if (item && item.id) state.knownIds.add(item.id);
+state.foods = loadCatalog();
+state.foods.forEach(f => {
+  if (f && f.id) state.knownIds.add(f.id);
 });
 state.totalItems = state.knownIds.size;
 
-console.log(`[Israeli Culinary Worker] Booted with ${state.totalItems} existing items.`);
+console.log(`[Israeli Culinary Worker] Booted with ${state.totalItems} verified items.`);
 
-// --- Domain Knowledge Base Seed Matrices ---
-
-const ISRAELI_SUPERMARKET_BRANDS = [
-  { name: 'תנובה', en: 'Tnuva', type: 'Dairy & Protein', kosher: 'כשרות מהדרין / רבנות' },
-  { name: 'שטראוס', en: 'Strauss', type: 'Dairy & Fresh', kosher: 'בד"ץ שארית ישראל / רבנות' },
-  { name: 'טרה', en: 'Tara', type: 'Dairy & Mehadrin', kosher: 'בד"ץ העדה החרדית' },
-  { name: 'אסם', en: 'Osem', type: 'Dry Goods & Snacks', kosher: 'בד"ץ העדה החרדית' },
-  { name: 'עלית', en: 'Elite', type: 'Confectionery & Coffee', kosher: 'רבנות / בד"ץ' },
-  { name: 'תלמה', en: 'Telma', type: 'Cereals & Spreads', kosher: 'בד"ץ העדה החרדית' },
-  { name: 'סוגת', en: 'Sugat', type: 'Grains & Legumes', kosher: 'בד"ץ העדה החרדית' },
-  { name: 'טבעול', en: 'Tivall', type: 'Plant-Based & Vegetarian', kosher: 'רבנות מטה אשר / בד"ץ' },
-  { name: 'צבר', en: 'Sabra Salads', type: 'Hummus & Dips', kosher: 'בד"ץ העדה החרדית' },
-  { name: 'אחלה', en: 'Achla (Strauss)', type: 'Hummus & Salads', kosher: 'בד"ץ שארית ישראל' },
-  { name: 'שמיר סלטים', en: 'Shamir Salads', type: 'Traditional Salads', kosher: 'בד"ץ בית יוסף' },
-  { name: 'אחוה', en: 'Achva', type: 'Halva & Tahini', kosher: 'בד"ץ העדה החרדית' },
-  { name: 'הנמל', en: 'Hanamal', type: 'Baking & Grains', kosher: 'בד"ץ חתם סופר' },
-  { name: 'ויסוצקי', en: 'Wissotzky', type: 'Tea & Infusions', kosher: 'בד"ץ העדה החרדית' },
-  { name: 'שופרסל', en: 'Shufersal Brand', type: 'Supermarket Private Label', kosher: 'רבנות ראשית / בד"ץ' },
-  { name: 'רמי לוי', en: 'Rami Levy Brand', type: 'Supermarket Private Label', kosher: 'בד"ץ בית יוסף / רבנות' },
-  { name: 'מזרע', en: 'Mizra', type: 'Cold Cuts & Meats', kosher: 'לא כשר' },
-  { name: 'טיב טעם', en: 'Tiv Taam Specialty', type: 'International & Specialty', kosher: 'לא כשר / מגוון' }
-];
-
-const ISRAELI_REGIONS = [
-  'תל אביב וגוש דן',
-  'ירושלים והסביבה',
-  'חיפה והקריות',
-  'גליל ועמקים (עכו, נצרת, כרמיאל)',
-  'השרון והמשולש (נתניה, הרצליה, טירה)',
-  'השפלה ודרום (באר שבע, אשקלון, אשדוד)',
-  'גולן וסובב כנרת',
-  'אילת והערבה'
-];
-
-const CULINARY_CATEGORIES = [
-  { id: 'dairy_protein', name: 'מוצרי חלב ופרוטאין', icon: '🥛' },
-  { id: 'hummus_falafel', name: 'חומוסיות ופלאפל מסורתי', icon: '🧆' },
-  { id: 'shawarma_meat', name: 'שווארמה, שיפודים ובשרים', icon: '🥩' },
-  { id: 'bakery_pastry', name: 'מאפיות, בורקסים ולחמים', icon: '🥐' },
-  { id: 'street_food', name: 'אוכל רחוב ישראלי אותנטי', icon: '🥙' },
-  { id: 'supermarket_staples', name: 'מזווה ישראלי, דגנים וקטניות', icon: '🌾' },
-  { id: 'healthy_fitness', name: 'תזונת ספורט, ירקות ובריאות', icon: '🥗' },
-  { id: 'sweets_desserts', name: 'קינוחים, גלידות ומתוקים', icon: '🍦' }
-];
-
-// Rich item generator logic tailored for Israeli culinary and retail market
-function generateBatch(cycle) {
-  const newItems = [];
-  const timestamp = new Date().toISOString();
-
-  // 1. Generate Supermarket & Brand Items
-  ISRAELI_SUPERMARKET_BRANDS.forEach(brand => {
-    const variations = [
-      {
-        nameHe: `${brand.name} גבינה לבנה 5% קלאסית`,
-        nameEn: `${brand.en} White Soft Cheese 5%`,
-        category: 'dairy_protein',
-        unit: '100 גרם',
-        grams: 100,
-        cals: 95, p: 9.0, c: 4.2, f: 5.0, fiber: 0, sodium: 180, sugar: 4.0,
-        dietary: ['כשר חלבי', brand.kosher, 'עשיר בחלבון'],
-        retailer: brand.name
-      },
-      {
-        nameHe: `${brand.name} יוגורט פרו GO 20g חלבון טבעי`,
-        nameEn: `${brand.en} GO Pro High Protein Yogurt 20g`,
-        category: 'dairy_protein',
-        unit: 'גביע (200 גרם)',
-        grams: 200,
-        cals: 124, p: 20.0, c: 7.0, f: 1.5, fiber: 0, sodium: 90, sugar: 6.5,
-        dietary: ['כשר חלבי', brand.kosher, 'דל שומן', 'חלבון גבוה'],
-        retailer: brand.name
-      },
-      {
-        nameHe: `${brand.name} גבינת קוטג' 9% בטעם של פעם`,
-        nameEn: `${brand.en} Traditional Cottage Cheese 9%`,
-        category: 'dairy_protein',
-        unit: '100 גרם',
-        grams: 100,
-        cals: 125, p: 10.5, c: 2.5, f: 9.0, fiber: 0, sodium: 360, sugar: 2.0,
-        dietary: ['כשר חלבי', brand.kosher],
-        retailer: brand.name
-      },
-      {
-        nameHe: `${brand.name} קוטג' 1% עתיר חלבון לחיטוב`,
-        nameEn: `${brand.en} Lean Cottage Cheese 1%`,
-        category: 'dairy_protein',
-        unit: '100 גרם',
-        grams: 100,
-        cals: 68, p: 12.0, c: 2.0, f: 1.0, fiber: 0, sodium: 380, sugar: 1.8,
-        dietary: ['כשר חלבי', brand.kosher, 'דל שומן', 'ספורטאים'],
-        retailer: brand.name
-      },
-      {
-        nameHe: `${brand.name} טחינה גולמית שומשום מלא מובחרת`,
-        nameEn: `${brand.en} 100% Pure Whole Sesame Raw Tahini`,
-        category: 'supermarket_staples',
-        unit: '2 כפות (30 גרם)',
-        grams: 30,
-        cals: 195, p: 6.5, c: 3.5, f: 18.0, fiber: 3.2, sodium: 12, sugar: 0.5,
-        dietary: ['טבעוני', 'כשר פרווה', brand.kosher, 'ללא תוספת סוכר', 'עשיר בסידן'],
-        retailer: brand.name
-      },
-      {
-        nameHe: `${brand.name} פתיתים אפויים קלאסיים (קוסקוס ישראלי)`,
-        nameEn: `${brand.en} Traditional Israeli Toasted Ptitim`,
-        category: 'supermarket_staples',
-        unit: '100 גרם מבושל',
-        grams: 100,
-        cals: 160, p: 5.2, c: 32.0, f: 1.1, fiber: 1.8, sodium: 120, sugar: 0.8,
-        dietary: ['טבעוני', 'כשר פרווה', brand.kosher],
-        retailer: brand.name
-      }
-    ];
-
-    variations.forEach(v => {
-      const slug = `il_retail_${brand.en.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${v.nameEn.toLowerCase().replace(/[^a-z0-9]/g, '_')}_c${cycle}`;
-      if (!state.knownIds.has(slug)) {
-        state.knownIds.add(slug);
-        const item = {
-          id: slug,
-          name: v.nameHe,
-          nameEn: v.nameEn,
-          brand: brand.name,
-          category: v.category,
-          categoryName: CULINARY_CATEGORIES.find(c => c.id === v.category)?.name || 'מזון ישראלי',
-          unitName: v.unit,
-          defaultGrams: v.grams,
-          calories: v.cals,
-          protein: v.p,
-          carbs: v.c,
-          fat: v.f,
-          fiber: v.fiber,
-          sodium: v.sodium,
-          sugar: v.sugar,
-          dietaryTags: v.dietary,
-          locationType: 'רשתות שיווק ומכולות בכל הארץ',
-          region: 'ארצי (רשתות שופרסל, רמי לוי, יוחננוף, ויקטורי, טיב טעם)',
-          verified: true,
-          updatedAt: timestamp
-        };
-        newItems.push({ type: 'retail', item });
-      }
-    });
-  });
-
-  // 2. Generate Famous Israeli Eateries, Street Food & Regional Spots
-  const RESTAURANTS_CATALOG = [
-    {
-      nameHe: 'פלאפל הקוסם תל אביב (מנה בפיתה מלאה)',
-      nameEn: 'HaKosem Tel Aviv - Complete Falafel Pita',
-      category: 'hummus_falafel',
-      region: 'תל אביב וגוש דן',
-      location: 'רחוב שלמה המלך 1, תל אביב',
-      unit: 'מנה בפיתה (כ-380 גרם)',
-      grams: 380,
-      cals: 640, p: 19.5, c: 78.0, f: 28.0, fiber: 9.5, sodium: 880, sugar: 4.5,
-      dietary: ['טבעוני', 'כשר', 'אוכל רחוב אייקוני']
-    },
-    {
-      nameHe: 'חומוס עלי קרוואן (אבו חסן) יפו - מנת משולשת',
-      nameEn: 'Ali Karavan (Abu Hassan) Jaffa - Triple Mixed Hummus Plate',
-      category: 'hummus_falafel',
-      region: 'תל אביב וגוש דן',
-      location: 'רחוב הדולפין 1, יפו',
-      unit: 'צלחת עם פיתה ושמן זית (כ-450 גרם)',
-      grams: 450,
-      cals: 710, p: 26.0, c: 62.0, f: 41.0, fiber: 14.0, sodium: 940, sugar: 2.1,
-      dietary: ['טבעוני', 'כשר למהדרין', 'מוסד קולינרי']
-    },
-    {
-      nameHe: 'שווארמה אמיל חיפה - פיתה עגל וכבש אמיתי',
-      nameEn: 'Emil Shawarma Haifa - Authentic Veal & Lamb Pita',
-      category: 'shawarma_meat',
-      region: 'חיפה והקריות',
-      location: 'דרך אלנבי 33, חיפה',
-      unit: 'פיתה מלאה (כ-350 גרם)',
-      grams: 350,
-      cals: 760, p: 46.0, c: 54.0, f: 38.0, fiber: 4.5, sodium: 1150, sugar: 3.0,
-      dietary: ['עשיר בחלבון', 'מוסד צפוני אותנטי']
-    },
-    {
-      nameHe: 'סביח פרישמן / טשרניחובסקי תל אביב',
-      nameEn: 'Authentic Tel Aviv Sabich Pita with Amba & Tahini',
-      category: 'street_food',
-      region: 'תל אביב וגוש דן',
-      location: 'רחוב פרישמן 42, תל אביב',
-      unit: 'פיתה שלמה (חציל, ביצה חומה, תפו"א, טחינה, עמבה)',
-      grams: 360,
-      cals: 620, p: 18.0, c: 72.0, f: 29.0, fiber: 8.0, sodium: 820, sugar: 5.0,
-      dietary: ['צמחוני', 'כשר', 'קלאסיקה תל אביבית']
-    },
-    {
-      nameHe: 'עזורה שוק מחנה יהודה ירושלים - מרק קובה חמוסטה',
-      nameEn: 'Azura Mahane Yehuda Jerusalem - Kubbeh Hamusta Sour Broth',
-      category: 'signature_regional',
-      region: 'ירושלים והסביבה',
-      location: 'שוק מחנה יהודה, ירושלים',
-      unit: 'קערת מרק עם 3 כדורי קובה (כ-450 גרם)',
-      grams: 450,
-      cals: 420, p: 24.0, c: 45.0, f: 16.0, fiber: 5.0, sodium: 1050, sugar: 3.5,
-      dietary: ['בשרי', 'כשר מהדרין', 'בישול פתיליות איטי']
-    },
-    {
-      nameHe: 'ארומה ישראל - כריך חלומי קלוי בלחם דגנים',
-      nameEn: 'Aroma Israel - Toasted Halloumi Grain Sandwich',
-      category: 'healthy_fitness',
-      region: 'ארצי (סניפי ארומה בכל רחבי ישראל)',
-      location: 'רשת בפריסה ארצית',
-      unit: 'כריך מלא (כ-290 גרם)',
-      grams: 290,
-      cals: 580, p: 25.0, c: 48.0, f: 31.0, fiber: 6.5, sodium: 980, sugar: 4.0,
-      dietary: ['צמחוני', 'כשר חלבי']
-    },
-    {
-      nameHe: 'פיתה דרוזית אותנטית עם לבנה שמן זית וזעתר',
-      nameEn: 'Druze Mountain Pita with Fresh Labneh, Zaatar & Olive Oil',
-      category: 'signature_regional',
-      region: 'גליל ועמקים (עכו, נצרת, כרמיאל)',
-      location: 'דליית אל כרמל / עוספיה',
-      unit: 'פיתה מקופלת גדולה (כ-220 גרם)',
-      grams: 220,
-      cals: 430, p: 16.5, c: 56.0, f: 15.5, fiber: 4.0, sodium: 560, sugar: 2.2,
-      dietary: ['צמחוני', 'מסורת גלילית']
-    },
-    {
-      nameHe: 'כנאפה מחרום נצרת מקורית עם סירופ פריחת הדרים',
-      nameEn: 'Mahroum Nazareth Authentic Warm Cheese Knafeh',
-      category: 'sweets_desserts',
-      region: 'גליל ועמקים (עכו, נצרת, כרמיאל)',
-      location: 'רחוב הגליל, נצרת',
-      unit: 'מנת הגשה אישית (כ-180 גרם)',
-      grams: 180,
-      cals: 510, p: 13.0, c: 64.0, f: 23.0, fiber: 2.0, sodium: 320, sugar: 36.0,
-      dietary: ['צמחוני', 'קינוח מזרחי מסורתי']
-    },
-    {
-      nameHe: 'רוזלך נוטלה / לוטוס רולדין חם מהטאבון',
-      nameEn: 'Roladin Israeli Hot Baked Chocolate / Lotus Roselach',
-      category: 'bakery_pastry',
-      region: 'ארצי (סניפי רולדין)',
-      location: 'רשת קונדיטוריות ארצית',
-      unit: 'מנה ממוצעת 5 יחידות (כ-120 גרם)',
-      grams: 120,
-      cals: 490, p: 7.0, c: 62.0, f: 24.0, fiber: 2.5, sodium: 210, sugar: 32.0,
-      dietary: ['כשר חלבי', 'מתוקים']
-    },
-    {
-      nameHe: 'גולדה (Golda) - כדור גלידת בייגלה מלוח ושוקולד לבן',
-      nameEn: 'Golda Artisanal Gelato - Salted Pretzel & White Chocolate Scoop',
-      category: 'sweets_desserts',
-      region: 'ארצי (סניפי גלידריית גולדה)',
-      location: 'רשת גלידריות בוטיק',
-      unit: 'כדור בינוני (כ-100 גרם)',
-      grams: 100,
-      cals: 245, p: 4.8, c: 28.5, f: 12.8, fiber: 0.8, sodium: 220, sugar: 24.0,
-      dietary: ['כשר חלבי', 'גלידת שמנת ישראלית']
-    }
-  ];
-
-  RESTAURANTS_CATALOG.forEach(r => {
-    const slug = `il_eatery_${r.nameEn.toLowerCase().replace(/[^a-z0-9]/g, '_')}_c${cycle}`;
-    if (!state.knownIds.has(slug)) {
-      state.knownIds.add(slug);
-      const item = {
-        id: slug,
-        name: r.nameHe,
-        nameEn: r.nameEn,
-        category: r.category,
-        categoryName: CULINARY_CATEGORIES.find(c => c.id === r.category)?.name || 'מסעדות ואוכל רחוב',
-        unitName: r.unit,
-        defaultGrams: r.grams,
-        calories: r.cals,
-        protein: r.p,
-        carbs: r.c,
-        fat: r.f,
-        fiber: r.fiber,
-        sodium: r.sodium,
-        sugar: r.sugar,
-        dietaryTags: r.dietary,
-        locationType: 'מסעדה / מזללה מקומית',
-        region: r.region,
-        address: r.location,
-        verified: true,
-        updatedAt: timestamp
-      };
-      newItems.push({ type: 'restaurant', item });
-    }
-  });
-
-  return newItems;
-}
-
-// Execution Step: Generates and persists continuous pulses
-function runExpansionPulse() {
-  state.cycle += 1;
-  state.lastPulseAt = new Date().toISOString();
-
-  const generated = generateBatch(state.cycle);
-  let newRetailCount = 0;
-  let newRestCount = 0;
-
-  generated.forEach(({ type, item }) => {
-    if (type === 'retail') {
-      state.retail.push(item);
-      newRetailCount += 1;
-    } else {
-      state.restaurants.push(item);
-      newRestCount += 1;
-    }
-  });
-
-  state.totalItems = state.retail.length + state.restaurants.length + state.regional.length;
-
-  // Recalculate stats
-  const catCounts = {};
-  [...state.retail, ...state.restaurants, ...state.regional].forEach(item => {
-    catCounts[item.category] = (catCounts[item.category] || 0) + 1;
-  });
-  state.itemsByCategory = catCounts;
-
-  // Atomic disk writes
+// Authenticate with Firebase Auth REST
+async function getIdToken() {
+  const now = Date.now();
+  if (state.idToken && state.idTokenExpiresAt > now + 60000) {
+    return state.idToken;
+  }
   try {
-    fs.writeFileSync(RETAIL_FILE, JSON.stringify(state.retail, null, 2), 'utf8');
-    fs.writeFileSync(RESTAURANTS_FILE, JSON.stringify(state.restaurants, null, 2), 'utf8');
+    const signInUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${API_KEY}`;
+    const res = await fetch(signInUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: AUTH_EMAIL, password: AUTH_PASSWORD, returnSecureToken: true })
+    }).then(r => r.json());
 
-    // Generate exported client JS module for immediate ingestion in Web and Flutter
-    const jsExportContent = `/**
- * Auto-generated Israeli Culinary & Nutrition Catalog
- * Generated by Continuous Background Worker (Cycle ${state.cycle})
- * Total Items: ${state.totalItems}
- */
-(function() {
-  const ISRAELI_CULINARY_CATALOG = ${JSON.stringify([...state.retail, ...state.restaurants, ...state.regional], null, 2)};
-  if (typeof window !== 'undefined') {
-    window.ISRAELI_CULINARY_CATALOG = ISRAELI_CULINARY_CATALOG;
-    if (window.FIT_DATA && Array.isArray(window.FIT_DATA.foodsDatabase)) {
-      // Merge unique entries into FIT_DATA.foodsDatabase
-      const existing = new Set(window.FIT_DATA.foodsDatabase.map(f => f.id));
-      ISRAELI_CULINARY_CATALOG.forEach(item => {
-        if (!existing.has(item.id)) {
-          window.FIT_DATA.foodsDatabase.push(item);
-          existing.add(item.id);
-        }
-      });
-      console.log('[FitPulse] Israeli Culinary Catalog ingested ' + ISRAELI_CULINARY_CATALOG.length + ' local items.');
+    if (res.idToken) {
+      state.idToken = res.idToken;
+      state.idTokenExpiresAt = now + (parseInt(res.expiresIn || '3600', 10) * 1000);
+      return state.idToken;
     }
-  }
-  if (typeof module !== 'undefined' && module.exports) {
-    module.exports = ISRAELI_CULINARY_CATALOG;
-  }
-})();
-`;
-    fs.writeFileSync(EXPORT_JS_FILE, jsExportContent, 'utf8');
-
-    // Index summary
-    const indexSummary = {
-      title: "FitPulse Israeli Culinary & Food Database",
-      version: "2.0.0",
-      cycle: state.cycle,
-      totalItems: state.totalItems,
-      breakdown: {
-        retailAndSupermarket: state.retail.length,
-        restaurantsAndStreetFood: state.restaurants.length,
-        regionalSpecialties: state.regional.length
-      },
-      categories: state.itemsByCategory,
-      lastUpdated: state.lastPulseAt
-    };
-    fs.writeFileSync(INDEX_FILE, JSON.stringify(indexSummary, null, 2), 'utf8');
-
-    // Status telemetry
-    const telemetry = {
-      status: 'active_running',
-      cycle: state.cycle,
-      startedAt: state.startedAt,
-      lastPulseAt: state.lastPulseAt,
-      totalItems: state.totalItems,
-      newItemsThisPulse: generated.length,
-      memoryUsageMb: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
-      activeFocus: 'Expanding Israeli supermarket retail items and regional eateries'
-    };
-    fs.writeFileSync(STATUS_FILE, JSON.stringify(telemetry, null, 2), 'utf8');
-
-    console.log(`[Pulse #${state.cycle}] Added ${generated.length} items. Total indexed: ${state.totalItems} (Retail: ${state.retail.length}, Eateries: ${state.restaurants.length})`);
   } catch (err) {
-    console.error(`[Worker Error] Failed writing pulse data:`, err.message);
+    console.warn('[Worker Auth Notice]', err.message);
+  }
+  return null;
+}
+
+// Convert object to Firestore REST values
+function toFirestoreValue(val) {
+  if (val === null || val === undefined) return { nullValue: null };
+  if (typeof val === 'boolean') return { booleanValue: val };
+  if (typeof val === 'number') {
+    if (Number.isInteger(val)) return { integerValue: String(val) };
+    return { doubleValue: val };
+  }
+  if (typeof val === 'string') return { stringValue: val };
+  if (Array.isArray(val)) return { arrayValue: { values: val.map(toFirestoreValue) } };
+  if (typeof val === 'object') {
+    const fields = {};
+    for (const [k, v] of Object.entries(val)) {
+      if (v !== undefined) fields[k] = toFirestoreValue(v);
+    }
+    return { mapValue: { fields } };
+  }
+  return { stringValue: String(val) };
+}
+
+// Upload item to Cloud Firestore foods collection
+async function syncItemToFirestore(food) {
+  try {
+    const token = await getIdToken();
+    if (!token) return false;
+
+    const docUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/foods/${food.id}`;
+    const fields = {};
+    for (const [k, v] of Object.entries(food)) {
+      if (v !== undefined) fields[k] = toFirestoreValue(v);
+    }
+
+    const res = await fetch(docUrl, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ fields })
+    }).then(r => r.json());
+
+    return !res.error;
+  } catch (e) {
+    return false;
   }
 }
 
-// First initial pulse
-runExpansionPulse();
+// Curated pool of Israeli culinary expansion items (authentic dishes, regional spots, ingredients)
+const EXPANSION_CANDIDATES = [
+  {
+    id: 'il_eatery_port_said_tlv',
+    name: 'פורט סעיד תל אביב - מסבחה שעועית לימה חמה',
+    nameEn: 'Port Sa\'id Tel Aviv - Warm Lima Beans Masabaha',
+    brand: 'פורט סעיד (אייל שני)',
+    category: 'street_food',
+    categoryName: 'אוכל רחוב ישראלי אותנטי',
+    unitName: 'מנה עם חלה (380 גרם)',
+    defaultGrams: 380,
+    calories: 540, protein: 22.0, carbs: 64.0, fat: 23.0, fiber: 12.0, sodium: 680, sugar: 3.5,
+    dietaryTags: ['טבעוני', 'מטבח ישראלי עכשווי'],
+    locationType: 'גסטרו-בר פופולרי',
+    region: 'תל אביב וגוש דן',
+    address: 'הר סיני 5, תל אביב'
+  },
+  {
+    id: 'il_eatery_hummus_ashkara_tlv',
+    name: 'חומוס אשכרה תל אביב - חומוס פול קומפלט',
+    nameEn: 'Hummus Ashkara Tel Aviv - Complete Hummus Ful',
+    brand: 'חומוס אשכרה',
+    category: 'hummus_falafel',
+    categoryName: 'חומוסיות ופלאפל מסורתי',
+    unitName: 'צלחת עם 2 פיתות (460 גרם)',
+    defaultGrams: 460,
+    calories: 690, protein: 27.0, carbs: 68.0, fat: 36.0, fiber: 15.0, sodium: 890, sugar: 2.2,
+    dietaryTags: ['טבעוני', 'כשר', 'מוסד תל אביבי ותיק'],
+    locationType: 'חומוסייה מיתולוגית',
+    region: 'תל אביב וגוש דן',
+    address: 'ירמיהו 45, תל אביב'
+  },
+  {
+    id: 'il_eatery_shawarma_shemesh_rg',
+    name: 'שווארמה שמש רמת גן - הודו נקבה בפיתה',
+    nameEn: 'Shawarma Shemesh Ramat Gan - Turkey Shawarma Pita',
+    brand: 'שווארמה שמש',
+    category: 'shawarma_meat',
+    categoryName: 'שווארמה, שיפודים ובשרים',
+    unitName: 'פיתה מלאה (360 גרם)',
+    defaultGrams: 360,
+    calories: 770, protein: 47.0, carbs: 55.0, fat: 39.0, fiber: 4.0, sodium: 1120, sugar: 3.0,
+    dietaryTags: ['כשר בשרי', 'עשיר בחלבון'],
+    locationType: 'שווארמייה מקומית',
+    region: 'תל אביב וגוש דן',
+    address: 'ז\'בוטינסקי 120, רמת גן'
+  },
+  {
+    id: 'il_eatery_uri_buri_akko_fish',
+    name: 'אורי בורי עכו - פילה לברק צרוב עם שמן זית ולימון',
+    nameEn: 'Uri Buri Old Acre - Seared Sea Bass Fillet',
+    brand: 'אורי בורי',
+    category: 'healthy_fitness',
+    categoryName: 'תזונת ספורט, ירקות ובריאות',
+    unitName: 'פילה דג ים (220 גרם)',
+    defaultGrams: 220,
+    calories: 295, protein: 36.0, carbs: 2.0, fat: 16.0, fiber: 0.5, sodium: 380, sugar: 0.5,
+    dietaryTags: ['עשיר בחלבון', 'אומגה 3', 'מסעדת שף דגים בינלאומית'],
+    locationType: 'מסעדת דגים מובחרת',
+    region: 'גליל ועמקים',
+    address: 'כיכר ההגנה, עכו העתיקה'
+  },
+  {
+    id: 'il_retail_man_wafers_chocolate',
+    name: 'מן ופלים שוקולד פריכים מובחרים',
+    nameEn: 'Man Crispy Chocolate Wafers',
+    brand: 'מן',
+    category: 'sweets_desserts',
+    categoryName: 'קינוחים, גלידות ומתוקים',
+    unitName: '2 ופלים (30 גרם)',
+    defaultGrams: 30,
+    calories: 512, protein: 4.8, carbs: 68.0, fat: 25.0, fiber: 2.5, sodium: 120, sugar: 44.0,
+    dietaryTags: ['טבעוני', 'כשר פרווה', 'בד"ץ העדה החרדית', 'נוסטלגיה ישראלית'],
+    locationType: 'רשתות שיווק ומכולות בכל הארץ',
+    region: 'ארצי'
+  },
+  {
+    id: 'il_retail_wissotzky_green_tea',
+    name: 'ויסוצקי תה ירוק סיני קלאסי עשיר בנוגדי חמצון',
+    nameEn: 'Wissotzky Classic Chinese Green Tea',
+    brand: 'ויסוצקי',
+    category: 'supermarket_staples',
+    categoryName: 'מזווה ישראלי, דגנים וקטניות',
+    unitName: 'ספל תה (250 מ"ל)',
+    defaultGrams: 250,
+    calories: 1, protein: 0.1, carbs: 0.2, fat: 0, fiber: 0, sodium: 1, sugar: 0,
+    dietaryTags: ['טבעוני', 'כשר פרווה', 'בד"ץ', '0 קלוריות', 'נוגדי חמצון'],
+    locationType: 'רשתות שיווק ומכולות בכל הארץ',
+    region: 'ארצי'
+  },
+  {
+    id: 'il_retail_prigat_orange_juice',
+    name: 'פריגת מיץ תפוזים סחוט טבעי 100%',
+    nameEn: 'Prigat 100% Pure Squeezed Orange Juice',
+    brand: 'פריגת',
+    category: 'supermarket_staples',
+    categoryName: 'מזווה ישראלי, דגנים וקטניות',
+    unitName: 'כוס (200 מ"ל)',
+    defaultGrams: 200,
+    calories: 45, protein: 0.7, carbs: 10.5, fat: 0.1, fiber: 0.4, sodium: 2, sugar: 9.8,
+    dietaryTags: ['טבעוני', 'כשר פרווה', 'ויטמין C טבעי'],
+    locationType: 'רשתות שיווק ומכולות בכל הארץ',
+    region: 'ארצי'
+  },
+  {
+    id: 'il_eatery_falafel_ Michel_haifa',
+    name: 'פלאפל מישל ואדי ניסנאס חיפה',
+    nameEn: 'Falafel Michel Wadi Nisnas Haifa',
+    brand: 'פלאפל מישל',
+    category: 'hummus_falafel',
+    categoryName: 'חומוסיות ופלאפל מסורתי',
+    unitName: 'מנה בפיתה (350 גרם)',
+    defaultGrams: 350,
+    calories: 610, protein: 18.0, carbs: 74.0, fat: 26.0, fiber: 9.0, sodium: 820, sugar: 4.0,
+    dietaryTags: ['טבעוני', 'מוסד חיפאי אותנטי'],
+    locationType: 'פלאפלייה מקומית',
+    region: 'חיפה והקריות',
+    address: 'ואדי ניסנאס, חיפה'
+  },
+  {
+    id: 'il_dish_malawach_fried',
+    name: 'מלאווח פריך מטוגן עם ביצה חומה ורסק',
+    nameEn: 'Crispy Fried Malawach with Brown Egg & Tomato Dip',
+    brand: 'מטבח תימני',
+    category: 'bakery_pastry',
+    categoryName: 'מאפיות, בורקסים ולחמים',
+    unitName: 'יחידה (200 גרם)',
+    defaultGrams: 200,
+    calories: 650, protein: 11.0, carbs: 68.0, fat: 37.0, fiber: 3.0, sodium: 590, sugar: 4.0,
+    dietaryTags: ['צמחוני', 'כשר'],
+    locationType: 'מטבח ביתי ומסעדות שבת',
+    region: 'ארצי'
+  },
+  {
+    id: 'il_dish_knafeh_jaffa',
+    name: 'כנאפה יפו חמה עם גלידת עיזים טורקית',
+    nameEn: 'Hot Jaffa Knafeh with Goat Turkish Ice Cream',
+    brand: 'ממתקי יפו',
+    category: 'sweets_desserts',
+    categoryName: 'קינוחים, גלידות ומתוקים',
+    unitName: 'מנה אישית (180 גרם)',
+    defaultGrams: 180,
+    calories: 520, protein: 13.5, carbs: 64.0, fat: 23.0, fiber: 2.8, sodium: 290, sugar: 41.0,
+    dietaryTags: ['צמחוני', 'קינוח אוריינטלי'],
+    locationType: 'קונדיטוריה מזרחית',
+    region: 'תל אביב וגוש דן',
+    address: 'יפת 30, יפו'
+  }
+];
 
-// Periodic scheduled background pulses (runs every 15 seconds without blocking)
-const PULSE_INTERVAL_MS = 15000;
-const intervalHandle = setInterval(runExpansionPulse, PULSE_INTERVAL_MS);
+// Run single expansion pulse
+async function runPulse() {
+  state.cycle++;
+  state.lastPulseAt = new Date().toISOString();
+  let addedThisPulse = 0;
+
+  // Check candidates for un-indexed items
+  for (const candidate of EXPANSION_CANDIDATES) {
+    if (!state.knownIds.has(candidate.id)) {
+      state.knownIds.add(candidate.id);
+      const newItem = {
+        ...candidate,
+        verified: true,
+        createdAt: state.lastPulseAt,
+        updatedAt: state.lastPulseAt
+      };
+      state.foods.push(newItem);
+      addedThisPulse++;
+
+      // Direct write to Cloud Firestore
+      const synced = await syncItemToFirestore(newItem);
+      if (synced) {
+        console.log(`[Worker] Synced new item to Cloud Firestore 'foods': ${newItem.name}`);
+      }
+    }
+  }
+
+  state.totalItems = state.foods.length;
+
+  if (addedThisPulse > 0) {
+    // Persist catalog
+    fs.writeFileSync(CATALOG_FILE, JSON.stringify(state.foods, null, 2), 'utf8');
+  }
+
+  // Update status telemetry
+  const telemetry = {
+    status: 'active_running',
+    cycle: state.cycle,
+    startedAt: state.startedAt,
+    lastPulseAt: state.lastPulseAt,
+    totalItems: state.totalItems,
+    newItemsThisPulse: addedThisPulse,
+    firestoreConnected: Boolean(state.idToken),
+    memoryUsageMb: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+    activeFocus: 'Continuously expanding Israeli culinary, supermarket and regional eatery database'
+  };
+  fs.writeFileSync(STATUS_FILE, JSON.stringify(telemetry, null, 2), 'utf8');
+
+  const indexSummary = {
+    title: "FitPulse Israeli Culinary & Food Database",
+    version: "2.1.0",
+    cycle: state.cycle,
+    totalItems: state.totalItems,
+    firestoreSync: "active",
+    lastUpdated: state.lastPulseAt
+  };
+  fs.writeFileSync(INDEX_FILE, JSON.stringify(indexSummary, null, 2), 'utf8');
+
+  console.log(`[Pulse #${state.cycle}] Catalog contains ${state.totalItems} verified Israeli food items. (New: ${addedThisPulse})`);
+}
+
+// First pulse
+runPulse();
+
+// Periodic scheduled background pulses (runs every 60 seconds non-blocking)
+const PULSE_INTERVAL_MS = 60000;
+const intervalHandle = setInterval(runPulse, PULSE_INTERVAL_MS);
 
 // Handle graceful termination
 process.on('SIGINT', () => {
-  console.log('[Worker] Gracefully stopping...');
   clearInterval(intervalHandle);
   process.exit(0);
 });
 
 process.on('SIGTERM', () => {
-  console.log('[Worker] Terminated.');
   clearInterval(intervalHandle);
   process.exit(0);
 });

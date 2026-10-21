@@ -4,7 +4,7 @@
   "month": "2026-10",
   "year": 2026,
   "monthNumber": 10,
-  "totalReports": 19,
+  "totalReports": 20,
   "workoutsCompleted": 13,
   "reports": [
     {
@@ -3404,6 +3404,81 @@
           ]
         }
       ],
+      "coachFeedback": null,
+      "autoClosedNote": "הדוח נסגר אוטומטית בחצות בסוף היום ונשמר במסד הנתונים."
+    },
+    {
+      "id": "client_1_2026-10-20",
+      "traineeId": "client_1",
+      "date": "2026-10-20",
+      "status": "auto_closed",
+      "createdAt": "2026-10-19T22:20:25.866Z",
+      "updatedAt": "2026-10-21T22:41:46.431Z",
+      "finalizedAt": "2026-10-20T23:59:59.000Z",
+      "metrics": {
+        "morningWeightKg": null,
+        "sleepHours": 7.5,
+        "sleepQuality": 8,
+        "waterMl": 2500,
+        "steps": 9000,
+        "energyLevel": 4,
+        "hungerLevel": 2,
+        "stressLevel": 2,
+        "digestion": "good",
+        "traineeNotes": ""
+      },
+      "nutrition": {
+        "totalCalories": 1650.2,
+        "totalProtein": 76.94,
+        "totalCarbs": 91.945,
+        "totalFat": 106.25,
+        "totalFiber": 30,
+        "totalSodium": 2100,
+        "targetCalories": 2250,
+        "targetProtein": 165,
+        "meals": [
+          {
+            "id": "1792448425205-kbl6s4",
+            "loggedAt": "2026-10-19T22:20:25.205Z",
+            "time": "01:20",
+            "name": "McDonald's Big Mac",
+            "amount": 215,
+            "unitName": "גרם",
+            "calories": 550.4,
+            "protein": 24.939999999999998,
+            "carbs": 44.934999999999995,
+            "fat": 30.099999999999998,
+            "source": "Branded reference estimate; check the current package label."
+          },
+          {
+            "id": "1792448426473-8m5ryq",
+            "loggedAt": "2026-10-19T22:20:26.473Z",
+            "time": "01:20",
+            "name": "McDonald's Chicken McNuggets",
+            "amount": 160,
+            "unitName": "גרם",
+            "calories": 420.8,
+            "protein": 24,
+            "carbs": 24.96,
+            "fat": 24,
+            "source": "Branded reference estimate; check the current package label."
+          },
+          {
+            "id": "1792448427196-uigmms",
+            "loggedAt": "2026-10-19T22:20:27.196Z",
+            "time": "01:20",
+            "name": "Halloumi Salad with Dressing",
+            "amount": 350,
+            "unitName": "גרם",
+            "calories": 679,
+            "protein": 28,
+            "carbs": 22.05,
+            "fat": 52.15,
+            "source": "Restaurant recipe estimate; ingredients and portions vary."
+          }
+        ]
+      },
+      "workouts": [],
       "coachFeedback": null,
       "autoClosedNote": "הדוח נסגר אוטומטית בחצות בסוף היום ונשמר במסד הנתונים."
     }

@@ -240,7 +240,12 @@
   }
 
   function getUserRole() {
-    return state.currentUser?.role || (String(state.profile.role || '').trim().toLowerCase() === 'trainer_admin' ? 'coach' : 'trainee');
+    const domain = window.FitPulseDomain;
+    const raw = state.currentUser?.role || state.profile.role;
+    if (domain && typeof domain.normalizeRole === 'function') {
+      return domain.normalizeRole(raw, String(raw || '').toLowerCase() === 'trainer_admin');
+    }
+    return String(raw || '').trim().toLowerCase() === 'trainer_admin' ? 'coach' : (raw || 'trainee');
   }
 
   function isManagerRole() {
@@ -413,10 +418,73 @@
     });
     state.nutritionLogs[state.currentDate] = [...todayMeals(), meal];
     if (!writeStorage(STORAGE_KEYS.nutrition, state.nutritionLogs)) return false;
+    persistPersonalFoodLog(meal);
     renderNutrition();
     renderDashboard();
     syncDailyReportDraft();
     return true;
+  }
+
+  function persistPersonalFoodLog(meal) {
+    const fb = window.FitPulseFirebase;
+    if (!fb?.addPersonalFoodLog || typeof fb.currentUid !== 'function' || !fb.currentUid()) return;
+    const grams = Number(meal.grams || meal.amount);
+    if (!Number.isFinite(grams) || grams <= 0) return;
+    fb.addPersonalFoodLog({
+      logDate: state.currentDate,
+      foodId: meal.foodId || meal.barcode || null,
+      name: meal.name,
+      grams,
+      calories: meal.calories,
+      protein: meal.protein,
+      carbs: meal.carbs,
+      fat: meal.fat,
+      source: String(meal.source || 'personal-diary').slice(0, 300)
+    }).catch(err => console.warn('[FitPulse] foodLogs sync notice:', err.message));
+  }
+
+  function getAuthUserId() {
+    return window.FitPulseFirebase?.currentUid?.() || state.currentUser?.uid || state.currentUser?.id || null;
+  }
+
+  function firestoreFoodToLocal(doc) {
+    if (!doc) return null;
+    const macros = doc.macrosPer100g || {};
+    const calories = Number(doc.calories ?? macros.calories);
+    const protein = Number(doc.protein ?? macros.protein);
+    const carbs = Number(doc.carbs ?? macros.carbs);
+    const fat = Number(doc.fat ?? macros.fats ?? macros.fat);
+    if (!doc.name || !Number.isFinite(calories)) return null;
+    return {
+      id: doc.barcode || doc.id,
+      barcode: doc.barcode || doc.id,
+      name: doc.name,
+      brand: doc.brand || '',
+      category: doc.category || 'scanned',
+      categoryName: doc.categoryName || (doc.brand ? `מאגר שיתופי · ${doc.brand}` : 'מאגר מזון שיתופי'),
+      defaultGrams: Number(doc.defaultGrams) || 100,
+      unitName: doc.servingSize || doc.unitName || '100g',
+      calories,
+      protein: Number.isFinite(protein) ? protein : 0,
+      carbs: Number.isFinite(carbs) ? carbs : 0,
+      fat: Number.isFinite(fat) ? fat : 0,
+      icon: '📦',
+      source: doc.source === 'manual'
+        ? 'Crowdsourced Food Database (manual)'
+        : (doc.source === 'scraped' ? 'Crowdsourced Food Database (scraped)' : (doc.source || 'Cloud Firestore foods collection')),
+      crowdsourced: Boolean(doc.macrosPer100g)
+    };
+  }
+
+  function cacheLocalFood(food) {
+    if (!food?.id) return;
+    const cachedIndex = state.scannedFoods.findIndex(item => item.id === food.id || item.barcode === food.barcode);
+    if (cachedIndex >= 0) state.scannedFoods[cachedIndex] = food;
+    else state.scannedFoods.push(food);
+    writeStorage(STORAGE_KEYS.scannedFoods, state.scannedFoods);
+    const catalogIndex = FIT_DATA.foodsDatabase.findIndex(item => item.id === food.id);
+    if (catalogIndex >= 0) FIT_DATA.foodsDatabase[catalogIndex] = food;
+    else FIT_DATA.foodsDatabase.push(food);
   }
 
   function renderDashboard() {
@@ -1353,39 +1421,345 @@
     }
   }
 
-  async function addScannedBarcode(barcode) {
-    const status = byId('barcodeScannerStatus');
-    if (status) status.textContent = `מחפש מוצר ${barcode} ב־Open Food Facts…`;
+  function setBarcodeEditorError(message) {
+    const errorEl = byId('barcodeFoodEditorError');
+    if (!errorEl) return;
+    errorEl.hidden = !message;
+    errorEl.textContent = message || '';
+  }
+
+  function openBarcodeFoodEditor(options = {}) {
+    const dialog = byId('barcodeFoodEditorDialog');
+    if (!dialog) return;
+    dialog.hidden = false;
+    const loading = byId('barcodeFoodEditorLoading');
+    const form = byId('barcodeFoodEditorForm');
+    if (loading) loading.hidden = !options.loading;
+    if (form) form.hidden = Boolean(options.loading);
+    if (byId('barcodeFoodEditorTitle')) {
+      byId('barcodeFoodEditorTitle').textContent = options.title || 'אישור מוצר';
+    }
+    if (byId('barcodeFoodEditorEyebrow')) {
+      byId('barcodeFoodEditorEyebrow').textContent = options.eyebrow || 'מאגר מזון שיתופי';
+    }
+    if (byId('barcodeFoodEditorHint')) {
+      byId('barcodeFoodEditorHint').textContent = options.hint || 'בדקו את הערכים ל־100 גרם לפני הוספה ליומן ולמאגר.';
+    }
+    if (options.loading) return;
+    byId('barcodeFoodCodeField').value = options.barcode || '';
+    byId('barcodeFoodCodeField').readOnly = Boolean(options.barcode);
+    byId('barcodeFoodNameField').value = options.name || '';
+    byId('barcodeFoodBrandField').value = options.brand || '';
+    byId('barcodeFoodCaloriesField').value = options.calories ?? '';
+    byId('barcodeFoodProteinField').value = options.protein ?? '';
+    byId('barcodeFoodCarbsField').value = options.carbs ?? '';
+    byId('barcodeFoodFatsField').value = options.fats ?? options.fat ?? '';
+    byId('barcodeFoodGramsField').value = options.grams || 100;
+    byId('barcodeFoodSourceField').value = options.source || 'manual';
+    if (form) form.dataset.exists = options.exists ? '1' : '';
+    if (byId('barcodeFoodSaveBtn')) {
+      byId('barcodeFoodSaveBtn').textContent = options.exists
+        ? 'הוספה ליומן הארוחות'
+        : 'אישור, שמירה למאגר והוספה ליומן';
+    }
+    setBarcodeEditorError('');
+  }
+
+  function closeBarcodeFoodEditor() {
+    const dialog = byId('barcodeFoodEditorDialog');
+    if (dialog) dialog.hidden = true;
+  }
+
+  function readNumberFromText(text, patterns) {
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match) {
+        const value = Number(String(match[1]).replace(',', '.'));
+        if (Number.isFinite(value) && value >= 0) return value;
+      }
+    }
+    return null;
+  }
+
+  function parseNutritionFromHtml(html, pageUrl) {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const jsonBlocks = [...doc.querySelectorAll('script[type="application/ld+json"]')]
+      .map(node => {
+        try { return JSON.parse(node.textContent || ''); } catch (e) { return null; }
+      })
+      .filter(Boolean);
+    const stack = [...jsonBlocks];
+    let nutrition = null;
+    let name = '';
+    let brand = '';
+    while (stack.length) {
+      const node = stack.shift();
+      if (Array.isArray(node)) {
+        stack.push(...node);
+        continue;
+      }
+      if (!node || typeof node !== 'object') continue;
+      if (node['@graph']) stack.push(node['@graph']);
+      if (!name && (node.name || node.headline)) name = String(node.name || node.headline);
+      if (!brand && node.brand) {
+        brand = typeof node.brand === 'string' ? node.brand : String(node.brand.name || '');
+      }
+      const info = node.nutrition || node.nutritionInformation;
+      if (info && typeof info === 'object') nutrition = info;
+      Object.values(node).forEach(value => {
+        if (value && typeof value === 'object') stack.push(value);
+      });
+    }
+    const calories = nutrition
+      ? Number(String(nutrition.calories || nutrition.energy || '').replace(/[^\d.,]/g, '').replace(',', '.'))
+      : null;
+    const protein = nutrition ? Number(String(nutrition.proteinContent || '').replace(/[^\d.,]/g, '').replace(',', '.')) : null;
+    const carbs = nutrition ? Number(String(nutrition.carbohydrateContent || nutrition.carbohydrate || '').replace(/[^\d.,]/g, '').replace(',', '.')) : null;
+    const fats = nutrition ? Number(String(nutrition.fatContent || nutrition.fat || '').replace(/[^\d.,]/g, '').replace(',', '.')) : null;
+    const text = `${doc.querySelector('title')?.textContent || ''} ${doc.body?.innerText || ''}`.replace(/\s+/g, ' ');
+    const parsed = {
+      name: name || String(doc.querySelector('meta[property="og:title"]')?.getAttribute('content') || '').trim(),
+      brand,
+      calories: Number.isFinite(calories) ? calories : readNumberFromText(text, [
+        /(?:calories|energy|קלוריות|אנרגיה)\D{0,12}(\d+[\.,]?\d*)/i,
+        /(\d+[\.,]?\d*)\s*(?:kcal|קק״ל|קלוריות)/i
+      ]),
+      protein: Number.isFinite(protein) ? protein : readNumberFromText(text, [
+        /(?:protein|חלבונים|חלבון)\D{0,12}(\d+[\.,]?\d*)/i
+      ]),
+      carbs: Number.isFinite(carbs) ? carbs : readNumberFromText(text, [
+        /(?:carbohydrate|carb|פחמימות)\D{0,12}(\d+[\.,]?\d*)/i
+      ]),
+      fats: Number.isFinite(fats) ? fats : readNumberFromText(text, [
+        /(?:fat|שומנים|שומן)\D{0,12}(\d+[\.,]?\d*)/i
+      ]),
+      sourceUrl: pageUrl
+    };
+    const macrosOk = [parsed.calories, parsed.protein, parsed.carbs, parsed.fats]
+      .every(value => Number.isFinite(value) && value >= 0);
+    if (!parsed.name || !macrosOk) return null;
+    return parsed;
+  }
+
+  async function scrapeNutritionFromUrl(url) {
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 8000);
     try {
-      const response = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}.json?fields=product_name,product_name_en,brands,categories,generic_name,_keywords,nutriments`);
-      if (!response.ok) throw new Error(`Open Food Facts returned HTTP ${response.status}.`);
-      const result = await response.json();
-      if (result.status !== 1 || !result.product) {
-        if (status) status.textContent = 'המוצר לא נמצא. בדקו את הברקוד או הזינו את המזון בחיפוש.';
-        return;
+      const response = await fetch(url, { signal: controller.signal, mode: 'cors' });
+      if (!response.ok) return null;
+      const contentType = String(response.headers.get('content-type') || '');
+      if (contentType.includes('application/json')) {
+        const json = await response.json();
+        const name = json.name || json.product_name || json.title;
+        const macros = json.macrosPer100g || json.nutrition || json.nutriments || {};
+        const parsed = {
+          name,
+          brand: json.brand || json.brands || '',
+          calories: Number(macros.calories ?? macros['energy-kcal_100g'] ?? json.calories),
+          protein: Number(macros.protein ?? macros.proteins_100g ?? json.protein),
+          carbs: Number(macros.carbs ?? macros.carbohydrates_100g ?? json.carbs),
+          fats: Number(macros.fats ?? macros.fat ?? macros.fat_100g ?? json.fat)
+        };
+        if (!parsed.name || ![parsed.calories, parsed.protein, parsed.carbs, parsed.fats].every(Number.isFinite)) {
+          return null;
+        }
+        return parsed;
       }
-      const food = normalizeScannedProduct(barcode, result.product);
-      if (!food) {
-        if (status) status.textContent = 'המוצר נמצא, אך חסרים שם מוצר או ערך קלורי ל־100 גרם.';
-        return;
-      }
-      const cachedIndex = state.scannedFoods.findIndex(item => item.barcode === barcode);
-      if (cachedIndex >= 0) state.scannedFoods[cachedIndex] = food;
-      else state.scannedFoods.push(food);
-      if (!writeStorage(STORAGE_KEYS.scannedFoods, state.scannedFoods)) return;
-      const catalogIndex = FIT_DATA.foodsDatabase.findIndex(item => item.id === food.id);
-      if (catalogIndex >= 0) FIT_DATA.foodsDatabase[catalogIndex] = food;
-      else FIT_DATA.foodsDatabase.push(food);
-      state.foodQuery = '';
-      state.foodCategory = 'all';
-      if (status) status.textContent = `${food.name} נמצא. מוסיף 100 גרם ליומן…`;
-      if (addFoodToLog(food, 100, { source: food.source })) {
-        stopBarcodeScanner();
-        byId('barcodeScannerDialog').hidden = true;
-      }
+      const html = await response.text();
+      return parseNutritionFromHtml(html, url);
     } catch (error) {
-      console.error('Could not retrieve barcode product details from Open Food Facts.', error);
-      if (status) status.textContent = 'לא ניתן להתחבר למאגר המזון. בדקו את החיבור ונסו שוב.';
+      console.warn('[FitPulse] Nutrition scrape skipped:', error.message);
+      return null;
+    } finally {
+      window.clearTimeout(timer);
+    }
+  }
+
+  async function lookupOpenFoodFacts(barcode) {
+    const response = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}.json?fields=product_name,product_name_en,brands,categories,generic_name,_keywords,nutriments`);
+    if (!response.ok) return null;
+    const result = await response.json();
+    if (result.status !== 1 || !result.product) return null;
+    return normalizeScannedProduct(barcode, result.product);
+  }
+
+  async function resolveScannedCode(rawValue) {
+    const domain = window.FitPulseDomain || {};
+    const parsed = typeof domain.parseScanPayload === 'function'
+      ? domain.parseScanPayload(rawValue)
+      : { raw: String(rawValue || ''), barcode: String(rawValue || '').trim(), sourceUrl: '' };
+    const status = byId('barcodeScannerStatus');
+    if (!parsed.barcode) {
+      if (status) status.textContent = 'הסריקה לא זוהתה כברקוד או קישור קריא.';
+      openBarcodeFoodEditor({
+        title: 'הזנת מוצר חדש',
+        hint: 'הזינו ידנית את שם המוצר והערכים ל־100 גרם.',
+        source: 'manual'
+      });
+      return;
+    }
+    if (status) status.textContent = `מחפש את ${parsed.barcode} במאגר השיתופי…`;
+    openBarcodeFoodEditor({
+      loading: true,
+      title: 'בודק במאגר השיתופי',
+      hint: 'שולפים את המוצר מ־Firestore לפי מזהה הברקוד.'
+    });
+    try {
+      const existing = await window.FitPulseFirebase?.getFoodByBarcode?.(parsed.barcode);
+      const localExisting = firestoreFoodToLocal(existing);
+      if (localExisting) {
+        if (status) status.textContent = `${localExisting.name} נמצא במאגר השיתופי.`;
+        openBarcodeFoodEditor({
+          title: 'מוצר קיים במאגר',
+          hint: 'המוצר כבר במאגר השיתופי. אשרו כדי להוסיף ליומן הארוחות בלבד.',
+          exists: true,
+          source: existing.source || 'scraped',
+          barcode: localExisting.barcode,
+          name: localExisting.name,
+          brand: localExisting.brand,
+          calories: localExisting.calories,
+          protein: localExisting.protein,
+          carbs: localExisting.carbs,
+          fats: localExisting.fat,
+          grams: 100
+        });
+        return;
+      }
+
+      if (parsed.sourceUrl) {
+        if (status) status.textContent = 'המוצר חדש. מחלץ ערכים תזונתיים מהקישור…';
+        const scraped = await scrapeNutritionFromUrl(parsed.sourceUrl);
+        if (scraped) {
+          openBarcodeFoodEditor({
+            title: 'אישור מהיר אחרי חילוץ',
+            hint: 'הערכים חולצו אוטומטית. אשרו או תקנו לפני שמירה למאגר השיתופי.',
+            source: 'scraped',
+            barcode: parsed.barcode,
+            name: scraped.name,
+            brand: scraped.brand,
+            calories: scraped.calories,
+            protein: scraped.protein,
+            carbs: scraped.carbs,
+            fats: scraped.fats
+          });
+          if (status) status.textContent = 'החילוץ הצליח. ממתינים לאישור.';
+          return;
+        }
+      }
+
+      if (/^\d{8,14}$/.test(parsed.barcode)) {
+        if (status) status.textContent = 'לא נמצא במאגר. מנסה לחלץ ממאגר חיצוני…';
+        const offFood = await lookupOpenFoodFacts(parsed.barcode).catch(() => null);
+        if (offFood) {
+          openBarcodeFoodEditor({
+            title: 'אישור מהיר אחרי חילוץ',
+            hint: 'חולצו ערכים ממקור חיצוני. אשרו כדי לשמור במאגר השיתופי ולהוסיף ליומן.',
+            source: 'scraped',
+            barcode: parsed.barcode,
+            name: offFood.name,
+            brand: Array.isArray(offFood.tags) ? String(offFood.tags[0] || '') : '',
+            calories: offFood.calories,
+            protein: offFood.protein,
+            carbs: offFood.carbs,
+            fats: offFood.fat
+          });
+          return;
+        }
+      }
+
+      if (status) status.textContent = 'המוצר אינו במאגר. נדרשת הזנה ידנית.';
+      openBarcodeFoodEditor({
+        title: 'הזנת מוצר חדש',
+        hint: 'החילוץ האוטומטי לא הצליח או שאין קישור קריא. הזינו את הערכים ל־100 גרם.',
+        source: 'manual',
+        barcode: parsed.barcode
+      });
+    } catch (error) {
+      console.error('Barcode catalog lookup failed.', error);
+      if (status) status.textContent = 'שגיאה בחיפוש במאגר. ניתן להזין ידנית.';
+      openBarcodeFoodEditor({
+        title: 'הזנת מוצר חדש',
+        hint: 'לא ניתן היה לבדוק את Firestore. הזינו ידנית את פרטי המוצר.',
+        source: 'manual',
+        barcode: parsed.barcode
+      });
+    }
+  }
+
+  async function submitBarcodeFoodEditor(event) {
+    event.preventDefault();
+    const domain = window.FitPulseDomain || {};
+    const alreadyInCatalog = byId('barcodeFoodEditorForm')?.dataset.exists === '1';
+    const input = {
+      barcode: byId('barcodeFoodCodeField')?.value,
+      name: byId('barcodeFoodNameField')?.value,
+      brand: byId('barcodeFoodBrandField')?.value,
+      servingSize: '100g',
+      source: byId('barcodeFoodSourceField')?.value || 'manual',
+      gramsToLog: byId('barcodeFoodGramsField')?.value,
+      macrosPer100g: {
+        calories: byId('barcodeFoodCaloriesField')?.value,
+        protein: byId('barcodeFoodProteinField')?.value,
+        carbs: byId('barcodeFoodCarbsField')?.value,
+        fats: byId('barcodeFoodFatsField')?.value
+      }
+    };
+    const validated = typeof domain.validateCrowdsourcedFoodInput === 'function'
+      ? domain.validateCrowdsourcedFoodInput(input)
+      : { ok: false, error: 'ולידציה לא זמינה.' };
+    if (!validated.ok) {
+      setBarcodeEditorError(validated.error);
+      return;
+    }
+    const grams = Number(input.gramsToLog) || 100;
+    const saveBtn = byId('barcodeFoodSaveBtn');
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'שומר…';
+    }
+    try {
+      let food = {
+        id: validated.food.barcode,
+        barcode: validated.food.barcode,
+        name: validated.food.name,
+        brand: validated.food.brand,
+        category: 'scanned',
+        categoryName: 'מאגר מזון שיתופי',
+        defaultGrams: 100,
+        unitName: '100g',
+        calories: validated.food.macrosPer100g.calories,
+        protein: validated.food.macrosPer100g.protein,
+        carbs: validated.food.macrosPer100g.carbs,
+        fat: validated.food.macrosPer100g.fats,
+        icon: '📦',
+        source: validated.food.source === 'manual'
+          ? 'Crowdsourced Food Database (manual)'
+          : 'Crowdsourced Food Database (scraped)'
+      };
+      if (!alreadyInCatalog) {
+        if (window.FitPulseFirebase?.saveCrowdsourcedFood) {
+          await window.FitPulseFirebase.saveCrowdsourcedFood(validated.food);
+        } else {
+          throw new Error('יש להתחבר כדי לשמור למאגר השיתופי.');
+        }
+      }
+      cacheLocalFood(food);
+      if (!addFoodToLog(food, grams, { source: food.source })) {
+        setBarcodeEditorError('המוצר נשמר במאגר, אך ההוספה ליומן נכשלה.');
+        return;
+      }
+      closeBarcodeFoodEditor();
+      stopBarcodeScanner();
+      if (byId('barcodeScannerDialog')) byId('barcodeScannerDialog').hidden = true;
+      setTab('tab-nutrition');
+    } catch (error) {
+      console.error('Could not save crowdsourced food.', error);
+      setBarcodeEditorError(error.message || 'שמירת המוצר נכשלה.');
+    } finally {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = alreadyInCatalog ? 'הוספה ליומן הארוחות' : 'אישור, שמירה למאגר והוספה ליומן';
+      }
     }
   }
 
@@ -1417,22 +1791,24 @@
       const nativeFormats = 'BarcodeDetector' in window && typeof window.BarcodeDetector.getSupportedFormats === 'function'
         ? await window.BarcodeDetector.getSupportedFormats()
         : [];
-      const supportedFormats = ['ean_13', 'ean_8', 'upc_a', 'upc_e'].filter(format => nativeFormats.includes(format));
+      const preferredFormats = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'qr_code', 'code_128'];
+      const supportedFormats = preferredFormats.filter(format => nativeFormats.includes(format));
+      const isUsableScan = (value) => /^\d{8,14}$/.test(value) || /^https?:\/\//i.test(value);
       if (supportedFormats.length) {
         const detector = new window.BarcodeDetector({ formats: supportedFormats });
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } });
         video.srcObject = stream;
         await video.play();
-        if (status) status.textContent = 'מכוונים את המצלמה לברקוד EAN או UPC…';
+        if (status) status.textContent = 'מכוונים את המצלמה לברקוד או לקוד QR…';
         const scanFrame = async () => {
           if (!video.srcObject) return;
           try {
             const results = await detector.detect(video);
             if (results.length) {
-              const barcode = results[0].rawValue;
-              if (/^\d{8,14}$/.test(barcode)) {
+              const barcode = String(results[0].rawValue || '').trim();
+              if (isUsableScan(barcode)) {
                 stopBarcodeScanner();
-                await addScannedBarcode(barcode);
+                await resolveScannedCode(barcode);
                 return;
               }
             }
@@ -1446,24 +1822,24 @@
         return;
       }
       if (!window.ZXing?.BrowserMultiFormatReader) {
-        if (status) status.textContent = 'ספריית הסריקה לא נטענה. נסו לרענן או להשתמש בחיפוש המזון.';
+        if (status) status.textContent = 'ספריית הסריקה לא נטענה. נסו לרענן או להזין ברקוד ידנית.';
         return;
       }
       const reader = new window.ZXing.BrowserMultiFormatReader();
       state.scannerReader = reader;
       const controls = await reader.decodeFromVideoDevice(undefined, video, (result, error) => {
         if (result) {
-          const barcode = result.getText();
-          if (/^\d{8,14}$/.test(barcode)) {
+          const barcode = String(result.getText() || '').trim();
+          if (isUsableScan(barcode)) {
             stopBarcodeScanner();
-            addScannedBarcode(barcode);
+            resolveScannedCode(barcode);
           }
         } else if (error && !(error instanceof window.ZXing.NotFoundException)) {
           console.error('Barcode camera scan failed.', error);
         }
       });
       state.scannerControls = controls;
-      if (status) status.textContent = 'מכוונים את המצלמה לברקוד EAN או UPC…';
+      if (status) status.textContent = 'מכוונים את המצלמה לברקוד או לקוד QR…';
     } catch (error) {
       console.error('Could not start the barcode camera.', error);
       if (status) status.textContent = 'לא ניתן להפעיל את המצלמה. אשרו הרשאה ובדקו שחיבור HTTPS פעיל.';
@@ -2473,12 +2849,138 @@
   function renderAll() {
     updateHeaderUserChip();
     renderDashboard();
+    renderTraineeCoachLinkCard();
     renderNutrition();
     renderWorkoutsTab();
     renderDailyReportTab();
-    if (isCoachRole()) renderCoach();
+    if (isCoachRole()) {
+      renderCoach();
+      renderCoachPendingLinks();
+    }
     if (isManagerRole()) renderAppManager();
     renderProgress();
+  }
+
+  function trainershipStatusLabel(status) {
+    if (status === 'active') return 'מחובר';
+    if (status === 'pending') return 'ממתין לאישור';
+    if (status === 'rejected') return 'נדחה';
+    if (status === 'terminated') return 'הופסק';
+    return status || '';
+  }
+
+  async function renderTraineeCoachLinkCard() {
+    const card = byId('traineeCoachLinkCard');
+    if (!card) return;
+    const isTrainee = getUserRole() === 'trainee';
+    card.hidden = !isTrainee || !state.currentUser;
+    if (card.hidden) return;
+    const statusEl = byId('traineeCoachLinkStatus');
+    const form = byId('traineeCoachLinkForm');
+    const activeBox = byId('traineeCoachActiveBox');
+    if (!window.FitPulseFirebase?.isConfigured) {
+      if (statusEl) statusEl.textContent = 'חיבור למאמן זמין אחרי התחברות לענן.';
+      if (form) form.hidden = true;
+      if (activeBox) activeBox.hidden = true;
+      return;
+    }
+    if (statusEl) statusEl.textContent = 'טוען חיבור למאמן…';
+    try {
+      const uid = getAuthUserId();
+      const [links, coaches] = await Promise.all([
+        window.FitPulseFirebase.listMyTrainerships(),
+        window.FitPulseFirebase.listCoaches()
+      ]);
+      const mine = (links || []).filter(link => link.traineeId === uid && link.trainerId !== uid);
+      const active = mine.find(link => link.status === 'active');
+      const pending = mine.find(link => link.status === 'pending');
+      const coachName = (id) => coaches.find(coach => coach.id === id || coach.userId === id)?.name || 'מאמן';
+      if (active) {
+        if (statusEl) statusEl.textContent = '';
+        if (activeBox) {
+          activeBox.hidden = false;
+          activeBox.innerHTML = `<strong>${coachName(active.trainerId)}</strong><span>סטטוס: ${trainershipStatusLabel(active.status)}</span>`;
+        }
+        if (form) form.hidden = true;
+        return;
+      }
+      if (activeBox) activeBox.hidden = true;
+      if (form) form.hidden = false;
+      const select = byId('traineeCoachSelect');
+      if (select) {
+        const available = coaches.filter(coach => coach.id !== uid && coach.role !== 'manager');
+        select.innerHTML = available.length
+          ? available.map(coach => `<option value="${coach.id}">${coach.name}${coach.email ? ' · ' + coach.email : ''}</option>`).join('')
+          : '<option value="">לא נמצאו מאמנים זמינים</option>';
+      }
+      if (statusEl) {
+        statusEl.textContent = pending
+          ? `נשלחה בקשה אל ${coachName(pending.trainerId)} וממתינה לאישור המאמן.`
+          : 'בחרו מאמן כדי לשלוח בקשת חיבור.';
+      }
+    } catch (error) {
+      if (statusEl) statusEl.textContent = 'לא ניתן לטעון את רשימת המאמנים כרגע.';
+      console.warn('[FitPulse] coach link load notice:', error.message);
+    }
+  }
+
+  async function renderCoachPendingLinks() {
+    const list = byId('coachPendingLinksList');
+    if (!list || !isCoachRole()) return;
+    if (!window.FitPulseFirebase?.isConfigured) {
+      list.textContent = 'חיבור מתאמנים זמין אחרי התחברות לענן.';
+      return;
+    }
+    try {
+      const uid = getAuthUserId();
+      const links = (await window.FitPulseFirebase.listMyTrainerships())
+        .filter(link => link.trainerId === uid && link.trainerId !== link.traineeId);
+      const pending = links.filter(link => link.status === 'pending');
+      const active = links.filter(link => link.status === 'active');
+      if (!pending.length && !active.length) {
+        list.textContent = 'אין בקשות ממתינות ואין מתאמנים מחוברים עדיין.';
+        return;
+      }
+      list.innerHTML = '';
+      pending.forEach(link => {
+        const row = createElement('div', 'coach-pending-row');
+        const info = createElement('div');
+        info.innerHTML = `<strong>בקשה ממתינה</strong><span>${link.traineeId}</span>`;
+        const actions = createElement('div', 'coach-pending-actions');
+        const accept = createElement('button', 'btn-action-primary', 'אישור חיבור');
+        accept.type = 'button';
+        accept.addEventListener('click', async () => {
+          try {
+            await window.FitPulseFirebase.respondToCoachLink(link.trainerId, link.traineeId, 'active');
+            renderCoachPendingLinks();
+            renderTraineeCoachLinkCard();
+          } catch (err) {
+            alert(err.message || 'אישור החיבור נכשל.');
+          }
+        });
+        const reject = createElement('button', 'btn-action-secondary', 'דחייה');
+        reject.type = 'button';
+        reject.addEventListener('click', async () => {
+          try {
+            await window.FitPulseFirebase.respondToCoachLink(link.trainerId, link.traineeId, 'rejected');
+            renderCoachPendingLinks();
+          } catch (err) {
+            alert(err.message || 'דחיית החיבור נכשלה.');
+          }
+        });
+        actions.append(accept, reject);
+        row.append(info, actions);
+        list.append(row);
+      });
+      active.forEach(link => {
+        const row = createElement('div', 'coach-pending-row');
+        row.innerHTML = `<div><strong>מתאמן מחובר</strong><span>${link.traineeId}</span></div><span>${trainershipStatusLabel(link.status)}</span>`;
+        list.append(row);
+      });
+    } catch (error) {
+      list.textContent = 'לא ניתן לטעון בקשות חיבור.';
+      console.warn('[FitPulse] pending links notice:', error.message);
+    }
   }
 
   function sendRoutineToTrainee(trainee) {

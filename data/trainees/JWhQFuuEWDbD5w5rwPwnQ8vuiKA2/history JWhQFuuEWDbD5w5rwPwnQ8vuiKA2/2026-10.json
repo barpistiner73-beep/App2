@@ -1,7 +1,7 @@
 {
   "traineeId": "JWhQFuuEWDbD5w5rwPwnQ8vuiKA2",
   "month": "2026-10",
-  "totalReports": 1,
+  "totalReports": 2,
   "reports": [
     {
       "id": "JWhQFuuEWDbD5w5rwPwnQ8vuiKA2_2026-10-19",
@@ -1089,6 +1089,374 @@
       ],
       "coachFeedback": null,
       "autoClosedNote": "הדוח נסגר אוטומטית בחצות בסוף היום ונשמר במסד הנתונים."
+    },
+    {
+      "id": "JWhQFuuEWDbD5w5rwPwnQ8vuiKA2_2026-10-22",
+      "traineeId": "JWhQFuuEWDbD5w5rwPwnQ8vuiKA2",
+      "date": "2026-10-22",
+      "status": "finalized",
+      "createdAt": "2026-10-21T23:34:01.768Z",
+      "updatedAt": "2026-10-21T23:34:52.906Z",
+      "finalizedAt": "2026-10-21T23:34:52.906Z",
+      "metrics": {
+        "morningWeightKg": null,
+        "sleepHours": 7.5,
+        "sleepQuality": 8,
+        "waterMl": 2500,
+        "steps": 9000,
+        "energyLevel": 4,
+        "hungerLevel": 2,
+        "stressLevel": 2,
+        "digestion": "good",
+        "traineeNotes": ""
+      },
+      "nutrition": {
+        "totalCalories": 2201.6,
+        "totalProtein": 99.75999999999999,
+        "totalCarbs": 179.73999999999998,
+        "totalFat": 120.39999999999999,
+        "totalFiber": 30,
+        "totalSodium": 2100,
+        "targetCalories": 2200,
+        "targetProtein": 160,
+        "meals": [
+          {
+            "id": "1792625661349-v35zu6",
+            "loggedAt": "2026-10-21T23:34:21.349Z",
+            "time": "02:34",
+            "name": "McDonald's Big Mac",
+            "amount": 215,
+            "unitName": "גרם",
+            "calories": 550.4,
+            "protein": 24.939999999999998,
+            "carbs": 44.934999999999995,
+            "fat": 30.099999999999998,
+            "source": "Branded reference estimate; check the current package label."
+          },
+          {
+            "id": "1792625661502-q3ij53",
+            "loggedAt": "2026-10-21T23:34:21.501Z",
+            "time": "02:34",
+            "name": "McDonald's Big Mac",
+            "amount": 215,
+            "unitName": "גרם",
+            "calories": 550.4,
+            "protein": 24.939999999999998,
+            "carbs": 44.934999999999995,
+            "fat": 30.099999999999998,
+            "source": "Branded reference estimate; check the current package label."
+          },
+          {
+            "id": "1792625661677-78mqc1",
+            "loggedAt": "2026-10-21T23:34:21.677Z",
+            "time": "02:34",
+            "name": "McDonald's Big Mac",
+            "amount": 215,
+            "unitName": "גרם",
+            "calories": 550.4,
+            "protein": 24.939999999999998,
+            "carbs": 44.934999999999995,
+            "fat": 30.099999999999998,
+            "source": "Branded reference estimate; check the current package label."
+          },
+          {
+            "id": "1792625661812-cwr2mb",
+            "loggedAt": "2026-10-21T23:34:21.812Z",
+            "time": "02:34",
+            "name": "McDonald's Big Mac",
+            "amount": 215,
+            "unitName": "גרם",
+            "calories": 550.4,
+            "protein": 24.939999999999998,
+            "carbs": 44.934999999999995,
+            "fat": 30.099999999999998,
+            "source": "Branded reference estimate; check the current package label."
+          }
+        ]
+      },
+      "workouts": [
+        {
+          "id": "workout-1792625638981",
+          "routineId": "session_pull",
+          "name": "Pull Session",
+          "startedAt": "2026-10-21T23:33:56.052Z",
+          "completedAt": "2026-10-21T23:33:58.980Z",
+          "time": "02:33",
+          "durationMinutes": 1,
+          "completedSets": 0,
+          "totalSets": 30,
+          "totalVolume": 0,
+          "difficulty": 8,
+          "notes": "",
+          "exercises": [
+            {
+              "name": "Conventional Barbell Deadlift",
+              "exerciseId": "ex_deadlift",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 110,
+                  "reps": 6,
+                  "completed": false,
+                  "time": "02:33"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 110,
+                  "reps": 6,
+                  "completed": false,
+                  "time": "02:33"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 110,
+                  "reps": 6,
+                  "completed": false,
+                  "time": "02:33"
+                }
+              ]
+            },
+            {
+              "name": "Lat Pulldown",
+              "exerciseId": "ex_lat_pulldown",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 55,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "02:33"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 55,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "02:33"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 55,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "02:33"
+                },
+                {
+                  "setNumber": 4,
+                  "weight": 55,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "02:33"
+                }
+              ]
+            },
+            {
+              "name": "Wide-Grip Pull-Up",
+              "exerciseId": "ex_pullups",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 0,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "02:33"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 0,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "02:33"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 0,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "02:33"
+                }
+              ]
+            },
+            {
+              "name": "Bent-Over Barbell Row",
+              "exerciseId": "ex_barbell_row",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 60,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "02:33"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 60,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "02:33"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 60,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "02:33"
+                },
+                {
+                  "setNumber": 4,
+                  "weight": 60,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "02:33"
+                }
+              ]
+            },
+            {
+              "name": "Seated Cable Row",
+              "exerciseId": "ex_seated_cable_row",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 50,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "02:33"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 50,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "02:33"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 50,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "02:33"
+                }
+              ]
+            },
+            {
+              "name": "Straight-Arm Cable Pulldown",
+              "exerciseId": "ex_pullover_cable",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 25,
+                  "reps": 15,
+                  "completed": false,
+                  "time": "02:33"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 25,
+                  "reps": 15,
+                  "completed": false,
+                  "time": "02:33"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 25,
+                  "reps": 15,
+                  "completed": false,
+                  "time": "02:33"
+                }
+              ]
+            },
+            {
+              "name": "Cable Rope Face Pull",
+              "exerciseId": "ex_face_pull",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 20,
+                  "reps": 15,
+                  "completed": false,
+                  "time": "02:33"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 20,
+                  "reps": 15,
+                  "completed": false,
+                  "time": "02:33"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 20,
+                  "reps": 15,
+                  "completed": false,
+                  "time": "02:33"
+                },
+                {
+                  "setNumber": 4,
+                  "weight": 20,
+                  "reps": 15,
+                  "completed": false,
+                  "time": "02:33"
+                }
+              ]
+            },
+            {
+              "name": "EZ-Bar Bicep Curl",
+              "exerciseId": "ex_bicep_curl",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 30,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "02:33"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 30,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "02:33"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 30,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "02:33"
+                }
+              ]
+            },
+            {
+              "name": "Incline Dumbbell Curl",
+              "exerciseId": "ex_db_incline_curl",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 12,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "02:33"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 12,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "02:33"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 12,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "02:33"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "coachFeedback": null
     }
   ]
 }

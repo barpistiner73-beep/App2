@@ -91,6 +91,24 @@
         </div>
         <button class="btn-action-primary" id="dashboardAddMealBtn" type="button">＋ הוספת ארוחה</button>
       </div>
+      <section class="glass-card coach-link-card" id="traineeCoachLinkCard" hidden>
+        <div class="card-header-flex">
+          <div>
+            <span class="eyebrow">ליווי מקצועי</span>
+            <h2>המאמן שלי</h2>
+          </div>
+        </div>
+        <p id="traineeCoachLinkStatus" class="coach-link-status">טוען חיבור למאמן…</p>
+        <div id="traineeCoachActiveBox" class="coach-link-active" hidden></div>
+        <form id="traineeCoachLinkForm" class="coach-link-form" hidden>
+          <label>בחירת מאמן
+            <select id="traineeCoachSelect">
+              <option value="">טוען מאמנים…</option>
+            </select>
+          </label>
+          <button class="btn-action-primary" id="traineeCoachLinkBtn" type="submit">שליחת בקשת חיבור</button>
+        </form>
+      </section>
       <div class="hero-dashboard-grid">
         <div class="glass-card energy-overview-card">
           <div class="card-header-flex">
@@ -468,7 +486,17 @@
           <label>בחירת מתאמן <select id="coachTraineeSelect"></select></label>
           <button class="btn-action-primary" id="coachBuildProgramBtn" type="button">＋ בניית תוכנית</button>
           <button class="btn-action-secondary" id="coachRegisterTraineeBtn" type="button">➕ רישום מתאמן חדש</button>
+          <button class="btn-action-secondary" id="coachConnectTraineeBtn" type="button">🔗 חבר מתאמן קיים</button>
         </div>
+        <section class="glass-card coach-pending-card" id="coachPendingLinksCard">
+          <div class="card-header-flex">
+            <div>
+              <span class="eyebrow">חיבור מתאמנים</span>
+              <h3>בקשות והקצאות</h3>
+            </div>
+          </div>
+          <div id="coachPendingLinksList" class="coach-pending-list">אין בקשות ממתינות.</div>
+        </section>
 
         <!-- Trainee Quick Overview Bar -->
         <div class="coach-trainee-profile-bar" id="coachTraineeProfileBar"></div>
@@ -703,10 +731,86 @@
   <div class="dialog-backdrop" id="barcodeScannerDialog" hidden>
     <section class="dialog-card scanner-dialog" role="dialog" aria-modal="true" aria-labelledby="barcodeScannerTitle">
       <div class="dialog-header"><div><span class="eyebrow">סריקה באמצעות מצלמה</span><h2 id="barcodeScannerTitle">סריקת ברקוד מזון</h2></div><button class="icon-button" id="closeBarcodeScannerBtn" type="button">סגירה</button></div>
-      <p class="scanner-hint">הצביעו על ברקוד EAN-13 או UPC. הנתונים ייבדקו מול Open Food Facts ויתווספו ליומן לפי 100 גרם.</p>
+      <p class="scanner-hint">סירקו ברקוד EAN/UPC או קוד QR. קודם נבדוק את המאגר השיתופי ב־Firestore. אם המוצר חדש וקיים קישור, ננסה לחלץ ערכים תזונתיים; אחרת תיפתח הזנה ידנית.</p>
       <video id="barcodeVideo" class="barcode-video" muted playsinline></video>
       <p id="barcodeScannerStatus" class="scanner-status" role="status">המצלמה עדיין לא הופעלה.</p>
-      <button class="btn-action-primary" id="startBarcodeScannerBtn" type="button">הפעלת מצלמה</button>
+      <form class="barcode-manual-row" id="barcodeManualLookupForm">
+        <label>הזנת ברקוד או קישור
+          <input id="barcodeManualInput" type="text" inputmode="numeric" autocomplete="off" placeholder="7290000123456 או https://…">
+        </label>
+        <button class="btn-action-secondary" type="submit">חיפוש במאגר</button>
+      </form>
+      <div class="barcode-scanner-actions">
+        <button class="btn-action-primary" id="startBarcodeScannerBtn" type="button">הפעלת מצלמה</button>
+        <button class="btn-action-secondary" id="openManualFoodBtn" type="button">הזנת מוצר חדש</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="dialog-backdrop" id="barcodeFoodEditorDialog" hidden>
+    <section class="dialog-card scanner-dialog" role="dialog" aria-modal="true" aria-labelledby="barcodeFoodEditorTitle">
+      <div class="dialog-header">
+        <div>
+          <span class="eyebrow" id="barcodeFoodEditorEyebrow">מאגר מזון שיתופי</span>
+          <h2 id="barcodeFoodEditorTitle">אישור מוצר</h2>
+        </div>
+        <button class="icon-button" id="closeBarcodeFoodEditorBtn" type="button">סגירה</button>
+      </div>
+      <p id="barcodeFoodEditorHint" class="scanner-hint">בדקו את הערכים ל־100 גרם לפני הוספה ליומן ולמאגר.</p>
+      <p id="barcodeFoodEditorLoading" class="scanner-status" hidden>מחפש במאגר השיתופי…</p>
+      <form id="barcodeFoodEditorForm" class="barcode-food-form">
+        <input type="hidden" id="barcodeFoodSourceField" value="manual">
+        <label>ברקוד
+          <input id="barcodeFoodCodeField" type="text" required maxlength="80" dir="ltr">
+        </label>
+        <label>שם המוצר
+          <input id="barcodeFoodNameField" type="text" required maxlength="200" placeholder="למשל יוגורט יווני 5%">
+        </label>
+        <label>יצרן / מותג
+          <input id="barcodeFoodBrandField" type="text" maxlength="100" placeholder="אופציונלי">
+        </label>
+        <div class="barcode-macro-grid">
+          <label>קלוריות / 100ג
+            <input id="barcodeFoodCaloriesField" type="number" min="0" max="15000" step="0.1" required>
+          </label>
+          <label>חלבון (ג)
+            <input id="barcodeFoodProteinField" type="number" min="0" max="1000" step="0.1" required>
+          </label>
+          <label>פחמימות (ג)
+            <input id="barcodeFoodCarbsField" type="number" min="0" max="1000" step="0.1" required>
+          </label>
+          <label>שומן (ג)
+            <input id="barcodeFoodFatsField" type="number" min="0" max="1000" step="0.1" required>
+          </label>
+        </div>
+        <label>כמות להוספה ליומן (גרם)
+          <input id="barcodeFoodGramsField" type="number" min="1" max="10000" step="1" value="100" required>
+        </label>
+        <p id="barcodeFoodEditorError" class="auth-error-msg" hidden></p>
+        <div class="equivalent-form-actions">
+          <button class="btn-action-primary" id="barcodeFoodSaveBtn" type="submit">אישור, שמירה והוספה ליומן</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <div class="dialog-backdrop" id="coachConnectTraineeDialog" hidden>
+    <section class="dialog-card scanner-dialog" role="dialog" aria-modal="true" aria-labelledby="coachConnectTraineeTitle">
+      <div class="dialog-header">
+        <div>
+          <span class="eyebrow">הקצאת מתאמן</span>
+          <h2 id="coachConnectTraineeTitle">חיבור מתאמן קיים</h2>
+        </div>
+        <button class="icon-button" id="closeCoachConnectTraineeBtn" type="button">סגירה</button>
+      </div>
+      <p class="scanner-hint">חפשו מתאמן לפי אימייל מתוך כרטיסי המתאמנים במערכת, וצרו חיבור פעיל.</p>
+      <form id="coachConnectTraineeForm" class="barcode-food-form">
+        <label>אימייל המתאמן
+          <input id="coachConnectTraineeEmail" type="email" required placeholder="trainee@example.com" dir="ltr">
+        </label>
+        <p id="coachConnectTraineeError" class="auth-error-msg" hidden></p>
+        <button class="btn-action-primary" type="submit">חבר למאמן שלי</button>
+      </form>
     </section>
   </div>
 
@@ -1142,6 +1246,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+  <script src="src/domainSchema.js"></script>
   <script src="firebase-config.js"></script>
     <!-- Food module - must load before data.js which calls _patchFitData -->
   <script src="src/foodCategories.js"></script>

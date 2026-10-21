@@ -133,7 +133,14 @@ const FitPulseFirebase = {
   // Note: Per requirements, both Trainee and Trainer accounts require System Manager permission.
   async completeUserRegistration(user, regData) {
     const uid = user.uid || user.id;
-    const isTrainer = regData.role === 'coach';
+    const domain = (typeof window !== 'undefined' && window.FitPulseDomain) || {};
+    const role = typeof domain.normalizeRole === 'function'
+      ? domain.normalizeRole(regData.role)
+      : (regData.role === 'manager' || regData.role === 'admin' ? 'manager'
+        : (regData.role === 'coach' || regData.role === 'trainer' || regData.role === 'trainer_admin' ? 'coach' : 'trainee'));
+    const isTrainer = typeof domain.roleImpliesTrainer === 'function'
+      ? domain.roleImpliesTrainer(role)
+      : (role === 'coach' || role === 'manager');
     const fullName = (regData.fullName || user.displayName || user.email.split('@')[0] || 'משתמש חדש').trim().slice(0, 100);
     const email = user.email;
     const now = (typeof firebase !== 'undefined' && firebase.firestore?.FieldValue?.serverTimestamp)
@@ -148,7 +155,7 @@ const FitPulseFirebase = {
       name: fullName,
       email,
       isTrainer,
-      role: regData.role || (isTrainer ? 'coach' : 'trainee'),
+      role,
       status: 'pending_approval',
       approvalStatus: 'pending',
       specialty: regData.specialty || '',
@@ -484,7 +491,10 @@ const FitPulseFirebase = {
           userId: uid,
           fullName: traineeData.name,
           email: email,
+          role: 'trainee',
           isTrainer: false,
+          status: 'active',
+          approvalStatus: 'approved',
           createdAt: now
         }, { merge: true });
 
@@ -848,6 +858,226 @@ const FitPulseFirebase = {
       console.error("[FitPulse Firebase] addFood error:", err);
       throw err;
     }
+  },
+
+  currentUid() {
+    return this.auth?.currentUser?.uid || null;
+  },
+
+  async getFoodByBarcode(barcode) {
+    if (!this.isConfigured || !this.db || !barcode) return null;
+    try {
+      const snap = await this.db.collection('foods').doc(String(barcode)).get();
+      if (!snap.exists) return null;
+      return { id: snap.id, ...snap.data() };
+    } catch (err) {
+      console.warn("[FitPulse Firebase] getFoodByBarcode notice:", err.message);
+      throw err;
+    }
+  },
+
+  async saveCrowdsourcedFood(food) {
+    if (!this.isConfigured || !this.db) {
+      throw new Error('Firestore אינו זמין. לא ניתן לשמור למאגר השיתופי.');
+    }
+    const uid = this.currentUid();
+    if (!uid) throw new Error('יש להתחבר כדי לתרום מוצר למאגר השיתופי.');
+    const barcode = String(food.barcode || '').trim();
+    const payload = {
+      barcode,
+      name: String(food.name || '').trim(),
+      brand: String(food.brand || '').trim(),
+      servingSize: String(food.servingSize || '100g').trim() || '100g',
+      macrosPer100g: {
+        calories: Number(food.macrosPer100g.calories),
+        protein: Number(food.macrosPer100g.protein),
+        carbs: Number(food.macrosPer100g.carbs),
+        fats: Number(food.macrosPer100g.fats)
+      },
+      source: food.source === 'scraped' ? 'scraped' : 'manual',
+      createdAt: firebase.firestore.Timestamp.now(),
+      createdBy: uid
+    };
+    await this.db.collection('foods').doc(barcode).set(payload);
+    return { id: barcode, ...payload };
+  },
+
+  async addPersonalFoodLog(entry) {
+    if (!this.isConfigured || !this.db) return null;
+    const uid = this.currentUid();
+    if (!uid) return null;
+    const ref = this.db.collection('users').doc(uid).collection('foodLogs').doc();
+    const payload = {
+      foodLogId: ref.id,
+      userId: uid,
+      logDate: String(entry.logDate),
+      foodId: entry.foodId || null,
+      name: String(entry.name || '').trim(),
+      grams: Number(entry.grams),
+      calories: Number(entry.calories),
+      protein: Number(entry.protein || 0),
+      carbs: Number(entry.carbs || 0),
+      fat: Number(entry.fat || 0),
+      source: String(entry.source || 'personal-diary').slice(0, 300),
+      loggedAt: firebase.firestore.Timestamp.now()
+    };
+    await ref.set(payload);
+    return { id: ref.id, ...payload };
+  },
+
+  async listCoaches(limitCount = 40) {
+    if (!this.isConfigured || !this.db) return [];
+    try {
+      const snap = await this.db.collection('users')
+        .where('isTrainer', '==', true)
+        .limit(limitCount)
+        .get();
+      const coaches = [];
+      snap.forEach(doc => {
+        const data = doc.data() || {};
+        const role = data.role || (data.isTrainer ? 'coach' : 'trainee');
+        if (role === 'coach' || data.isTrainer === true) {
+          coaches.push({
+            id: doc.id,
+            userId: data.userId || doc.id,
+            name: data.fullName || data.name || 'מאמן',
+            email: data.email || '',
+            role
+          });
+        }
+      });
+      return coaches.filter(coach => coach.role !== 'manager' || coach.id);
+    } catch (err) {
+      console.warn("[FitPulse Firebase] listCoaches notice:", err.message);
+      return [];
+    }
+  },
+
+  async listMyTrainerships() {
+    if (!this.isConfigured || !this.db) return [];
+    const uid = this.currentUid();
+    if (!uid) return [];
+    try {
+      const [asTrainee, asTrainer] = await Promise.all([
+        this.db.collection('trainerships').where('traineeId', '==', uid).get(),
+        this.db.collection('trainerships').where('trainerId', '==', uid).get()
+      ]);
+      const byId = new Map();
+      asTrainee.forEach(doc => byId.set(doc.id, { id: doc.id, ...doc.data() }));
+      asTrainer.forEach(doc => byId.set(doc.id, { id: doc.id, ...doc.data() }));
+      return Array.from(byId.values());
+    } catch (err) {
+      console.warn("[FitPulse Firebase] listMyTrainerships notice:", err.message);
+      return [];
+    }
+  },
+
+  async requestCoachLink(trainerId) {
+    if (!this.isConfigured || !this.db) {
+      throw new Error('Firestore אינו זמין. לא ניתן לחבר מאמן.');
+    }
+    const traineeId = this.currentUid();
+    if (!traineeId) throw new Error('יש להתחבר כדי לבקש חיבור למאמן.');
+    if (!trainerId || trainerId === traineeId) {
+      throw new Error('בחרו מאמן תקין.');
+    }
+    const relationId = `${trainerId}_${traineeId}`;
+    const ref = this.db.collection('trainerships').doc(relationId);
+    const existing = await ref.get();
+    if (existing.exists) {
+      const data = existing.data() || {};
+      if (data.status === 'active') return { id: relationId, ...data };
+      if (data.status === 'pending') return { id: relationId, ...data };
+    }
+    const payload = {
+      relationId,
+      trainerId,
+      traineeId,
+      status: 'pending',
+      permissions: {
+        canViewSleep: true,
+        canViewNutrition: true,
+        canViewWorkouts: true,
+        canViewDailyLogs: true
+      },
+      createdAt: firebase.firestore.Timestamp.now(),
+      updatedAt: firebase.firestore.Timestamp.now()
+    };
+    await ref.set(payload);
+    return { id: relationId, ...payload };
+  },
+
+  async respondToCoachLink(trainerId, traineeId, status) {
+    if (!this.isConfigured || !this.db) {
+      throw new Error('Firestore אינו זמין.');
+    }
+    const uid = this.currentUid();
+    if (!uid) throw new Error('יש להתחבר כדי לעדכן חיבור.');
+    if (!['active', 'rejected', 'terminated'].includes(status)) {
+      throw new Error('סטטוס חיבור לא תקין.');
+    }
+    const relationId = `${trainerId}_${traineeId}`;
+    const ref = this.db.collection('trainerships').doc(relationId);
+    const snap = await ref.get();
+    if (!snap.exists) throw new Error('בקשת החיבור לא נמצאה.');
+    const data = snap.data() || {};
+    if (uid !== data.trainerId && uid !== data.traineeId) {
+      throw new Error('אין הרשאה לעדכן חיבור זה.');
+    }
+    await ref.update({
+      status,
+      updatedAt: firebase.firestore.Timestamp.now()
+    });
+    return { id: relationId, ...data, status };
+  },
+
+  async lookupTraineeByEmail(email) {
+    if (!this.isConfigured || !this.db) return null;
+    const normalized = String(email || '').trim().toLowerCase();
+    if (!normalized) return null;
+    try {
+      const snap = await this.db.collection('trainees').where('email', '==', normalized).limit(1).get();
+      if (!snap.empty) {
+        const doc = snap.docs[0];
+        const data = doc.data() || {};
+        return {
+          id: data.uid || data.traineeId || data.id || doc.id,
+          name: data.name || data.fullName || 'מתאמן',
+          email: data.email || normalized
+        };
+      }
+    } catch (err) {
+      console.warn("[FitPulse Firebase] lookupTraineeByEmail notice:", err.message);
+    }
+    return null;
+  },
+
+  async provisionTraineeLink(traineeId) {
+    if (!this.isConfigured || !this.db) {
+      throw new Error('Firestore אינו זמין.');
+    }
+    const trainerId = this.currentUid();
+    if (!trainerId) throw new Error('יש להתחבר כמאמן כדי לחבר מתאמן.');
+    if (!traineeId || traineeId === trainerId) {
+      throw new Error('יש לבחור מתאמן קיים.');
+    }
+    const relationId = `${trainerId}_${traineeId}`;
+    const payload = {
+      relationId,
+      trainerId,
+      traineeId,
+      status: 'active',
+      permissions: {
+        canViewSleep: true,
+        canViewNutrition: true,
+        canViewWorkouts: true,
+        canViewDailyLogs: true
+      },
+      createdAt: firebase.firestore.Timestamp.now(),
+      updatedAt: firebase.firestore.Timestamp.now()
+    };
+    await this.db.collection('trainerships').doc(relationId).set(payload);
+    return { id: relationId, ...payload };
   }
 };
 

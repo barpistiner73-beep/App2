@@ -1160,6 +1160,24 @@ input::placeholder { color: #77849b; }
 .scanner-hint { margin: 12px 0; color: var(--text-muted); font-size: .79rem; }
 .barcode-video { display: block; width: 100%; max-height: 45vh; border-radius: 12px; background: #090d17; object-fit: cover; }
 .scanner-status { min-height: 24px; color: #f3d987; font-size: .77rem; }
+.barcode-manual-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; margin: 12px 0; }
+.barcode-manual-row label, .barcode-food-form label, .coach-link-form label { display: grid; gap: 6px; color: var(--text-muted); font-size: .78rem; }
+.barcode-manual-row input, .barcode-food-form input, .coach-link-form select, #coachConnectTraineeEmail {
+  width: 100%; padding: 9px 11px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--surface-raised); color: inherit;
+}
+.barcode-scanner-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.barcode-food-form { display: grid; gap: 11px; }
+.barcode-macro-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.coach-link-card { margin: 0 0 18px; }
+.coach-link-status { color: var(--text-muted); font-size: .82rem; }
+.coach-link-active { display: grid; gap: 4px; font-size: .9rem; }
+.coach-link-form { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; }
+.coach-pending-card { margin: 0 0 16px; }
+.coach-pending-list { display: grid; gap: 8px; }
+.coach-pending-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: center; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-raised); }
+.coach-pending-row strong { display: block; }
+.coach-pending-actions { display: flex; gap: 6px; }
 .meal-source { max-width: 220px; overflow: hidden; color: var(--text-dim); text-overflow: ellipsis; white-space: nowrap; font-size: .63rem; }
 #confettiCanvas { display: none; }
 

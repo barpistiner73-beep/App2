@@ -41,8 +41,13 @@ import {
   CreateNutritionGoalInput,
   UpdateNutritionGoalInput,
   FULL_PERMISSIONS,
-  DEFAULT_TRAINEE_PERMISSIONS
+  DEFAULT_TRAINEE_PERMISSIONS,
+  AppRole,
+  AccountStatus,
+  normalizeRole,
+  roleImpliesTrainer
 } from '../types/schema';
+import { COLLECTIONS, SUBCOLLECTIONS } from '../collections';
 
 export class FitnessBackendService {
   constructor(private db: Firestore) {}
@@ -67,21 +72,26 @@ export class FitnessBackendService {
    * Automatically initializes self-training if the user is a trainer.
    */
   async registerUser(input: CreateUserInput): Promise<UserProfile> {
-    const userRef = this.db.collection('users').doc(input.userId);
+    const userRef = this.db.collection(COLLECTIONS.users).doc(input.userId);
     const now = Timestamp.now();
+    const role = normalizeRole(input.role, input.isTrainer);
+    const isTrainer = roleImpliesTrainer(role);
+    const status: AccountStatus = input.status || 'pending_approval';
 
     const userProfile: UserProfile = {
       userId: input.userId,
       fullName: input.fullName.trim(),
       email: input.email.toLowerCase().trim(),
-      isTrainer: Boolean(input.isTrainer),
+      role,
+      isTrainer,
+      status,
+      approvalStatus: input.approvalStatus || (status === 'active' ? 'approved' : 'pending'),
       profileImageUrl: input.profileImageUrl || '',
       createdAt: input.createdAt || now,
     };
 
     await userRef.set(userProfile, { merge: true });
 
-    // Self-training rule: When a trainer registers, automatically create self-training relation
     if (userProfile.isTrainer) {
       await this.initializeSelfTraining(userProfile.userId);
     }
@@ -90,12 +100,15 @@ export class FitnessBackendService {
   }
 
   /**
-   * Switches a trainee into a trainer (or updates trainer status)
-   * If promoting to trainer, initializes self-training.
+   * Sets the stored role. Coach/manager also flip isTrainer and self-training.
    */
-  async setUserRole(userId: string, isTrainer: boolean): Promise<void> {
-    const userRef = this.db.collection('users').doc(userId);
-    await userRef.update({ isTrainer });
+  async setUserRole(userId: string, roleOrTrainer: AppRole | boolean): Promise<void> {
+    const role = typeof roleOrTrainer === 'boolean'
+      ? normalizeRole(undefined, roleOrTrainer)
+      : normalizeRole(roleOrTrainer);
+    const isTrainer = roleImpliesTrainer(role);
+    const userRef = this.db.collection(COLLECTIONS.users).doc(userId);
+    await userRef.update({ role, isTrainer });
 
     if (isTrainer) {
       await this.initializeSelfTraining(userId);
@@ -109,7 +122,7 @@ export class FitnessBackendService {
    */
   async initializeSelfTraining(trainerId: string): Promise<Trainership> {
     const relationId = FitnessBackendService.getRelationId(trainerId, trainerId);
-    const relationRef = this.db.collection('trainerships').doc(relationId);
+    const relationRef = this.db.collection(COLLECTIONS.trainerships).doc(relationId);
 
     const doc = await relationRef.get();
     if (doc.exists) {
@@ -131,7 +144,7 @@ export class FitnessBackendService {
   }
 
   async getUser(userId: string): Promise<UserProfile | null> {
-    const doc = await this.db.collection('users').doc(userId).get();
+    const doc = await this.db.collection(COLLECTIONS.users).doc(userId).get();
     return doc.exists ? (doc.data() as UserProfile) : null;
   }
 
@@ -152,7 +165,7 @@ export class FitnessBackendService {
     }
 
     const relationId = FitnessBackendService.getRelationId(trainerId, traineeId);
-    const relationRef = this.db.collection('trainerships').doc(relationId);
+    const relationRef = this.db.collection(COLLECTIONS.trainerships).doc(relationId);
 
     const existing = await relationRef.get();
     if (existing.exists) {
@@ -193,7 +206,7 @@ export class FitnessBackendService {
     status: 'active' | 'rejected'
   ): Promise<void> {
     const relationId = FitnessBackendService.getRelationId(trainerId, traineeId);
-    const relationRef = this.db.collection('trainerships').doc(relationId);
+    const relationRef = this.db.collection(COLLECTIONS.trainerships).doc(relationId);
 
     const doc = await relationRef.get();
     if (!doc.exists) {
@@ -201,8 +214,8 @@ export class FitnessBackendService {
     }
 
     const data = doc.data() as Trainership;
-    if (data.traineeId !== traineeId) {
-      throw new Error('Unauthorized: Only the assigned trainee can respond to this request.');
+    if (data.traineeId !== traineeId || data.trainerId !== trainerId) {
+      throw new Error('Unauthorized: Trainership parties do not match this request.');
     }
 
     await relationRef.update({
@@ -221,7 +234,7 @@ export class FitnessBackendService {
     permissions: UpdateTrainershipPermissionsInput
   ): Promise<void> {
     const relationId = FitnessBackendService.getRelationId(trainerId, traineeId);
-    const relationRef = this.db.collection('trainerships').doc(relationId);
+    const relationRef = this.db.collection(COLLECTIONS.trainerships).doc(relationId);
 
     const doc = await relationRef.get();
     if (!doc.exists) {
@@ -270,7 +283,7 @@ export class FitnessBackendService {
     }
 
     const relationId = FitnessBackendService.getRelationId(trainerId, traineeId);
-    const relationRef = this.db.collection('trainerships').doc(relationId);
+    const relationRef = this.db.collection(COLLECTIONS.trainerships).doc(relationId);
 
     await relationRef.update({
       status: 'terminated',
@@ -291,7 +304,7 @@ export class FitnessBackendService {
     }
 
     const relationId = FitnessBackendService.getRelationId(trainerId, traineeId);
-    const doc = await this.db.collection('trainerships').doc(relationId).get();
+    const doc = await this.db.collection(COLLECTIONS.trainerships).doc(relationId).get();
 
     if (!doc.exists) return false;
     const data = doc.data() as Trainership;
@@ -304,7 +317,7 @@ export class FitnessBackendService {
    */
   async getActiveTraineesForTrainer(trainerId: string): Promise<Trainership[]> {
     const snapshot = await this.db
-      .collection('trainerships')
+      .collection(COLLECTIONS.trainerships)
       .where('trainerId', '==', trainerId)
       .where('status', '==', 'active')
       .get();
@@ -317,7 +330,7 @@ export class FitnessBackendService {
    */
   async getActiveTrainersForTrainee(traineeId: string): Promise<Trainership[]> {
     const snapshot = await this.db
-      .collection('trainerships')
+      .collection(COLLECTIONS.trainerships)
       .where('traineeId', '==', traineeId)
       .where('status', '==', 'active')
       .get();
@@ -337,18 +350,22 @@ export class FitnessBackendService {
   async saveDailyLog(input: CreateDailyLogInput): Promise<DailyLog> {
     const logId = input.logId || input.logDate;
     const logRef = this.db
-      .collection('users')
+      .collection(COLLECTIONS.users)
       .doc(input.userId)
-      .collection('dailyLogs')
+      .collection(SUBCOLLECTIONS.dailyLogs)
       .doc(logId);
 
     const logData: DailyLog = {
       logId,
       userId: input.userId,
       logDate: input.logDate,
+      status: input.status || 'draft',
       sleepHours: Number(input.sleepHours) || 0,
       waterIntakeMl: Number(input.waterIntakeMl) || 0,
       dailyNotes: input.dailyNotes || '',
+      checkIn: input.checkIn,
+      nutritionTotals: input.nutritionTotals,
+      workoutLogIds: input.workoutLogIds,
       updatedAt: Timestamp.now()
     };
 
@@ -373,9 +390,9 @@ export class FitnessBackendService {
     }
 
     const snapshot = await this.db
-      .collection('users')
+      .collection(COLLECTIONS.users)
       .doc(userId)
-      .collection('dailyLogs')
+      .collection(SUBCOLLECTIONS.dailyLogs)
       .orderBy('logDate', 'desc')
       .limit(limitCount)
       .get();
@@ -409,7 +426,7 @@ export class FitnessBackendService {
     }
 
     const batch = this.db.batch();
-    const templateRef = this.db.collection('workoutTemplates').doc();
+    const templateRef = this.db.collection(COLLECTIONS.workoutTemplates).doc();
     const templateId = templateRef.id;
 
     const templateData: WorkoutTemplate = {
@@ -418,20 +435,26 @@ export class FitnessBackendService {
       assignedToId: templateInput.assignedToId,
       title: templateInput.title.trim(),
       description: templateInput.description || '',
+      kind: templateInput.kind || 'session',
+      category: templateInput.category,
       scheduledDay: templateInput.scheduledDay,
+      restSeconds: Number(templateInput.restSeconds) || 90,
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
     };
 
     batch.set(templateRef, templateData);
 
-    const exercisesCollection = templateRef.collection('exercises');
+    const exercisesCollection = templateRef.collection(SUBCOLLECTIONS.templateExercises);
     exercisesInput.forEach((ex, idx) => {
       const exerciseRef = exercisesCollection.doc();
       const exerciseData: WorkoutExercise = {
         exerciseId: exerciseRef.id,
         templateId,
         exerciseName: ex.exerciseName.trim(),
+        primaryMuscleGroup: ex.primaryMuscleGroup,
+        primaryMuscleSubgroup: ex.primaryMuscleSubgroup,
+        preferredExerciseId: ex.preferredExerciseId,
         targetSets: Number(ex.targetSets) || 3,
         targetReps: String(ex.targetReps || '10'),
         targetWeight: ex.targetWeight !== undefined ? Number(ex.targetWeight) : undefined,
@@ -460,7 +483,7 @@ export class FitnessBackendService {
     }
 
     const snapshot = await this.db
-      .collection('workoutTemplates')
+      .collection(COLLECTIONS.workoutTemplates)
       .where('assignedToId', '==', traineeId)
       .get();
 
@@ -474,7 +497,7 @@ export class FitnessBackendService {
     templateId: string,
     requesterId: string
   ): Promise<{ template: WorkoutTemplate; exercises: WorkoutExercise[] }> {
-    const templateRef = this.db.collection('workoutTemplates').doc(templateId);
+    const templateRef = this.db.collection(COLLECTIONS.workoutTemplates).doc(templateId);
     const templateDoc = await templateRef.get();
 
     if (!templateDoc.exists) {
@@ -492,7 +515,7 @@ export class FitnessBackendService {
     }
 
     const exercisesSnapshot = await templateRef
-      .collection('exercises')
+      .collection(SUBCOLLECTIONS.templateExercises)
       .orderBy('orderIndex', 'asc')
       .get();
 
@@ -510,15 +533,21 @@ export class FitnessBackendService {
    * Trainee logs completed workout execution.
    */
   async logWorkoutExecution(input: CreateWorkoutLogInput): Promise<WorkoutLog> {
-    const logRef = this.db.collection('workoutLogs').doc();
+    const logRef = this.db.collection(COLLECTIONS.workoutLogs).doc();
+    const completedAt = input.completedAt || Timestamp.now();
+    const logDate = input.logDate || completedAt.toDate().toISOString().slice(0, 10);
     const workoutLog: WorkoutLog = {
       workoutLogId: logRef.id,
       userId: input.userId,
       templateId: input.templateId,
-      completedAt: input.completedAt || Timestamp.now(),
+      logDate,
+      completedAt,
       healthFeelingScore: Math.min(10, Math.max(1, Number(input.healthFeelingScore) || 5)),
       perceivedExertionRpe: Math.min(10, Math.max(1, Number(input.perceivedExertionRpe) || 5)),
       completionNotes: input.completionNotes || '',
+      durationMinutes: input.durationMinutes,
+      totalVolume: input.totalVolume,
+      sets: input.sets,
     };
 
     await logRef.set(workoutLog);
@@ -541,7 +570,7 @@ export class FitnessBackendService {
     }
 
     const snapshot = await this.db
-      .collection('workoutLogs')
+      .collection(COLLECTIONS.workoutLogs)
       .where('userId', '==', userId)
       .orderBy('completedAt', 'desc')
       .limit(limitCount)
@@ -579,7 +608,7 @@ export class FitnessBackendService {
     return await this.db.runTransaction(async (transaction: Transaction) => {
       // Find current active goals for this trainee
       const activeGoalsQuery = this.db
-        .collection('nutritionGoals')
+        .collection(COLLECTIONS.nutritionGoals)
         .where('traineeId', '==', traineeId)
         .where('isActive', '==', true);
 
@@ -591,7 +620,7 @@ export class FitnessBackendService {
       });
 
       // Create new active goal
-      const newGoalRef = this.db.collection('nutritionGoals').doc();
+      const newGoalRef = this.db.collection(COLLECTIONS.nutritionGoals).doc();
       const newGoal: NutritionGoal = {
         goalId: newGoalRef.id,
         traineeId,
@@ -624,7 +653,7 @@ export class FitnessBackendService {
     }
 
     const snapshot = await this.db
-      .collection('nutritionGoals')
+      .collection(COLLECTIONS.nutritionGoals)
       .where('traineeId', '==', traineeId)
       .where('isActive', '==', true)
       .limit(1)

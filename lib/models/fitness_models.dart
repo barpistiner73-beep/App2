@@ -14,11 +14,25 @@ DateTime _parseDateTime(dynamic value) {
 // 1. User Model
 // Path: users/{userId}
 // ============================================================================
+String normalizeAppRole(String? raw, {bool isTrainer = false}) {
+  final value = (raw ?? '').trim().toLowerCase();
+  if (value == 'manager' || value == 'admin') return 'manager';
+  if (value == 'coach' || value == 'trainer' || value == 'trainer_admin') {
+    return 'coach';
+  }
+  if (value == 'trainee') return 'trainee';
+  return isTrainer ? 'coach' : 'trainee';
+}
+
+bool roleImpliesTrainer(String role) => role == 'coach' || role == 'manager';
+
 class UserModel {
   final String userId;
   final String fullName;
   final String email;
+  final String role;
   final bool isTrainer;
+  final String status;
   final String? profileImageUrl;
   final DateTime createdAt;
 
@@ -26,29 +40,38 @@ class UserModel {
     required this.userId,
     required this.fullName,
     required this.email,
+    this.role = 'trainee',
     this.isTrainer = false,
+    this.status = 'pending_approval',
     this.profileImageUrl,
     required this.createdAt,
   });
 
   factory UserModel.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data() ?? {};
+    final isTrainerFlag = data['isTrainer'] as bool? ?? false;
+    final role = normalizeAppRole(data['role'] as String?, isTrainer: isTrainerFlag);
     return UserModel(
       userId: doc.id,
       fullName: data['fullName'] as String? ?? '',
       email: data['email'] as String? ?? '',
-      isTrainer: data['isTrainer'] as bool? ?? false,
+      role: role,
+      isTrainer: data['isTrainer'] as bool? ?? roleImpliesTrainer(role),
+      status: data['status'] as String? ?? 'pending_approval',
       profileImageUrl: data['profileImageUrl'] as String?,
       createdAt: _parseDateTime(data['createdAt']),
     );
   }
 
   Map<String, dynamic> toMap() {
+    final storedRole = normalizeAppRole(role, isTrainer: isTrainer);
     return {
       'userId': userId,
       'fullName': fullName,
       'email': email,
-      'isTrainer': isTrainer,
+      'role': storedRole,
+      'isTrainer': roleImpliesTrainer(storedRole),
+      'status': status,
       'profileImageUrl': profileImageUrl,
       'createdAt': Timestamp.fromDate(createdAt),
     };
@@ -57,14 +80,18 @@ class UserModel {
   UserModel copyWith({
     String? fullName,
     String? email,
+    String? role,
     bool? isTrainer,
+    String? status,
     String? profileImageUrl,
   }) {
     return UserModel(
       userId: userId,
       fullName: fullName ?? this.fullName,
       email: email ?? this.email,
+      role: role ?? this.role,
       isTrainer: isTrainer ?? this.isTrainer,
+      status: status ?? this.status,
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
       createdAt: createdAt,
     );

@@ -37,20 +37,43 @@ function isFullPermissions(perms) {
 assert.strictEqual(isFullPermissions(fullPermissions), true, 'Full permissions must all be true');
 
 // 3. User Invariant Check
-function createMockUser(userId, fullName, email, isTrainer) {
+function normalizeRole(raw, isTrainer) {
+  const value = String(raw || '').trim().toLowerCase();
+  if (value === 'manager' || value === 'admin') return 'manager';
+  if (value === 'coach' || value === 'trainer' || value === 'trainer_admin') return 'coach';
+  if (value === 'trainee') return 'trainee';
+  return isTrainer ? 'coach' : 'trainee';
+}
+
+function roleImpliesTrainer(role) {
+  return role === 'coach' || role === 'manager';
+}
+
+function createMockUser(userId, fullName, email, roleOrTrainer) {
+  const role = typeof roleOrTrainer === 'boolean'
+    ? normalizeRole(undefined, roleOrTrainer)
+    : normalizeRole(roleOrTrainer);
   return {
     userId,
     fullName,
     email,
-    isTrainer: Boolean(isTrainer),
+    role,
+    isTrainer: roleImpliesTrainer(role),
+    status: 'active',
     createdAt: new Date().toISOString()
   };
 }
 
 const traineeUser = createMockUser('user_01', 'John Doe', 'john@example.com', false);
 assert.strictEqual(traineeUser.isTrainer, false);
+assert.strictEqual(traineeUser.role, 'trainee');
 
 const trainerUser = createMockUser('user_02', 'Coach Sarah', 'sarah@example.com', true);
 assert.strictEqual(trainerUser.isTrainer, true);
+assert.strictEqual(trainerUser.role, 'coach');
+
+assert.strictEqual(normalizeRole('trainer_admin'), 'coach');
+assert.strictEqual(normalizeRole('admin'), 'manager');
+assert.strictEqual(normalizeRole('trainer'), 'coach');
 
 console.log('✅ All domain logic and schema invariants passed successfully!');

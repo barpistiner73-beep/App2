@@ -11,14 +11,19 @@ service cloud.firestore {
     //
     // Core Collections & Sub-collections:
     //
+    // Canonical ids: Firebase Auth UID only. Do not use demo keys (client_1) as document ids.
+    // Stored role is exactly one of: trainee | coach | manager.
+    // Aliases (trainer, admin, trainer_admin) must be normalized before write.
+    // isTrainer is derived: true when role is coach or manager.
+    //
     // 1. users/{userId}
     //    Document ID: Firebase Auth UID (`userId`).
     //    Fields:
     //      - userId: string (required, immutable, matches document ID and auth UID)
     //      - fullName: string (required, 1-100 characters)
     //      - email: string (required, valid email address format, max 150 chars)
-    //      - isTrainer: bool (required, toggles trainer persona capabilities)
-    //      - role: string (optional, enum: 'trainee' | 'coach' | 'manager')
+    //      - isTrainer: bool (required, true for coach and manager)
+    //      - role: string (required going forward, enum: 'trainee' | 'coach' | 'manager')
     //      - status: string (optional, enum: 'pending_approval' | 'active' | 'suspended' | 'rejected')
     //      - approvalStatus: string (optional, enum: 'pending' | 'approved' | 'rejected')
     //      - profileImageUrl: string (optional, valid http/https URL or empty string, max 1000 chars)
@@ -104,43 +109,33 @@ service cloud.firestore {
     //      - startDate: timestamp (required, immutable)
     //      - isActive: bool (required, active status toggle)
     //
-    // 8. trainees/{traineeId}
-    //    Document ID: Trainee identifier (matching UID or client key).
-    //    Fields: Client profile and roster data (name, age, weight, height, target macros, routine).
+    // 8. users/{userId}/foodLogs/{foodLogId}
+    //    Meal/food entries for a calendar day. Query by userId parent + logDate.
     //
-    // 9. dailyReports/{reportId}
-    //    Document ID: Report identifier (e.g. `${traineeId}_${date}`).
-    //    Fields: Complete daily check-in, nutrition, workouts, and coach feedback.
+    // 9. exerciseCatalog/{exerciseId} and equivalenceGroups/{groupId}
+    //    Shared exercise library and coach-owned equivalent-exercise groups.
+    //
+    // Legacy (read-only / do not write new documents):
+    //    trainees/{traineeId}, dailyReports/{reportId}
     //
     // 10. auditLogs/{logId}
     //    Document ID: Auto-generated log ID.
     //    Fields: System and operational audit logs (type, description, meta, timestamp).
     //
     // 11. foods/{foodId}
-    //    Document ID: Food slug (e.g. 'il_retail_tnuva_white_cheese_5') or auto-generated ID.
-    //    Fields:
-    //      - id: string (optional, max 200 chars)
-    //      - name: string (required, 1-200 chars, Hebrew name of food/dish/product)
-    //      - nameEn: string (optional, max 200 chars)
-    //      - brand: string (optional, max 100 chars)
-    //      - category: string (required, 1-100 chars)
-    //      - categoryName: string (optional, max 100 chars)
-    //      - unitName: string (optional, max 100 chars)
-    //      - defaultGrams: number (optional, range >= 0 and <= 10000)
-    //      - calories: number (required, range >= 0 and <= 15000)
-    //      - protein: number (required, range >= 0 and <= 1000)
-    //      - carbs: number (required, range >= 0 and <= 1000)
-    //      - fat: number (required, range >= 0 and <= 1000)
-    //      - fiber: number (optional, range >= 0 and <= 500)
-    //      - sodium: number (optional, range >= 0 and <= 50000)
-    //      - sugar: number (optional, range >= 0 and <= 1000)
-    //      - dietaryTags: list of strings (optional, max 20 items)
-    //      - locationType: string (optional, max 200 chars)
-    //      - region: string (optional, max 200 chars)
-    //      - address: string (optional, max 300 chars)
-    //      - verified: bool (optional)
-    //      - createdAt: timestamp or string (optional)
-    //      - updatedAt: timestamp or string (optional)
+    //    Document ID: Food slug (catalog) OR scanned barcode string (EAN/UPC) for crowdsourced items.
+    //    Catalog fields:
+    //      - id, name, nameEn, brand, category, categoryName, unitName, defaultGrams,
+    //        calories, protein, carbs, fat, fiber, sodium, sugar, dietaryTags,
+    //        locationType, region, address, verified, createdAt, updatedAt
+    //    Crowdsourced barcode fields (Document ID == barcode):
+    //      - barcode: string
+    //      - name, brand, servingSize
+    //      - macrosPer100g: { calories, protein, carbs, fats }
+    //      - source: 'scraped' | 'manual'
+    //      - createdAt: timestamp
+    //      - createdBy: UID of contributing user
+    //    Personal meal diary is NEVER stored here; use users/{userId}/foodLogs.
     //
     // =========================================================================
 
@@ -468,8 +463,18 @@ service cloud.firestore {
         (!('autoClosedNote' in data) || (data.autoClosedNote is string && data.autoClosedNote.size() <= 1000));
     }
 
-    // 10. Food Item Validator (Israeli Food & Culinary Database)
-    function isValidFoodDoc(data) {
+    // 10. Food Item Validator (catalog OR crowdsourced barcode document)
+    function isValidMacrosPer100g(macros) {
+      return macros is map &&
+        macros.keys().hasAll(['calories', 'protein', 'carbs', 'fats']) &&
+        macros.keys().hasOnly(['calories', 'protein', 'carbs', 'fats']) &&
+        macros.calories is number && macros.calories >= 0 && macros.calories <= 15000 &&
+        macros.protein is number && macros.protein >= 0 && macros.protein <= 1000 &&
+        macros.carbs is number && macros.carbs >= 0 && macros.carbs <= 1000 &&
+        macros.fats is number && macros.fats >= 0 && macros.fats <= 1000;
+    }
+
+    function isValidCatalogFoodDoc(data) {
       return hasRequiredFields(data, ['name', 'category', 'calories', 'protein', 'carbs', 'fat']) &&
         hasOnlyAllowedFields(data, [
           'id', 'name', 'nameEn', 'brand', 'category', 'categoryName', 'unitName',
@@ -499,6 +504,45 @@ service cloud.firestore {
         (!('verified' in data) || data.verified == null || data.verified is bool) &&
         (!('createdAt' in data) || data.createdAt == null || data.createdAt is timestamp || (data.createdAt is string && data.createdAt.size() <= 50)) &&
         (!('updatedAt' in data) || data.updatedAt == null || data.updatedAt is timestamp || (data.updatedAt is string && data.updatedAt.size() <= 50));
+    }
+
+    function isValidCrowdsourcedFoodDoc(data) {
+      return hasRequiredFields(data, ['barcode', 'name', 'servingSize', 'macrosPer100g', 'source', 'createdAt', 'createdBy']) &&
+        hasOnlyAllowedFields(data, [
+          'barcode', 'name', 'brand', 'servingSize', 'macrosPer100g', 'source', 'createdAt', 'createdBy'
+        ]) &&
+        data.barcode is string && data.barcode.size() >= 8 && data.barcode.size() <= 80 &&
+        data.name is string && data.name.size() >= 1 && data.name.size() <= 200 &&
+        data.servingSize is string && data.servingSize.size() >= 1 && data.servingSize.size() <= 50 &&
+        isValidMacrosPer100g(data.macrosPer100g) &&
+        data.source in ['scraped', 'manual'] &&
+        data.createdAt is timestamp &&
+        data.createdBy is string && data.createdBy.size() >= 1 && data.createdBy.size() <= 128 &&
+        (!('brand' in data) || (data.brand is string && data.brand.size() <= 100));
+    }
+
+    function isValidFoodDoc(data) {
+      return isValidCatalogFoodDoc(data) || isValidCrowdsourcedFoodDoc(data);
+    }
+
+    function isValidFoodLog(data, userId) {
+      return hasRequiredFields(data, ['userId', 'logDate', 'name', 'grams', 'calories', 'loggedAt']) &&
+        hasOnlyAllowedFields(data, [
+          'foodLogId', 'userId', 'logDate', 'foodId', 'name', 'grams', 'calories',
+          'protein', 'carbs', 'fat', 'source', 'loggedAt'
+        ]) &&
+        data.userId is string && data.userId == userId &&
+        data.logDate is string && data.logDate.size() >= 8 && data.logDate.size() <= 30 &&
+        data.name is string && data.name.size() >= 1 && data.name.size() <= 200 &&
+        data.grams is number && data.grams > 0 && data.grams <= 10000 &&
+        data.calories is number && data.calories >= 0 && data.calories <= 15000 &&
+        data.loggedAt is timestamp &&
+        (!('foodLogId' in data) || (data.foodLogId is string && data.foodLogId.size() <= 100)) &&
+        (!('foodId' in data) || data.foodId == null || (data.foodId is string && data.foodId.size() <= 200)) &&
+        (!('protein' in data) || (data.protein is number && data.protein >= 0 && data.protein <= 1000)) &&
+        (!('carbs' in data) || (data.carbs is number && data.carbs >= 0 && data.carbs <= 2000)) &&
+        (!('fat' in data) || (data.fat is number && data.fat >= 0 && data.fat <= 1000)) &&
+        (!('source' in data) || (data.source is string && data.source.size() <= 300));
     }
 
     // =========================================================================
@@ -572,6 +616,24 @@ service cloud.firestore {
         // Trainee owner can remove an erroneous log entry.
         allow delete: if isOwner(userId);
       }
+
+      // ---------------------------------------------------------------------
+      // Personal meal diary (never write these into the global foods catalog)
+      // Path: users/{userId}/foodLogs/{foodLogId}
+      // ---------------------------------------------------------------------
+      match /foodLogs/{foodLogId} {
+        allow read: if isOwner(userId) || trainerCanViewNutrition(request.auth.uid, userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidFoodLog(request.resource.data, userId) &&
+                         isRecent(request.resource.data.loggedAt);
+
+        allow update: if isOwner(userId) &&
+                         isValidFoodLog(request.resource.data, userId) &&
+                         areImmutableFieldsUnchanged(['userId', 'logDate', 'loggedAt']);
+
+        allow delete: if isOwner(userId);
+      }
     }
 
     // -------------------------------------------------------------------------
@@ -636,10 +698,14 @@ service cloud.firestore {
                          (resource.data.trainerId != resource.data.traineeId && (
                            // Trainee (data owner) can accept, reject, terminate, and adjust permission flags
                            (request.auth.uid == resource.data.traineeId) ||
-                           // Trainer can terminate or update status, but cannot alter permissions or self-activate
+                           // Trainer can accept/reject pending invites, or later terminate; cannot alter permissions
                            (request.auth.uid == resource.data.trainerId &&
                             request.resource.data.permissions == resource.data.permissions &&
-                            (resource.data.status == 'pending' ? request.resource.data.status != 'active' : true))
+                            (
+                              (resource.data.status == 'pending' &&
+                               request.resource.data.status in ['active', 'rejected', 'terminated']) ||
+                              (resource.data.status != 'pending')
+                            ))
                          ))
                        );
 
@@ -839,10 +905,32 @@ service cloud.firestore {
       // Read: open to all authenticated and guest users for nutritional logging and search
       allow read: if true;
 
-      // Create & Update: Authenticated users (managers, coaches, and trainees) with valid food schema
-      allow create, update: if isAuthenticated() &&
-                               (isManagerUser() || isTrainerUser() || true) &&
-                               isValidFoodDoc(request.resource.data);
+      // Create & Update: Authenticated users with valid catalog or crowdsourced barcode schema.
+      // Crowdsourced documents must use Document ID == barcode and stamp the contributing UID.
+      allow create: if isAuthenticated() &&
+                       isValidFoodDoc(request.resource.data) &&
+                       (
+                         isValidCatalogFoodDoc(request.resource.data) ||
+                         (
+                           isValidCrowdsourcedFoodDoc(request.resource.data) &&
+                           foodId == request.resource.data.barcode &&
+                           request.resource.data.createdBy == request.auth.uid &&
+                           isRecent(request.resource.data.createdAt)
+                         )
+                       );
+
+      allow update: if isAuthenticated() &&
+                       isValidFoodDoc(request.resource.data) &&
+                       (
+                         isValidCatalogFoodDoc(request.resource.data) ||
+                         (
+                           isValidCrowdsourcedFoodDoc(request.resource.data) &&
+                           foodId == request.resource.data.barcode &&
+                           request.resource.data.barcode == resource.data.barcode &&
+                           request.resource.data.createdBy == resource.data.createdBy &&
+                           request.resource.data.createdAt == resource.data.createdAt
+                         )
+                       );
 
       // Delete: Managers and coaches only
       allow delete: if isAuthenticated() && (isManagerUser() || isTrainerUser());

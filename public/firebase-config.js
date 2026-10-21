@@ -133,7 +133,14 @@ const FitPulseFirebase = {
   // Note: Per requirements, both Trainee and Trainer accounts require System Manager permission.
   async completeUserRegistration(user, regData) {
     const uid = user.uid || user.id;
-    const isTrainer = regData.role === 'coach';
+    const domain = (typeof window !== 'undefined' && window.FitPulseDomain) || {};
+    const role = typeof domain.normalizeRole === 'function'
+      ? domain.normalizeRole(regData.role)
+      : (regData.role === 'manager' || regData.role === 'admin' ? 'manager'
+        : (regData.role === 'coach' || regData.role === 'trainer' || regData.role === 'trainer_admin' ? 'coach' : 'trainee'));
+    const isTrainer = typeof domain.roleImpliesTrainer === 'function'
+      ? domain.roleImpliesTrainer(role)
+      : (role === 'coach' || role === 'manager');
     const fullName = (regData.fullName || user.displayName || user.email.split('@')[0] || 'משתמש חדש').trim().slice(0, 100);
     const email = user.email;
     const now = (typeof firebase !== 'undefined' && firebase.firestore?.FieldValue?.serverTimestamp)
@@ -148,7 +155,7 @@ const FitPulseFirebase = {
       name: fullName,
       email,
       isTrainer,
-      role: regData.role || (isTrainer ? 'coach' : 'trainee'),
+      role,
       status: 'pending_approval',
       approvalStatus: 'pending',
       specialty: regData.specialty || '',
@@ -484,7 +491,10 @@ const FitPulseFirebase = {
           userId: uid,
           fullName: traineeData.name,
           email: email,
+          role: 'trainee',
           isTrainer: false,
+          status: 'active',
+          approvalStatus: 'approved',
           createdAt: now
         }, { merge: true });
 

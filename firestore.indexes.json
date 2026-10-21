@@ -43,6 +43,21 @@
       ]
     },
     {
+      "collectionGroup": "workoutLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "logDate", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "foodLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "logDate", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "nutritionGoals",
       "queryScope": "COLLECTION",
       "fields": [

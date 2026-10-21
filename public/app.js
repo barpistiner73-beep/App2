@@ -240,7 +240,12 @@
   }
 
   function getUserRole() {
-    return state.currentUser?.role || (String(state.profile.role || '').trim().toLowerCase() === 'trainer_admin' ? 'coach' : 'trainee');
+    const domain = window.FitPulseDomain;
+    const raw = state.currentUser?.role || state.profile.role;
+    if (domain && typeof domain.normalizeRole === 'function') {
+      return domain.normalizeRole(raw, String(raw || '').toLowerCase() === 'trainer_admin');
+    }
+    return String(raw || '').trim().toLowerCase() === 'trainer_admin' ? 'coach' : (raw || 'trainee');
   }
 
   function isManagerRole() {

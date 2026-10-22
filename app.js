@@ -12,8 +12,11 @@
     water: 'fitpulse_daily_water',
     sleep: 'fitpulse_daily_sleep',
     scannedFoods: 'fitpulse_scanned_foods',
-    dailyReports: 'fitpulse_daily_reports'
+    dailyReports: 'fitpulse_daily_reports',
+    coachMode: 'fitpulse_coach_mode'
   };
+
+  let state;
 
   function getUserStorageKey(key) {
     if (!state?.currentUser) return key;
@@ -29,7 +32,8 @@
       STORAGE_KEYS.water,
       STORAGE_KEYS.sleep,
       STORAGE_KEYS.dailyReports,
-      STORAGE_KEYS.customRoutines
+      STORAGE_KEYS.customRoutines,
+      STORAGE_KEYS.coachMode
     ];
     if (scopedKeys.includes(key)) {
       return `${key}_${u.id || u.uid}`;
@@ -89,7 +93,8 @@
     return `${year}-${month}-${day}`;
   }
 
-  const state = {
+  let profileListenerUnsubscribe = null;
+  state = {
     currentDate: localDateKey(new Date()),
     profile: { ...FIT_DATA.defaultProfile, ...readStorage(STORAGE_KEYS.profile, {}) },
     workoutLogs: readStorage(STORAGE_KEYS.workouts, {}),
@@ -102,6 +107,8 @@
     sleepLogs: readStorage(STORAGE_KEYS.sleep, {}),
     scannedFoods: readStorage(STORAGE_KEYS.scannedFoods, []),
     activeTab: 'tab-dashboard',
+    coachViewMode: 'coaching',
+    coachModeUserId: null,
     isTimeCrunchActive: false,
     activeSession: null,
     foodQuery: '',
@@ -124,11 +131,16 @@
     exerciseLibraryMode: 'multi',
     exerciseLibraryOnPick: null,
     selectedTraineeId: FIT_DATA.coachTrainees[0]?.id || 'client_1',
+    coachSubpage: 'management',
     coachActivityFilter: 'all',
     dailyReportDate: localDateKey(new Date()),
     dailyReports: readStorage(STORAGE_KEYS.dailyReports, {}),
     coachHistoryRange: 14,
     coachHistoricalReports: [],
+    activeReportsUnsub: null,
+    activeCoachAccessUnsub: null,
+    coachAccessSubscriptionKey: '',
+    coachDailyReportAccess: false,
     currentUser: readSession('fitpulse_auth_session', null),
     systemUsers: [
       { id: 'usr_mgr', name: 'מנהל מערכת ראשי', email: 'manager@fitpulse.com', role: 'manager', status: 'active', createdAt: '2026-09-01' },
@@ -253,12 +265,31 @@
   }
 
   function isCoachRole() {
-    const role = getUserRole();
-    return role === 'coach' || role === 'manager';
+    return getUserRole() === 'coach';
   }
 
   function isTrainerRole() {
-    return isCoachRole();
+    return isCoachModeActive();
+  }
+
+  function isCoachModeActive() {
+    return isCoachRole() && state.coachViewMode === 'coaching';
+  }
+
+  function isTraineeModeActive() {
+    return getUserRole() === 'trainee' || (isCoachRole() && state.coachViewMode === 'training');
+  }
+
+  function isTabAllowedForRole(tabId) {
+    if (isManagerRole()) return tabId === 'tab-app-manager';
+    if (isCoachModeActive()) return ['tab-coach', 'tab-equivalents'].includes(tabId);
+    if (isTraineeModeActive()) return !['tab-coach', 'tab-equivalents', 'tab-app-manager'].includes(tabId);
+    return false;
+  }
+
+  function defaultTabForRole() {
+    if (isManagerRole()) return 'tab-app-manager';
+    return isCoachModeActive() ? 'tab-coach' : 'tab-dashboard';
   }
 
   function createElement(tag, className, text) {
@@ -345,14 +376,7 @@
   }
 
   function setTab(tabId) {
-    if (['tab-coach', 'tab-equivalents'].includes(tabId) && !isCoachRole()) {
-      alert('אין הרשאה לכלי המאמן בחשבון מתאמן.');
-      tabId = 'tab-dashboard';
-    }
-    if (tabId === 'tab-app-manager' && !isManagerRole()) {
-      alert('אין הרשאה למרכז בקרת מערכת. סמכות מנהל בלבד.');
-      tabId = 'tab-dashboard';
-    }
+    if (!isTabAllowedForRole(tabId)) tabId = defaultTabForRole();
     state.activeTab = tabId;
     document.querySelectorAll('.nav-tab-btn').forEach(button => {
       const selected = button.getAttribute('data-tab') === tabId;
@@ -371,7 +395,7 @@
 
   function getDailyNutrition() {
     return todayMeals().reduce((totals, meal) => {
-      ['calories', 'protein', 'carbs', 'fat', 'fiber', 'sodium', 'sugar', 'addedSugar', 'potassium', 'omega3', 'omega6'].forEach(key => {
+      ['calories', 'protein', 'carbs', 'fat', 'saturatedFats', 'transFats', 'fiber', 'sodium', 'sugar', 'addedSugar', 'potassium', 'calcium', 'iron', 'vitaminC', 'omega3', 'omega6'].forEach(key => {
         totals[key] += Number(meal[key]) || 0;
       });
       const unknown = Array.isArray(meal.unknownNutrients)
@@ -380,7 +404,7 @@
       unknown.forEach(key => totals.unknownNutrients.add(key));
       if (meal.addedSugarKnown) totals.addedSugarKnown = true;
       return totals;
-    }, { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sodium: 0, sugar: 0, addedSugar: 0, potassium: 0, omega3: 0, omega6: 0, addedSugarKnown: false, unknownNutrients: new Set() });
+    }, { calories: 0, protein: 0, carbs: 0, fat: 0, saturatedFats: 0, transFats: 0, fiber: 0, sodium: 0, sugar: 0, addedSugar: 0, potassium: 0, calcium: 0, iron: 0, vitaminC: 0, omega3: 0, omega6: 0, addedSugarKnown: false, unknownNutrients: new Set() });
   }
 
   function findFoodCategoryName(category) {
@@ -413,12 +437,12 @@
       ? [...food.unknownNutrients]
       : ['fiber', 'sodium', 'sugar', 'addedSugar', 'potassium', 'omega3', 'omega6']
         .filter(key => typeof food[key] !== 'number' || !Number.isFinite(food[key]));
-    ['calories', 'protein', 'carbs', 'fat', 'fiber', 'sodium', 'sugar', 'addedSugar', 'potassium', 'omega3', 'omega6'].forEach(key => {
+    ['calories', 'protein', 'carbs', 'fat', 'saturatedFats', 'transFats', 'fiber', 'sodium', 'sugar', 'addedSugar', 'potassium', 'calcium', 'iron', 'vitaminC', 'omega3', 'omega6'].forEach(key => {
       meal[key] = typeof food[key] === 'number' && Number.isFinite(food[key]) ? food[key] * multiplier : 0;
     });
     state.nutritionLogs[state.currentDate] = [...todayMeals(), meal];
     if (!writeStorage(STORAGE_KEYS.nutrition, state.nutritionLogs)) return false;
-    persistPersonalFoodLog(meal);
+    if (!options.skipCloudPersistence) persistPersonalFoodLog(meal);
     renderNutrition();
     renderDashboard();
     syncDailyReportDraft();
@@ -439,6 +463,15 @@
       protein: meal.protein,
       carbs: meal.carbs,
       fat: meal.fat,
+      saturatedFats: meal.saturatedFats || 0,
+      transFats: meal.transFats || 0,
+      sodium: meal.sodium || 0,
+      potassium: meal.potassium || 0,
+      calcium: meal.calcium || 0,
+      iron: meal.iron || 0,
+      vitaminC: meal.vitaminC || 0,
+      omega3: meal.omega3 || 0,
+      omega6: meal.omega6 || 0,
       source: String(meal.source || 'personal-diary').slice(0, 300)
     }).catch(err => console.warn('[FitPulse] foodLogs sync notice:', err.message));
   }
@@ -468,6 +501,15 @@
       protein: Number.isFinite(protein) ? protein : 0,
       carbs: Number.isFinite(carbs) ? carbs : 0,
       fat: Number.isFinite(fat) ? fat : 0,
+      saturatedFats: Number(macros.saturatedFats) || 0,
+      transFats: Number(macros.transFats) || 0,
+      sodium: Number(doc.micronutrients?.sodium) || 0,
+      potassium: Number(doc.micronutrients?.potassium) || 0,
+      calcium: Number(doc.micronutrients?.calcium) || 0,
+      iron: Number(doc.micronutrients?.iron) || 0,
+      vitaminC: Number(doc.micronutrients?.vitaminC) || 0,
+      omega3: Number(doc.fattyAcids?.omega3) || 0,
+      omega6: Number(doc.fattyAcids?.omega6) || 0,
       icon: '📦',
       source: doc.source === 'manual'
         ? 'Crowdsourced Food Database (manual)'
@@ -652,6 +694,71 @@
 
     const summary = byId('todaySummary');
     if (summary) summary.textContent = `${formatNumber(target ? (totals.calories / target) * 100 : 0)}% מיעד הקלוריות · ${todayWorkouts().length} אימונים היום`;
+    renderTraineeTasks();
+  }
+
+  let traineeTaskRenderVersion = 0;
+  let traineeTasksCache = null;
+  let traineeTasksLoadedAt = 0;
+  let traineeTasksCacheUid = null;
+
+  async function renderTraineeTasks(forceRefresh = false) {
+    const container = byId('traineePendingTasks');
+    const uid = window.FitPulseFirebase?.currentUid?.();
+    if (!container || !window.FitPulseFirebase?.isConfigured || !uid) {
+      if (container) container.textContent = 'התחברו לחשבון כדי לראות משימות מהמאמן.';
+      return;
+    }
+    const renderVersion = ++traineeTaskRenderVersion;
+    if (!forceRefresh && traineeTasksCacheUid === uid && traineeTasksCache && Date.now() - traineeTasksLoadedAt < 10000) {
+      renderTraineeTaskItems(container, traineeTasksCache);
+      return;
+    }
+    container.textContent = 'טוען משימות…';
+    try {
+      const tasks = await window.FitPulseFirebase.getMyPendingTasks();
+      if (renderVersion !== traineeTaskRenderVersion) return;
+      traineeTasksCache = tasks;
+      traineeTasksLoadedAt = Date.now();
+      traineeTasksCacheUid = uid;
+      renderTraineeTaskItems(container, tasks);
+    } catch (error) {
+      if (renderVersion !== traineeTaskRenderVersion) return;
+      console.error('Could not load trainee tasks.', error);
+      container.textContent = 'לא ניתן לטעון את המשימות כרגע. בדקו את החיבור ונסו לרענן.';
+    }
+  }
+
+  function renderTraineeTaskItems(container, tasks) {
+    container.replaceChildren();
+    if (!tasks.length) {
+      container.textContent = 'אין משימות ממתינות.';
+      return;
+    }
+    tasks.forEach(task => {
+      const row = createElement('div', 'coach-pending-item');
+      row.append(createElement('strong', '', task.title));
+      row.append(createElement('span', '', task.type === 'weight_check'
+        ? 'השלימו שקילה בטופס מעקב המשקל כדי לסיים משימה זו.'
+        : 'המשימה ממתינה להשלמה.'));
+      if (task.type !== 'weight_check') {
+        const button = createElement('button', 'btn-action-secondary', 'סימון כהושלם');
+        button.type = 'button';
+        button.addEventListener('click', async () => {
+          button.disabled = true;
+          try {
+            await window.FitPulseFirebase.completeNonWeightTask(task.id);
+            await renderTraineeTasks(true);
+          } catch (error) {
+            console.error('Could not complete trainee task.', error);
+            button.disabled = false;
+            row.append(createElement('span', 'coach-link-status', error.message || 'השלמת המשימה נכשלה.'));
+          }
+        });
+        row.append(button);
+      }
+      container.append(row);
+    });
   }
 
   function getExercise(exerciseId) {
@@ -1331,6 +1438,10 @@
     };
     const sodiumGrams = readPer100('sodium_100g');
     const saltGrams = readPer100('salt_100g');
+    const nutrientMg = (...keys) => {
+      const value = readPer100(...keys);
+      return value === null ? null : value * 1000;
+    };
     let calories = readPer100('energy-kcal_100g', 'energy-kcal_value');
     if (calories === null) {
       const kilojoules = readPer100('energy_100g', 'energy_value');
@@ -1348,7 +1459,15 @@
     const fiber = readPer100('fiber_100g');
     const sodium = sodiumGrams !== null ? sodiumGrams * 1000 : saltGrams !== null ? saltGrams * 393.4 : null;
     const sugar = readPer100('sugars_100g');
-    const potassium = readPer100('potassium_100g');
+    const potassium = nutrientMg('potassium_100g');
+    const micronutrients = {
+      sodium: sodium ?? 0,
+      potassium: potassium ?? 0,
+      calcium: nutrientMg('calcium_100g') ?? 0,
+      iron: nutrientMg('iron_100g') ?? 0,
+      vitaminC: nutrientMg('vitamin-c_100g', 'vitamin_c_100g') ?? 0
+    };
+    const fattyAcids = { omega3: omega3 ?? 0, omega6: omega6 ?? 0 };
     const unknownNutrients = Object.entries({ fiber, sodium, sugar, addedSugar, potassium, omega3, omega6 })
       .filter(([, value]) => value === null)
       .map(([key]) => key);
@@ -1365,6 +1484,8 @@
       protein: readPer100('proteins_100g') ?? 0,
       carbs: readPer100('carbohydrates_100g') ?? 0,
       fat: readPer100('fat_100g') ?? 0,
+      saturatedFats: readPer100('saturated-fat_100g') ?? 0,
+      transFats: readPer100('trans-fat_100g') ?? 0,
       fiber,
       sodium,
       sugar,
@@ -1372,6 +1493,8 @@
       potassium,
       omega3,
       omega6,
+      micronutrients,
+      fattyAcids,
       icon: '📦',
       unknownNutrients,
       source: 'Open Food Facts product label; values per 100 g. Database values may be community-submitted.'
@@ -1448,12 +1571,29 @@
     if (options.loading) return;
     byId('barcodeFoodCodeField').value = options.barcode || '';
     byId('barcodeFoodCodeField').readOnly = Boolean(options.barcode);
+    [
+      'barcodeFoodNameField', 'barcodeFoodBrandField', 'barcodeFoodCaloriesField',
+      'barcodeFoodProteinField', 'barcodeFoodCarbsField', 'barcodeFoodFatsField',
+      'barcodeFoodSaturatedFatsField', 'barcodeFoodTransFatsField',
+      'barcodeFoodSodiumField', 'barcodeFoodPotassiumField', 'barcodeFoodCalciumField',
+      'barcodeFoodIronField', 'barcodeFoodVitaminCField', 'barcodeFoodOmega3Field',
+      'barcodeFoodOmega6Field'
+    ].forEach(id => { byId(id).readOnly = Boolean(options.exists); });
     byId('barcodeFoodNameField').value = options.name || '';
     byId('barcodeFoodBrandField').value = options.brand || '';
     byId('barcodeFoodCaloriesField').value = options.calories ?? '';
     byId('barcodeFoodProteinField').value = options.protein ?? '';
     byId('barcodeFoodCarbsField').value = options.carbs ?? '';
     byId('barcodeFoodFatsField').value = options.fats ?? options.fat ?? '';
+    byId('barcodeFoodSaturatedFatsField').value = options.saturatedFats ?? 0;
+    byId('barcodeFoodTransFatsField').value = options.transFats ?? 0;
+    byId('barcodeFoodSodiumField').value = options.sodium ?? 0;
+    byId('barcodeFoodPotassiumField').value = options.potassium ?? 0;
+    byId('barcodeFoodCalciumField').value = options.calcium ?? 0;
+    byId('barcodeFoodIronField').value = options.iron ?? 0;
+    byId('barcodeFoodVitaminCField').value = options.vitaminC ?? 0;
+    byId('barcodeFoodOmega3Field').value = options.omega3 ?? 0;
+    byId('barcodeFoodOmega6Field').value = options.omega6 ?? 0;
     byId('barcodeFoodGramsField').value = options.grams || 100;
     byId('barcodeFoodSourceField').value = options.source || 'manual';
     if (form) form.dataset.exists = options.exists ? '1' : '';
@@ -1470,105 +1610,149 @@
     if (dialog) dialog.hidden = true;
   }
 
-  function readNumberFromText(text, patterns) {
-    for (const pattern of patterns) {
-      const match = text.match(pattern);
-      if (match) {
-        const value = Number(String(match[1]).replace(',', '.'));
-        if (Number.isFinite(value) && value >= 0) return value;
-      }
-    }
-    return null;
+  function parseNutritionValue(value) {
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    const match = String(value || '').replace(',', '.').match(/-?\d+(?:\.\d+)?/);
+    return match ? Number(match[0]) : null;
   }
 
-  function parseNutritionFromHtml(html, pageUrl) {
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    const jsonBlocks = [...doc.querySelectorAll('script[type="application/ld+json"]')]
-      .map(node => {
-        try { return JSON.parse(node.textContent || ''); } catch (e) { return null; }
-      })
-      .filter(Boolean);
-    const stack = [...jsonBlocks];
-    let nutrition = null;
-    let name = '';
-    let brand = '';
-    while (stack.length) {
-      const node = stack.shift();
-      if (Array.isArray(node)) {
-        stack.push(...node);
-        continue;
-      }
-      if (!node || typeof node !== 'object') continue;
-      if (node['@graph']) stack.push(node['@graph']);
-      if (!name && (node.name || node.headline)) name = String(node.name || node.headline);
-      if (!brand && node.brand) {
-        brand = typeof node.brand === 'string' ? node.brand : String(node.brand.name || '');
-      }
-      const info = node.nutrition || node.nutritionInformation;
-      if (info && typeof info === 'object') nutrition = info;
-      Object.values(node).forEach(value => {
-        if (value && typeof value === 'object') stack.push(value);
-      });
+  function parseNutrientAmount(value, targetUnit) {
+    const amount = parseNutritionValue(value);
+    if (amount === null) return 0;
+    const unit = String(value || '').toLowerCase();
+    if (targetUnit === 'mg') {
+      if (/(?:ug|µg|mcg)\s*$/.test(unit)) return amount / 1000;
+      if (/g\s*$/.test(unit) && !/mg\s*$/.test(unit)) return amount * 1000;
+      return amount;
     }
-    const calories = nutrition
-      ? Number(String(nutrition.calories || nutrition.energy || '').replace(/[^\d.,]/g, '').replace(',', '.'))
-      : null;
-    const protein = nutrition ? Number(String(nutrition.proteinContent || '').replace(/[^\d.,]/g, '').replace(',', '.')) : null;
-    const carbs = nutrition ? Number(String(nutrition.carbohydrateContent || nutrition.carbohydrate || '').replace(/[^\d.,]/g, '').replace(',', '.')) : null;
-    const fats = nutrition ? Number(String(nutrition.fatContent || nutrition.fat || '').replace(/[^\d.,]/g, '').replace(',', '.')) : null;
-    const text = `${doc.querySelector('title')?.textContent || ''} ${doc.body?.innerText || ''}`.replace(/\s+/g, ' ');
-    const parsed = {
-      name: name || String(doc.querySelector('meta[property="og:title"]')?.getAttribute('content') || '').trim(),
-      brand,
-      calories: Number.isFinite(calories) ? calories : readNumberFromText(text, [
-        /(?:calories|energy|קלוריות|אנרגיה)\D{0,12}(\d+[\.,]?\d*)/i,
-        /(\d+[\.,]?\d*)\s*(?:kcal|קק״ל|קלוריות)/i
-      ]),
-      protein: Number.isFinite(protein) ? protein : readNumberFromText(text, [
-        /(?:protein|חלבונים|חלבון)\D{0,12}(\d+[\.,]?\d*)/i
-      ]),
-      carbs: Number.isFinite(carbs) ? carbs : readNumberFromText(text, [
-        /(?:carbohydrate|carb|פחמימות)\D{0,12}(\d+[\.,]?\d*)/i
-      ]),
-      fats: Number.isFinite(fats) ? fats : readNumberFromText(text, [
-        /(?:fat|שומנים|שומן)\D{0,12}(\d+[\.,]?\d*)/i
-      ]),
-      sourceUrl: pageUrl
+    if (/mg\s*$/.test(unit)) return amount / 1000;
+    return amount;
+  }
+
+  async function readLimitedResponseText(response, limitBytes) {
+    const reader = response.body?.getReader();
+    if (!reader) {
+      const text = await response.text();
+      if (text.length > limitBytes) throw new Error('Product page is too large to parse.');
+      return text;
+    }
+    const decoder = new TextDecoder();
+    let text = '';
+    let bytes = 0;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      bytes += value.byteLength;
+      if (bytes > limitBytes) {
+        await reader.cancel();
+        throw new Error('Product page is too large to parse.');
+      }
+      text += decoder.decode(value, { stream: true });
+    }
+    return text + decoder.decode();
+  }
+
+  function productFromJsonLd(value) {
+    const entries = Array.isArray(value) ? value : [value];
+    const products = entries.flatMap(entry => entry && Array.isArray(entry['@graph']) ? entry['@graph'] : [entry]);
+    const product = products.find(entry => {
+      const type = entry?.['@type'];
+      return String(type).endsWith('Product') ||
+        (Array.isArray(type) && type.some(value => String(value).endsWith('Product')));
+    });
+    const nutrition = product?.nutrition || product?.nutritionInformation;
+    if (!product || !nutrition || !/100\s*(g|gram|grams|גרם)/i.test(String(nutrition.servingSize || ''))) return null;
+    const calories = nutrition.calories !== undefined && nutrition.calories !== null
+      ? parseNutritionValue(nutrition.calories)
+      : /kj/i.test(String(nutrition.energyContent || ''))
+        ? (parseNutritionValue(nutrition.energyContent) || 0) / 4.184
+        : parseNutritionValue(nutrition.energyContent);
+    const protein = parseNutritionValue(nutrition.proteinContent);
+    const carbs = parseNutritionValue(nutrition.carbohydrateContent);
+    const fats = parseNutritionValue(nutrition.fatContent);
+    const name = typeof product.name === 'string' ? product.name.trim() : '';
+    const brand = typeof product.brand === 'string' ? product.brand : product.brand?.name || '';
+    if (!name || [calories, protein, carbs, fats].some(value => value === null)) return null;
+    return {
+      name, brand, calories, protein, carbs, fats,
+      saturatedFats: parseNutrientAmount(nutrition.saturatedFatContent, 'g'),
+      transFats: parseNutrientAmount(nutrition.transFatContent, 'g'),
+      sodium: parseNutrientAmount(nutrition.sodiumContent, 'mg'),
+      potassium: parseNutrientAmount(nutrition.potassiumContent, 'mg'),
+      calcium: parseNutrientAmount(nutrition.calciumContent, 'mg'),
+      iron: parseNutrientAmount(nutrition.ironContent, 'mg'),
+      vitaminC: parseNutrientAmount(nutrition.vitaminCContent, 'mg'),
+      omega3: parseNutrientAmount(nutrition.omega3Content, 'g'),
+      omega6: parseNutrientAmount(nutrition.omega6Content, 'g')
     };
-    const macrosOk = [parsed.calories, parsed.protein, parsed.carbs, parsed.fats]
-      .every(value => Number.isFinite(value) && value >= 0);
-    if (!parsed.name || !macrosOk) return null;
-    return parsed;
   }
 
-  async function scrapeNutritionFromUrl(url) {
+  async function scrapeNutritionFromUrl(value) {
+    const url = new URL(value);
+    const hostname = url.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+    if (url.protocol !== 'https:' || !hostname || url.username || url.password ||
+        hostname === 'localhost' || hostname.endsWith('.local') ||
+        /^(10\.|127\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.)/.test(hostname) ||
+        hostname.includes(':')) {
+      throw new Error('Only public HTTPS product pages can be parsed.');
+    }
     const controller = new AbortController();
     const timer = window.setTimeout(() => controller.abort(), 8000);
     try {
-      const response = await fetch(url, { signal: controller.signal, mode: 'cors' });
-      if (!response.ok) return null;
+      const response = await fetch(url.href, {
+        signal: controller.signal,
+        credentials: 'omit',
+        redirect: 'error',
+        headers: { Accept: 'text/html, application/ld+json, application/json' }
+      });
+      if (!response.ok) throw new Error(`Product page returned HTTP ${response.status}.`);
+      const contentLength = Number(response.headers.get('content-length'));
+      if (contentLength > 1000000) throw new Error('Product page is too large to parse.');
+      const text = await readLimitedResponseText(response, 1000000);
       const contentType = String(response.headers.get('content-type') || '');
-      if (contentType.includes('application/json')) {
-        const json = await response.json();
-        const name = json.name || json.product_name || json.title;
-        const macros = json.macrosPer100g || json.nutrition || json.nutriments || {};
-        const parsed = {
-          name,
-          brand: json.brand || json.brands || '',
-          calories: Number(macros.calories ?? macros['energy-kcal_100g'] ?? json.calories),
-          protein: Number(macros.protein ?? macros.proteins_100g ?? json.protein),
-          carbs: Number(macros.carbs ?? macros.carbohydrates_100g ?? json.carbs),
-          fats: Number(macros.fats ?? macros.fat ?? macros.fat_100g ?? json.fat)
-        };
-        if (!parsed.name || ![parsed.calories, parsed.protein, parsed.carbs, parsed.fats].every(Number.isFinite)) {
-          return null;
+      if (contentType.includes('json')) {
+        const json = JSON.parse(text);
+        const jsonLdProduct = productFromJsonLd(json);
+        if (jsonLdProduct) return jsonLdProduct;
+        const candidate = json.product || json;
+        const macros = candidate.macrosPer100g || candidate.nutriments || {};
+        const explicitPer100g = candidate.macrosPer100g ||
+          (macros['energy-kcal_100g'] !== undefined && macros.proteins_100g !== undefined &&
+           macros.carbohydrates_100g !== undefined && macros.fat_100g !== undefined);
+        const servingSize = String(candidate.servingSize || candidate.serving_size || '');
+        if (explicitPer100g || /100\s*(g|gram|grams|גרם)/i.test(servingSize)) {
+          const product = {
+            name: String(candidate.name || candidate.product_name || candidate.title || '').trim(),
+            brand: String(candidate.brand || candidate.brands || ''),
+            calories: parseNutritionValue(macros.calories ?? macros['energy-kcal_100g'] ?? candidate.calories),
+            protein: parseNutritionValue(macros.protein ?? macros.proteins_100g ?? candidate.protein),
+            carbs: parseNutritionValue(macros.carbs ?? macros.carbohydrates_100g ?? candidate.carbs ?? candidate.carbohydrates),
+            fats: parseNutritionValue(macros.fats ?? macros.fat ?? macros.fat_100g ?? candidate.fat),
+            saturatedFats: parseNutrientAmount(macros.saturatedFats ?? candidate.saturatedFats, 'g'),
+            transFats: parseNutrientAmount(macros.transFats ?? candidate.transFats, 'g'),
+            sodium: parseNutrientAmount(candidate.micronutrients?.sodium ?? macros.sodium ?? candidate.sodium, 'mg'),
+            potassium: parseNutrientAmount(candidate.micronutrients?.potassium ?? macros.potassium ?? candidate.potassium, 'mg'),
+            calcium: parseNutrientAmount(candidate.micronutrients?.calcium ?? macros.calcium ?? candidate.calcium, 'mg'),
+            iron: parseNutrientAmount(candidate.micronutrients?.iron ?? macros.iron ?? candidate.iron, 'mg'),
+            vitaminC: parseNutrientAmount(candidate.micronutrients?.vitaminC ?? macros.vitaminC ?? candidate.vitaminC, 'mg'),
+            omega3: parseNutrientAmount(candidate.fattyAcids?.omega3 ?? macros.omega3 ?? candidate.omega3, 'g'),
+            omega6: parseNutrientAmount(candidate.fattyAcids?.omega6 ?? macros.omega6 ?? candidate.omega6, 'g')
+          };
+          if (product.name && [product.calories, product.protein, product.carbs, product.fats].every(Number.isFinite)) {
+            return product;
+          }
         }
-        return parsed;
+        return null;
       }
-      const html = await response.text();
-      return parseNutritionFromHtml(html, url);
-    } catch (error) {
-      console.warn('[FitPulse] Nutrition scrape skipped:', error.message);
+      const page = new DOMParser().parseFromString(text, 'text/html');
+      for (const script of page.querySelectorAll('script[type="application/ld+json"]')) {
+        try {
+          const parsed = productFromJsonLd(JSON.parse(script.textContent || ''));
+          if (parsed) return parsed;
+        } catch (error) {
+          console.warn('Ignoring invalid product JSON-LD.', error);
+        }
+      }
       return null;
     } finally {
       window.clearTimeout(timer);
@@ -1621,6 +1805,15 @@
           protein: localExisting.protein,
           carbs: localExisting.carbs,
           fats: localExisting.fat,
+          saturatedFats: localExisting.saturatedFats,
+          transFats: localExisting.transFats,
+          sodium: localExisting.sodium,
+          potassium: localExisting.potassium,
+          calcium: localExisting.calcium,
+          iron: localExisting.iron,
+          vitaminC: localExisting.vitaminC,
+          omega3: localExisting.omega3,
+          omega6: localExisting.omega6,
           grams: 100
         });
         return;
@@ -1640,7 +1833,16 @@
             calories: scraped.calories,
             protein: scraped.protein,
             carbs: scraped.carbs,
-            fats: scraped.fats
+            fats: scraped.fats,
+            saturatedFats: scraped.saturatedFats,
+            transFats: scraped.transFats,
+            sodium: scraped.sodium,
+            potassium: scraped.potassium,
+            calcium: scraped.calcium,
+            iron: scraped.iron,
+            vitaminC: scraped.vitaminC,
+            omega3: scraped.omega3,
+            omega6: scraped.omega6
           });
           if (status) status.textContent = 'החילוץ הצליח. ממתינים לאישור.';
           return;
@@ -1661,7 +1863,25 @@
             calories: offFood.calories,
             protein: offFood.protein,
             carbs: offFood.carbs,
-            fats: offFood.fat
+            fats: offFood.fat,
+            saturatedFats: offFood.saturatedFats,
+            transFats: offFood.transFats,
+            sodium: offFood.micronutrients?.sodium,
+            potassium: offFood.micronutrients?.potassium,
+            calcium: offFood.micronutrients?.calcium,
+            iron: offFood.micronutrients?.iron,
+            vitaminC: offFood.micronutrients?.vitaminC,
+            omega3: offFood.fattyAcids?.omega3,
+            omega6: offFood.fattyAcids?.omega6,
+            saturatedFats: offFood.saturatedFats,
+            transFats: offFood.transFats,
+            sodium: offFood.micronutrients?.sodium,
+            potassium: offFood.micronutrients?.potassium,
+            calcium: offFood.micronutrients?.calcium,
+            iron: offFood.micronutrients?.iron,
+            vitaminC: offFood.micronutrients?.vitaminC,
+            omega3: offFood.fattyAcids?.omega3,
+            omega6: offFood.fattyAcids?.omega6
           });
           return;
         }
@@ -1701,7 +1921,20 @@
         calories: byId('barcodeFoodCaloriesField')?.value,
         protein: byId('barcodeFoodProteinField')?.value,
         carbs: byId('barcodeFoodCarbsField')?.value,
-        fats: byId('barcodeFoodFatsField')?.value
+        fats: byId('barcodeFoodFatsField')?.value,
+        saturatedFats: byId('barcodeFoodSaturatedFatsField')?.value,
+        transFats: byId('barcodeFoodTransFatsField')?.value
+      },
+      micronutrients: {
+        sodium: byId('barcodeFoodSodiumField')?.value,
+        potassium: byId('barcodeFoodPotassiumField')?.value,
+        calcium: byId('barcodeFoodCalciumField')?.value,
+        iron: byId('barcodeFoodIronField')?.value,
+        vitaminC: byId('barcodeFoodVitaminCField')?.value
+      },
+      fattyAcids: {
+        omega3: byId('barcodeFoodOmega3Field')?.value,
+        omega6: byId('barcodeFoodOmega6Field')?.value
       }
     };
     const validated = typeof domain.validateCrowdsourcedFoodInput === 'function'
@@ -1718,7 +1951,13 @@
       saveBtn.textContent = 'שומר…';
     }
     try {
-      let food = {
+      const result = await window.FitPulseFirebase?.createCrowdsourcedFoodAndLog?.(
+        validated.food,
+        grams,
+        state.currentDate
+      );
+      if (!result?.food) throw new Error('לא ניתן לשמור את המוצר ואת הארוחה.');
+      const food = firestoreFoodToLocal(result.food) || {
         id: validated.food.barcode,
         barcode: validated.food.barcode,
         name: validated.food.name,
@@ -1736,15 +1975,8 @@
           ? 'Crowdsourced Food Database (manual)'
           : 'Crowdsourced Food Database (scraped)'
       };
-      if (!alreadyInCatalog) {
-        if (window.FitPulseFirebase?.saveCrowdsourcedFood) {
-          await window.FitPulseFirebase.saveCrowdsourcedFood(validated.food);
-        } else {
-          throw new Error('יש להתחבר כדי לשמור למאגר השיתופי.');
-        }
-      }
       cacheLocalFood(food);
-      if (!addFoodToLog(food, grams, { source: food.source })) {
+      if (!addFoodToLog(food, grams, { source: food.source, skipCloudPersistence: true })) {
         setBarcodeEditorError('המוצר נשמר במאגר, אך ההוספה ליומן נכשלה.');
         return;
       }
@@ -1793,7 +2025,7 @@
         : [];
       const preferredFormats = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'qr_code', 'code_128'];
       const supportedFormats = preferredFormats.filter(format => nativeFormats.includes(format));
-      const isUsableScan = (value) => /^\d{8,14}$/.test(value) || /^https?:\/\//i.test(value);
+      const isUsableScan = (value) => /^\d{8,14}$/.test(value) || /^https:\/\//i.test(value);
       if (supportedFormats.length) {
         const detector = new window.BarcodeDetector({ formats: supportedFormats });
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } });
@@ -1917,7 +2149,7 @@
     const weightSave = createElement('button', 'btn-action-secondary', 'שמירת שקילה');
     weightSave.type = 'submit';
     weightForm.append(weightTitle, weightInput, weightSave);
-    weightForm.addEventListener('submit', event => {
+    weightForm.addEventListener('submit', async event => {
       event.preventDefault();
       const weight = Number(weightInput.value);
       if (!Number.isFinite(weight) || weight < 20 || weight > 400) return;
@@ -1926,7 +2158,21 @@
       state.weightLogs.sort((a, b) => a.date.localeCompare(b.date));
       state.profile = { ...state.profile, weight };
       if (writeStorage(STORAGE_KEYS.weights, state.weightLogs) &&
-        writeStorage(STORAGE_KEYS.profile, state.profile)) renderProgress();
+        writeStorage(STORAGE_KEYS.profile, state.profile)) {
+        renderProgress();
+        if (window.FitPulseFirebase?.getSignedInUid?.()) {
+          try {
+            const completedTask = await window.FitPulseFirebase.completeWeightCheckTask(weight);
+            if (completedTask) {
+              await renderTraineeTasks(true);
+              alert('השקילה נשמרה ומשימת המאמן הושלמה.');
+            }
+          } catch (error) {
+            console.error('Could not complete weigh-in task.', error);
+            alert(`השקילה נשמרה במכשיר, אך לא ניתן היה לעדכן את משימת המאמן: ${error.message}`);
+          }
+        }
+      }
     });
     controls.append(weightForm);
     chart.insertAdjacentElement('beforebegin', controls);
@@ -2337,6 +2583,181 @@
   // COACH DASHBOARD & HISTORICAL DRILL-DOWN (לוח מאמן והיסטוריה)
   // ==========================================================================
 
+  function setCoachSubpage(page) {
+    const content = byId('coachAdminContent');
+    if (!content) return;
+    state.coachSubpage = page;
+    content.querySelectorAll('[data-coach-page]').forEach(element => {
+      element.hidden = element.dataset.coachPage !== page;
+    });
+    byId('coachWorkspaceNav')?.querySelectorAll('[data-coach-subpage]').forEach(button => {
+      const active = button.dataset.coachSubpage === page;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-selected', String(active));
+    });
+  }
+
+  function initializeCoachWorkspace() {
+    const content = byId('coachAdminContent');
+    if (!content) return;
+    const markSection = (element, page) => {
+      const section = element?.closest('section');
+      if (section && content.contains(section)) section.dataset.coachPage = page;
+    };
+    markSection(byId('coachPendingLinksCard'), 'management');
+    markSection(byId('coachDirectoryCard'), 'management');
+    markSection(byId('coachPermissionRequestCard'), 'management');
+    markSection(byId('coachPermissionRequestForm'), 'management');
+    markSection(byId('coachConnectionRequests'), 'management');
+    markSection(byId('coachConnectionsList'), 'management');
+    markSection(byId('coachTaskForm'), 'activity');
+    const profile = byId('coachTraineeProfileBar');
+    if (profile) profile.dataset.coachPage = 'activity';
+    markSection(byId('coachReportsHistoryRows'), 'activity');
+    markSection(byId('coachTraineesGrid'), 'management');
+    markSection(byId('coachDataAccessStatus'), 'management');
+    const nav = byId('coachWorkspaceNav');
+    if (nav && nav.dataset.bound !== 'true') {
+      nav.dataset.bound = 'true';
+      nav.querySelectorAll('[data-coach-subpage]').forEach(button => {
+        button.addEventListener('click', () => setCoachSubpage(button.dataset.coachSubpage));
+      });
+    }
+    setCoachSubpage(state.coachSubpage || 'management');
+  }
+
+  function openCoachWorkoutEditor(plan = null) {
+    if (!state.selectedTraineeId) {
+      const status = byId('coachWeeklyPlanStatus');
+      if (status) status.textContent = 'בחרו מתאמן לפני עריכת אימון.';
+      return;
+    }
+    setCoachSubpage('editor');
+    createWorkoutModal(plan);
+  }
+
+  async function renderCoachPlanPages(trainee, isDemoCoach) {
+    initializeCoachWorkspace();
+    const workoutList = byId('coachWeeklyWorkoutList');
+    const editorList = byId('coachEditorWorkoutList');
+    const workoutStatus = byId('coachWeeklyPlanStatus');
+    const targetStatus = byId('coachNutritionTargetsStatus');
+    const targetForm = byId('coachNutritionTargetsForm');
+    [workoutList, editorList].forEach(list => list?.replaceChildren());
+    if (!trainee) {
+      if (workoutStatus) workoutStatus.textContent = 'בחרו מתאמן מחובר כדי לטעון תוכנית שבועית.';
+      if (targetStatus) targetStatus.textContent = 'בחרו מתאמן מחובר כדי לערוך יעדי תזונה.';
+      if (targetForm) targetForm.querySelectorAll('input, button').forEach(input => { input.disabled = true; });
+      return;
+    }
+
+    const calories = byId('coachTargetCalories');
+    const protein = byId('coachTargetProtein');
+    const carbs = byId('coachTargetCarbs');
+    const fats = byId('coachTargetFats');
+    let plans = [];
+    let canEditNutrition = isDemoCoach;
+    let canEditWorkouts = isDemoCoach;
+    if (isDemoCoach) {
+      const demoTargets = readStorage('fitpulse_demo_nutrition_targets', {})[trainee.id] || trainee;
+      if (calories) calories.value = String(demoTargets.targetCalories || 2200);
+      if (protein) protein.value = String(demoTargets.targetProtein || 160);
+      if (carbs) carbs.value = String(demoTargets.targetCarbs || 250);
+      if (fats) fats.value = String(demoTargets.targetFats || 70);
+      const demoAssignments = readStorage('fitpulse_demo_assignments', {});
+      plans = Array.isArray(demoAssignments[trainee.id]) ? demoAssignments[trainee.id] : [];
+      if (targetStatus) targetStatus.textContent = 'יעדים אלה נשמרים בדפדפן המקומי בלבד בתצוגת הדגמה.';
+      if (workoutStatus) workoutStatus.textContent = plans.length ? 'תוכנית הדגמה מקומית.' : 'אין אימונים משויכים עדיין.';
+    } else if (window.FitPulseFirebase?.isConfigured) {
+      try {
+        const coachId = getAuthUserId();
+        const scope = await window.FitPulseFirebase.getCoachPermissionScope(coachId, trainee.id);
+        canEditNutrition = scope?.status === 'active' && scope.categories?.nutrition_logs === true;
+        canEditWorkouts = scope?.status === 'active' && scope.categories?.workout_history === true;
+        if (canEditNutrition) {
+          const goal = await window.FitPulseFirebase.getCoachNutritionGoal(trainee.id);
+          if (calories) calories.value = String(goal?.targetCalories ?? '');
+          if (protein) protein.value = String(goal?.targetProteinGrams ?? '');
+          if (carbs) carbs.value = String(goal?.targetCarbsGrams ?? '');
+          if (fats) fats.value = String(goal?.targetFatsGrams ?? '');
+          if (targetStatus) targetStatus.textContent = 'היעדים יוצגו ויישמרו רק במסגרת הרשאת התזונה הפעילה.';
+        } else if (targetStatus) {
+          targetStatus.textContent = 'נדרשת הסכמת המתאמן לקטגוריית יומני תזונה כדי לצפות או לערוך יעדים.';
+        }
+        if (canEditWorkouts) {
+          plans = await window.FitPulseFirebase.getCoachWeeklyPlan(trainee.id);
+          if (workoutStatus) workoutStatus.textContent = plans.length ? 'התוכנית השבועית נטענה מהענן.' : 'אין אימונים משויכים עדיין.';
+        } else if (workoutStatus) {
+          workoutStatus.textContent = 'נדרשת הסכמה לקטגוריית היסטוריית אימונים כדי לנהל תוכנית בענן.';
+        }
+      } catch (error) {
+        console.error('[Coach] Could not load plan or nutrition permissions.', error);
+        if (workoutStatus) workoutStatus.textContent = 'לא ניתן לטעון את התוכנית. בדקו חיבור והרשאות.';
+        if (targetStatus) targetStatus.textContent = 'לא ניתן לאמת הרשאה ליעדי תזונה; המידע נשאר מוסתר.';
+        canEditNutrition = false;
+        canEditWorkouts = false;
+      }
+    } else {
+      if (workoutStatus) workoutStatus.textContent = 'חיבור Firestore אינו זמין.';
+      if (targetStatus) targetStatus.textContent = 'חיבור Firestore אינו זמין.';
+    }
+    if (targetForm) targetForm.querySelectorAll('input, button').forEach(input => { input.disabled = !canEditNutrition; });
+    const addButtons = [byId('coachAddWorkoutBtn'), byId('coachEditorAddWorkoutBtn')];
+    addButtons.forEach(button => { if (button) button.disabled = !canEditWorkouts; });
+    const renderCards = list => {
+      if (!list) return;
+      if (!plans.length) {
+        list.append(createElement('p', 'empty-state', 'אין אימונים בתוכנית השבועית.'));
+        return;
+      }
+      plans.forEach(plan => {
+        const card = createElement('article', 'coach-card');
+        card.append(createElement('strong', '', plan.name || 'אימון שבועי'));
+        const weekday = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'][Number(plan.scheduledDay)] || '';
+        card.append(createElement('p', '', `${weekday ? `${weekday} · ` : ''}${plan.exercises?.length || 0} תרגילים`));
+        const edit = createElement('button', 'btn-action-secondary', 'עריכת אימון');
+        edit.type = 'button';
+        edit.addEventListener('click', () => openCoachWorkoutEditor(plan));
+        card.append(edit);
+        list.append(card);
+      });
+    };
+    renderCards(workoutList);
+    renderCards(editorList);
+  }
+
+  async function renderCoachTaskHistory(trainee, isDemoCoach) {
+    const list = byId('coachTaskHistoryList');
+    if (!list) return;
+    list.replaceChildren();
+    if (!trainee) {
+      list.append(createElement('p', 'empty-state', 'בחרו מתאמן כדי לראות את המשימות.'));
+      return;
+    }
+    if (isDemoCoach || !window.FitPulseFirebase?.isConfigured) {
+      list.append(createElement('p', 'empty-state', 'סטטוס משימות זמין למערכות המחוברות ל-Firestore.'));
+      return;
+    }
+    try {
+      const tasks = await window.FitPulseFirebase.getCoachTasks(trainee.id);
+      if (!tasks.length) {
+        list.append(createElement('p', 'empty-state', 'לא נשלחו משימות למתאמן זה.'));
+        return;
+      }
+      tasks.sort((left, right) => Number(right.createdAt?.toMillis?.() || 0) - Number(left.createdAt?.toMillis?.() || 0));
+      tasks.forEach(task => {
+        const row = createElement('div', 'coach-pending-row');
+        const status = task.status === 'completed' ? 'הושלמה' : 'ממתינה';
+        row.append(createElement('strong', '', task.title || 'משימת מאמן'),
+          createElement('span', '', `${task.type} · ${status}`));
+        list.append(row);
+      });
+    } catch (error) {
+      console.error('[Coach] Could not load task status.', error);
+      list.append(createElement('p', 'empty-state', 'לא ניתן לטעון את סטטוס המשימות; בדקו קשר פעיל והרשאות.'));
+    }
+  }
+
   async function renderCoach() {
     const isTrainer = isTrainerRole();
     if (byId('coachAccessNotice')) byId('coachAccessNotice').hidden = isTrainer;
@@ -2348,43 +2769,43 @@
     if (byId('manageEquivalentExercisesBtn')) byId('manageEquivalentExercisesBtn').hidden = !isTrainer;
     if (!isTrainer) return;
 
-    // 1. Fetch Trainees from API or fallback
+    const firebaseUid = window.FitPulseFirebase?.currentUid?.();
+    const isDemoCoach = !firebaseUid && (!state.currentUser ||
+      (state.currentUser.id && state.currentUser.id.startsWith('usr_')) ||
+      (state.currentUser.email && (state.currentUser.email === 'coach@fitpulse.com' || state.currentUser.email === 'manager@fitpulse.com')));
     let trainees = FIT_DATA.coachTrainees || [];
-    try {
-      const res = await fetch('/api/trainees');
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && Array.isArray(data.trainees)) {
-          trainees = data.trainees;
-          FIT_DATA.coachTrainees = trainees;
+    if (isDemoCoach) {
+      try {
+        const res = await fetch('/api/trainees');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && Array.isArray(data.trainees)) {
+            trainees = data.trainees;
+            FIT_DATA.coachTrainees = trainees;
+          }
         }
+      } catch (err) {
+        console.warn('[Coach] Could not fetch demo trainees:', err);
       }
-    } catch (err) {
-      console.warn('[Coach] Could not fetch trainees from server, using local list:', err);
-    }
-
-    const isDemoCoach = !state.currentUser || (state.currentUser.id && state.currentUser.id.startsWith('usr_')) || 
-                        (state.currentUser.email && (state.currentUser.email === 'coach@fitpulse.com' || state.currentUser.email === 'manager@fitpulse.com'));
-
-    // For a real coach: start with a clean roster without Daniel Cohen and demo trainees
-    if (!isDemoCoach) {
-      const coachId = state.currentUser.id;
-      trainees = trainees.filter(t => t.coachId === coachId || t.trainerId === coachId);
-      // If self-training enabled, include self profile
-      if (state.currentUser.selfTraining !== false) {
-        const selfTrainee = {
-          id: coachId,
-          name: `${state.currentUser.name} (אימון עצמי)`,
-          avatar: state.currentUser.avatar || '👑',
-          role: 'self',
-          targetCalories: state.profile.targetCalories || 2400,
-          targetProtein: state.profile.targetProtein || 170,
-          weight: state.profile.weight || 75,
-          targetSleepHours: state.profile.targetSleepHours || 8,
+    } else if (window.FitPulseFirebase?.isConfigured) {
+      try {
+        const connections = await window.FitPulseFirebase.getActiveCoachConnections();
+        trainees = connections.map(connection => ({
+          id: connection.id,
+          name: connection.name,
+          avatar: connection.name.slice(0, 2),
+          targetCalories: null,
+          targetProtein: null,
+          weight: null,
+          targetSleepHours: null,
           hasWorkedOutToday: false
-        };
-        trainees.unshift(selfTrainee);
+        }));
+      } catch (error) {
+        trainees = [];
+        console.error('[Coach] Could not load authorized trainee roster:', error);
       }
+    } else {
+      trainees = [];
     }
 
     const searchInput = byId('coachTraineeSearch');
@@ -2416,39 +2837,55 @@
       } else if (trainees[0]) {
         state.selectedTraineeId = trainees[0].id;
         select.value = trainees[0].id;
+      } else {
+        state.selectedTraineeId = null;
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'אין מתאמנים מחוברים';
+        select.append(option);
       }
     }
 
     const currentTrainee = trainees.find(t => t.id === state.selectedTraineeId) || trainees[0];
+    await renderCoachPlanPages(currentTrainee, isDemoCoach);
+    await renderCoachTaskHistory(currentTrainee, isDemoCoach);
 
     // 3. Trainee Quick Profile Bar
     const profileBar = byId('coachTraineeProfileBar');
     if (profileBar && currentTrainee) {
       profileBar.replaceChildren();
-      const meta = createElement('div', 'coach-trainee-meta');
-      const avatar = createElement('div', 'coach-trainee-avatar', currentTrainee.avatar || currentTrainee.name.slice(0, 2));
-      const ageGenderText = currentTrainee.age
-        ? ` (${currentTrainee.age}${currentTrainee.gender ? ` · ${currentTrainee.gender === 'male' ? 'גבר' : 'אישה'}` : ''})`
-        : '';
-      info.append(
-        createElement('strong', '', `${currentTrainee.name}${ageGenderText}`),
-        createElement('span', '', `תוכנית משויכת: ${currentTrainee.assignedRoutine || 'בניית תוכנית חדשה'} · גובה: ${currentTrainee.height || 175} ס"מ`)
-      );
-      meta.append(avatar, info);
+      if (!isDemoCoach) {
+        profileBar.append(
+          createElement('strong', '', currentTrainee.name),
+          createElement('span', 'coach-link-status', 'פרטי מתאמן ומדדים יוצגו רק לאחר הסכמה לקטגוריית המידע המתאימה.')
+        );
+      } else {
+        const meta = createElement('div', 'coach-trainee-meta');
+        const avatar = createElement('div', 'coach-trainee-avatar', currentTrainee.avatar || currentTrainee.name.slice(0, 2));
+        const info = createElement('div', 'coach-trainee-info');
+        const ageGenderText = currentTrainee.age
+          ? ` (${currentTrainee.age}${currentTrainee.gender ? ` · ${currentTrainee.gender === 'male' ? 'גבר' : 'אישה'}` : ''})`
+          : '';
+        info.append(
+          createElement('strong', '', `${currentTrainee.name}${ageGenderText}`),
+          createElement('span', '', `תוכנית משויכת: ${currentTrainee.assignedRoutine || 'בניית תוכנית חדשה'} · גובה: ${currentTrainee.height || 175} ס"מ`)
+        );
+        meta.append(avatar, info);
 
-      const stats = createElement('div', 'coach-trainee-stats');
-      [
-        ['משקל עדכני', `${currentTrainee.weight || 75} ק"ג`],
-        ['יעד קלוריות', `${formatNumber(currentTrainee.targetCalories || 2200)} קק"ל`],
-        ['יעד חלבון', `${formatNumber(currentTrainee.targetProtein || 160)}g`],
-        ['יעד מים', `${formatNumber(currentTrainee.targetWaterMl || 3000)} מ"ל`]
-      ].forEach(([label, val]) => {
-        const box = createElement('div', 'coach-stat-box');
-        box.append(createElement('span', 'stat-label', label), createElement('strong', 'stat-val', val));
-        stats.append(box);
-      });
+        const stats = createElement('div', 'coach-trainee-stats');
+        [
+          ['משקל עדכני', `${currentTrainee.weight || 75} ק"ג`],
+          ['יעד קלוריות', `${formatNumber(currentTrainee.targetCalories || 2200)} קק"ל`],
+          ['יעד חלבון', `${formatNumber(currentTrainee.targetProtein || 160)}g`],
+          ['יעד מים', `${formatNumber(currentTrainee.targetWaterMl || 3000)} מ"ל`]
+        ].forEach(([label, val]) => {
+          const box = createElement('div', 'coach-stat-box');
+          box.append(createElement('span', 'stat-label', label), createElement('strong', 'stat-val', val));
+          stats.append(box);
+        });
 
-      profileBar.append(meta, stats);
+        profileBar.append(meta, stats);
+      }
     }
 
     // 4. Fetch & Render Historical Reports for Selected Trainee (Default 14 Days)
@@ -2456,38 +2893,120 @@
     const rangeDays = rangeSelect?.value === 'all' ? 9999 : (parseInt(rangeSelect?.value, 10) || 14);
 
     let reports = [];
+    let canViewReports = isDemoCoach;
+    let currentScope = null;
     try {
-      const res = await fetch(`/api/reports?traineeId=${state.selectedTraineeId}&days=${rangeDays}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && Array.isArray(data.reports)) {
-          reports = data.reports;
+      if (isDemoCoach) {
+        const res = await fetch(`/api/reports?traineeId=${state.selectedTraineeId}&days=${rangeDays}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && Array.isArray(data.reports)) reports = data.reports;
         }
+      } else if (state.selectedTraineeId && window.FitPulseFirebase?.isConfigured) {
+        currentScope = await window.FitPulseFirebase.getCoachPermissionScope(
+          getAuthUserId(),
+          state.selectedTraineeId
+        );
+        canViewReports = currentScope?.status === 'active' && currentScope.categories?.daily_reports === true;
       }
     } catch (err) {
-      console.warn('[Coach] Could not fetch reports from server, filtering local:', err);
+      console.error('[Coach] Could not verify daily-report permission:', err);
     }
 
-    if (!reports.length) {
+    if (isDemoCoach && !reports.length) {
       // Local fallback
       reports = Object.values(state.dailyReports)
         .filter(r => r.traineeId === state.selectedTraineeId)
         .sort((a, b) => b.date.localeCompare(a.date));
     }
 
-    renderCoachReportsTable(reports, currentTrainee);
+    if (canViewReports) {
+      const emptyState = byId('coachReportsEmptyState');
+      if (emptyState) emptyState.textContent = 'לא נמצאו דוחות יומיים עבור טווח זה.';
+      renderCoachReportsTable(reports, currentTrainee);
+    } else {
+      if (typeof state.activeReportsUnsub === 'function') {
+        state.activeReportsUnsub();
+        state.activeReportsUnsub = null;
+      }
+      state.coachHistoricalReports = [];
+      renderCoachReportsTable([], currentTrainee);
+      const emptyState = byId('coachReportsEmptyState');
+      if (emptyState) emptyState.textContent = 'המתאמן טרם העניק הרשאה לצפייה בדוחות היומיים.';
+      if (byId('coachReportDetailModal')) byId('coachReportDetailModal').hidden = true;
+    }
+
+    if (!isDemoCoach && state.selectedTraineeId && window.FitPulseFirebase?.isConfigured) {
+      const coachId = getAuthUserId();
+      const traineeId = state.selectedTraineeId;
+      const subscriptionKey = `${coachId}_${traineeId}`;
+      if (state.coachAccessSubscriptionKey !== subscriptionKey) {
+        stopCoachDataSubscriptions();
+        state.coachAccessSubscriptionKey = subscriptionKey;
+        state.coachDailyReportAccess = canViewReports;
+        state.activeCoachAccessUnsub = window.FitPulseFirebase.subscribeToCoachAccess(
+          coachId,
+          traineeId,
+          access => {
+            if (state.coachAccessSubscriptionKey !== subscriptionKey) return;
+            const allowed = access.active &&
+              access.scope?.status === 'active' &&
+              access.request?.status === 'accepted' &&
+              access.scope.categories?.daily_reports === true;
+            if (allowed === state.coachDailyReportAccess) return;
+            state.coachDailyReportAccess = allowed;
+            if (allowed) {
+              renderCoach();
+            } else {
+              if (typeof state.activeReportsUnsub === 'function') state.activeReportsUnsub();
+              state.activeReportsUnsub = null;
+              state.coachHistoricalReports = [];
+              renderCoachReportsTable([], currentTrainee);
+              const emptyState = byId('coachReportsEmptyState');
+              if (emptyState) emptyState.textContent = 'ההרשאה לצפייה בדוחות אינה פעילה.';
+              if (byId('coachReportDetailModal')) byId('coachReportDetailModal').hidden = true;
+            }
+          },
+          error => {
+            console.error('[Coach] Could not monitor trainee permission changes:', error);
+            if (state.coachAccessSubscriptionKey !== subscriptionKey) return;
+            state.coachDailyReportAccess = false;
+            if (typeof state.activeReportsUnsub === 'function') state.activeReportsUnsub();
+            state.activeReportsUnsub = null;
+            state.coachHistoricalReports = [];
+            renderCoachReportsTable([], currentTrainee);
+            const emptyState = byId('coachReportsEmptyState');
+            if (emptyState) emptyState.textContent = 'לא ניתן לאמת הרשאות גישה לדוחות.';
+            if (byId('coachReportDetailModal')) byId('coachReportDetailModal').hidden = true;
+          }
+        );
+      } else {
+        state.coachDailyReportAccess = canViewReports;
+      }
+    } else {
+      stopCoachDataSubscriptions();
+    }
 
     // Live real-time Firestore sync
-    if (window.FitPulseFirebase?.isConfigured) {
+    if (!isDemoCoach && window.FitPulseFirebase?.isConfigured && canViewReports && state.selectedTraineeId) {
       if (typeof state.activeReportsUnsub === 'function') {
         state.activeReportsUnsub();
         state.activeReportsUnsub = null;
       }
       state.activeReportsUnsub = window.FitPulseFirebase.subscribeToTraineeReports(state.selectedTraineeId, rangeDays, (cloudReports) => {
-        if (cloudReports && cloudReports.length) {
-          renderCoachReportsTable(cloudReports, currentTrainee);
-        }
+        renderCoachReportsTable(cloudReports || [], currentTrainee);
+      }, error => {
+        console.error('[Coach] Trainee report query was denied or failed:', error);
+        state.coachDailyReportAccess = false;
+        state.coachHistoricalReports = [];
+        renderCoachReportsTable([], currentTrainee);
+        const emptyState = byId('coachReportsEmptyState');
+        if (emptyState) emptyState.textContent = 'לא ניתן לטעון דוחות ללא הרשאה פעילה.';
+        if (byId('coachReportDetailModal')) byId('coachReportDetailModal').hidden = true;
       });
+    } else if (typeof state.activeReportsUnsub === 'function') {
+      state.activeReportsUnsub();
+      state.activeReportsUnsub = null;
     }
 
     // 5. Render General Trainee Grid
@@ -2853,12 +3372,23 @@
     renderNutrition();
     renderWorkoutsTab();
     renderDailyReportTab();
-    if (isCoachRole()) {
+    if (isCoachModeActive()) {
       renderCoach();
       renderCoachPendingLinks();
+    } else {
+      stopCoachDataSubscriptions();
     }
     if (isManagerRole()) renderAppManager();
     renderProgress();
+  }
+
+  function stopCoachDataSubscriptions() {
+    if (typeof state.activeReportsUnsub === 'function') state.activeReportsUnsub();
+    if (typeof state.activeCoachAccessUnsub === 'function') state.activeCoachAccessUnsub();
+    state.activeReportsUnsub = null;
+    state.activeCoachAccessUnsub = null;
+    state.coachAccessSubscriptionKey = '';
+    state.coachDailyReportAccess = false;
   }
 
   function trainershipStatusLabel(status) {
@@ -2872,7 +3402,7 @@
   async function renderTraineeCoachLinkCard() {
     const card = byId('traineeCoachLinkCard');
     if (!card) return;
-    const isTrainee = getUserRole() === 'trainee';
+    const isTrainee = isTraineeModeActive();
     card.hidden = !isTrainee || !state.currentUser;
     if (card.hidden) return;
     const statusEl = byId('traineeCoachLinkStatus');
@@ -2887,71 +3417,245 @@
     if (statusEl) statusEl.textContent = 'טוען חיבור למאמן…';
     try {
       const uid = getAuthUserId();
-      const [links, coaches] = await Promise.all([
+      const [linksResult, coachesResult, requestsResult] = await Promise.allSettled([
         window.FitPulseFirebase.listMyTrainerships(),
-        window.FitPulseFirebase.listCoaches()
+        window.FitPulseFirebase.listCoaches(byId('traineeCoachSearchInput')?.value || ''),
+        window.FitPulseFirebase.getTraineeConnectionRequests()
       ]);
+      if (coachesResult.status === 'rejected') throw coachesResult.reason;
+      const coaches = coachesResult.value;
+      const links = linksResult.status === 'fulfilled' ? linksResult.value : [];
+      const requests = requestsResult.status === 'fulfilled' ? requestsResult.value : [];
+      const connectionStateUnavailable = linksResult.status === 'rejected' || requestsResult.status === 'rejected';
+      if (linksResult.status === 'rejected') console.error('[Trainee] Could not load connection state.', linksResult.reason);
+      if (requestsResult.status === 'rejected') console.error('[Trainee] Could not load connection requests.', requestsResult.reason);
       const mine = (links || []).filter(link => link.traineeId === uid && link.trainerId !== uid);
       const active = mine.find(link => link.status === 'active');
-      const pending = mine.find(link => link.status === 'pending');
+      const pending = (requests || []).find(request => request.status === 'pending' && request.initiatedBy !== 'coach');
+      const incoming = (requests || []).filter(request => request.status === 'pending' && request.initiatedBy === 'coach');
+      const incomingEl = byId('traineeConnectionRequests');
+      if (incomingEl) {
+        incomingEl.replaceChildren();
+        incoming.forEach(request => {
+          const row = createElement('div', 'coach-pending-row');
+          row.append(createElement('strong', '', `${request.coachDisplayName || 'מאמן'} מבקש להתחבר`));
+          const actions = createElement('div', 'coach-pending-actions');
+          [[true, 'אישור'], [false, 'דחייה']].forEach(([accept, label]) => {
+            const button = createElement('button', accept ? 'btn-action-primary' : 'btn-action-secondary', label);
+            button.type = 'button';
+            button.addEventListener('click', async () => {
+              button.disabled = true;
+              try {
+                await window.FitPulseFirebase.respondToCoachConnection(
+                  request.id, request.coachId, uid, accept, state.currentUser?.name || 'מתאמן'
+                );
+                await renderTraineeCoachLinkCard();
+              } catch (error) {
+                console.error('[Trainee] Could not respond to coach connection request.', error);
+                button.disabled = false;
+                if (statusEl) statusEl.textContent = `לא ניתן לעדכן את בקשת החיבור: ${error.message || error}`;
+              }
+            });
+            actions.append(button);
+          });
+          row.append(actions);
+          incomingEl.append(row);
+        });
+      }
       const coachName = (id) => coaches.find(coach => coach.id === id || coach.userId === id)?.name || 'מאמן';
       if (active) {
-        if (statusEl) statusEl.textContent = '';
+        if (statusEl) statusEl.textContent = `מחובר למאמן ${coachName(active.trainerId)}. בקשות והרשאות מופיעות כאן.`;
         if (activeBox) {
           activeBox.hidden = false;
-          activeBox.innerHTML = `<strong>${coachName(active.trainerId)}</strong><span>סטטוס: ${trainershipStatusLabel(active.status)}</span>`;
+          activeBox.replaceChildren(createElement('strong', '', coachName(active.trainerId)),
+            createElement('span', '', `סטטוס: ${trainershipStatusLabel(active.status)}`));
         }
         if (form) form.hidden = true;
-        return;
+      } else {
+        if (activeBox) activeBox.hidden = true;
+        if (form) form.hidden = Boolean(pending) || connectionStateUnavailable;
+        const select = byId('traineeCoachSelect');
+        if (select) {
+          const available = coaches.filter(coach => coach.id !== uid);
+          select.replaceChildren();
+          available.forEach(coach => {
+            const option = document.createElement('option');
+            option.value = coach.id;
+            option.textContent = coach.name;
+            select.append(option);
+          });
+          if (!available.length) {
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'לא נמצאו מאמנים במדריך הציבורי';
+            select.append(option);
+          }
+        }
+        if (statusEl) {
+          statusEl.textContent = pending
+            ? `נשלחה בקשה אל ${pending.coachDisplayName || 'המאמן'} וממתינה לאישור.`
+            : 'בחרו מאמן מהמדריך הציבורי כדי לשלוח בקשת חיבור.';
+        }
       }
-      if (activeBox) activeBox.hidden = true;
-      if (form) form.hidden = false;
-      const select = byId('traineeCoachSelect');
-      if (select) {
-        const available = coaches.filter(coach => coach.id !== uid && coach.role !== 'manager');
-        select.innerHTML = available.length
-          ? available.map(coach => `<option value="${coach.id}">${coach.name}${coach.email ? ' · ' + coach.email : ''}</option>`).join('')
-          : '<option value="">לא נמצאו מאמנים זמינים</option>';
+      if (connectionStateUnavailable && statusEl) {
+        statusEl.textContent += ' מצב בקשות החיבור אינו זמין כרגע; ניתן לצפות במדריך אך לא לשלוח בקשה.';
       }
-      if (statusEl) {
-        statusEl.textContent = pending
-          ? `נשלחה בקשה אל ${coachName(pending.trainerId)} וממתינה לאישור המאמן.`
-          : 'בחרו מאמן כדי לשלוח בקשת חיבור.';
+      try {
+        await renderTraineePermissionControls(uid);
+      } catch (error) {
+        console.error('[Trainee] Could not load requested data permissions.', error);
+        if (statusEl) statusEl.textContent += ' בקשות גישה לנתונים אינן זמינות כרגע.';
       }
     } catch (error) {
-      if (statusEl) statusEl.textContent = 'לא ניתן לטעון את רשימת המאמנים כרגע.';
-      console.warn('[FitPulse] coach link load notice:', error.message);
+      if (statusEl) statusEl.textContent = `לא ניתן לטעון את רשימת המאמנים כרגע: ${error.message || error}`;
+      console.error('[Trainee] Could not load public coach directory.', error);
+    }
+  }
+
+  const permissionCategoryLabels = {
+    nutrition_logs: 'יומני תזונה',
+    workout_history: 'היסטוריית אימונים',
+    body_metrics: 'מדדי גוף',
+    sleep_logs: 'נתוני שינה',
+    daily_reports: 'דוחות יומיים'
+  };
+
+  async function renderTraineePermissionControls(uid) {
+    const [requests, relationships] = await Promise.all([
+      window.FitPulseFirebase.getTraineePermissionRequests(),
+      window.FitPulseFirebase.listMyTrainerships()
+    ]);
+    const activeCoachIds = new Set(relationships
+      .filter(link => link.traineeId === uid && link.status === 'active')
+      .map(link => link.trainerId));
+    const requestsEl = byId('traineePermissionRequests');
+    const scopesEl = byId('traineePermissionScopes');
+    if (!requestsEl || !scopesEl) return;
+    requestsEl.replaceChildren();
+    scopesEl.replaceChildren();
+    for (const request of requests) {
+      if (!activeCoachIds.has(request.coachId)) continue;
+      if (request.status === 'pending') {
+        const panel = createElement('section', 'coach-pending-row');
+        panel.append(createElement('strong', '', `${request.coachDisplayName || 'המאמן'} מבקש גישה לנתונים:`));
+        (request.requestedCategories || []).forEach(category => {
+          if (!permissionCategoryLabels[category]) return;
+          const label = createElement('label');
+          const input = document.createElement('input');
+          input.type = 'checkbox';
+          input.value = category;
+          input.checked = true;
+          label.append(input, document.createTextNode(` ${permissionCategoryLabels[category]}`));
+          panel.append(label);
+        });
+        const actions = createElement('div', 'coach-pending-actions');
+        const accept = createElement('button', 'btn-action-primary', 'שמירת הסכמה');
+        accept.type = 'button';
+        accept.addEventListener('click', async () => {
+          const categories = [...panel.querySelectorAll('input:checked')].map(input => input.value);
+          try {
+            await window.FitPulseFirebase.respondToCoachPermissionRequest(request.id, request.coachId, uid, categories);
+            await renderTraineeCoachLinkCard();
+          } catch (error) {
+            alert(error.message || 'שמירת ההרשאות נכשלה.');
+          }
+        });
+        const reject = createElement('button', 'btn-action-secondary', 'דחיית הבקשה');
+        reject.type = 'button';
+        reject.addEventListener('click', async () => {
+          try {
+            await window.FitPulseFirebase.rejectCoachPermissionRequest(request.id, uid);
+            await renderTraineeCoachLinkCard();
+          } catch (error) {
+            alert(error.message || 'דחיית הבקשה נכשלה.');
+          }
+        });
+        actions.append(accept, reject);
+        panel.append(actions);
+        requestsEl.append(panel);
+      } else if (request.status === 'accepted') {
+        const scope = await window.FitPulseFirebase.getCoachPermissionScope(request.coachId, uid);
+        if (!scope) continue;
+        const panel = createElement('section', 'coach-pending-row');
+        panel.append(createElement('strong', '', `הרשאות עבור ${request.coachDisplayName || 'המאמן'}`));
+        Object.entries(permissionCategoryLabels).forEach(([category, labelText]) => {
+          if (!(request.requestedCategories || []).includes(category)) return;
+          const label = createElement('label');
+          const input = document.createElement('input');
+          input.type = 'checkbox';
+          input.value = category;
+          input.checked = scope.categories?.[category] === true;
+          label.append(input, document.createTextNode(` ${labelText}`));
+          panel.append(label);
+        });
+        const save = createElement('button', 'btn-action-secondary', 'עדכון הרשאות');
+        save.type = 'button';
+        save.addEventListener('click', async () => {
+          const categories = [...panel.querySelectorAll('input:checked')].map(input => input.value);
+          try {
+            await window.FitPulseFirebase.updateCoachPermissionScope(request.coachId, uid, categories);
+            await renderTraineeCoachLinkCard();
+          } catch (error) {
+            alert(error.message || 'עדכון ההרשאות נכשל.');
+          }
+        });
+        panel.append(save);
+        scopesEl.append(panel);
+      }
     }
   }
 
   async function renderCoachPendingLinks() {
     const list = byId('coachPendingLinksList');
-    if (!list || !isCoachRole()) return;
+    if (!list || !isCoachModeActive()) return;
     if (!window.FitPulseFirebase?.isConfigured) {
       list.textContent = 'חיבור מתאמנים זמין אחרי התחברות לענן.';
       return;
     }
     try {
       const uid = getAuthUserId();
-      const links = (await window.FitPulseFirebase.listMyTrainerships())
-        .filter(link => link.trainerId === uid && link.trainerId !== link.traineeId);
-      const pending = links.filter(link => link.status === 'pending');
-      const active = links.filter(link => link.status === 'active');
+      const [requests, links, listing, permissionRequests] = await Promise.all([
+        window.FitPulseFirebase.getCoachConnectionRequests(),
+        window.FitPulseFirebase.listMyTrainerships(),
+        window.FitPulseFirebase.getOwnCoachDirectoryListing(),
+        window.FitPulseFirebase.getCoachPermissionRequests()
+      ]);
+      const optIn = byId('coachDirectoryOptIn');
+      if (optIn) optIn.checked = listing?.isDiscoverable === true || listing?.isPublicVisible === true;
+      const selectedPermissionRequest = permissionRequests.find(request => request.traineeId === state.selectedTraineeId);
+      const permissionStatus = byId('coachPermissionRequestStatus');
+      if (permissionStatus && selectedPermissionRequest) {
+        permissionStatus.textContent = `סטטוס בקשת הגישה: ${
+          selectedPermissionRequest.status === 'pending' ? 'ממתינה להסכמת המתאמן' :
+            selectedPermissionRequest.status === 'accepted' ? 'אושרה' : 'נדחתה'
+        }.`;
+      }
+      const mine = links.filter(link => link.trainerId === uid && link.trainerId !== link.traineeId);
+      const pending = requests.filter(request => request.status === 'pending');
+      const active = mine.filter(link => link.status === 'active');
       if (!pending.length && !active.length) {
         list.textContent = 'אין בקשות ממתינות ואין מתאמנים מחוברים עדיין.';
         return;
       }
-      list.innerHTML = '';
+      list.replaceChildren();
       pending.forEach(link => {
         const row = createElement('div', 'coach-pending-row');
         const info = createElement('div');
-        info.innerHTML = `<strong>בקשה ממתינה</strong><span>${link.traineeId}</span>`;
+        info.append(createElement('strong', '', link.initiatedBy === 'coach' ? 'בקשת חיבור נשלחה' : 'בקשת חיבור ממתינה'),
+          createElement('span', '', link.initiatedBy === 'coach'
+            ? `ממתינים לאישור UID ${link.traineeId}`
+            : (link.traineeDisplayName || 'מתאמן')));
+        if (link.initiatedBy === 'coach') {
+          row.append(info, createElement('span', 'coach-link-status', 'ממתין לתשובת המשתמש'));
+          list.append(row);
+          return;
+        }
         const actions = createElement('div', 'coach-pending-actions');
         const accept = createElement('button', 'btn-action-primary', 'אישור חיבור');
         accept.type = 'button';
         accept.addEventListener('click', async () => {
           try {
-            await window.FitPulseFirebase.respondToCoachLink(link.trainerId, link.traineeId, 'active');
+            await window.FitPulseFirebase.respondToCoachConnection(link.id, link.coachId, link.traineeId, true);
             renderCoachPendingLinks();
             renderTraineeCoachLinkCard();
           } catch (err) {
@@ -2962,7 +3666,7 @@
         reject.type = 'button';
         reject.addEventListener('click', async () => {
           try {
-            await window.FitPulseFirebase.respondToCoachLink(link.trainerId, link.traineeId, 'rejected');
+            await window.FitPulseFirebase.respondToCoachConnection(link.id, link.coachId, link.traineeId, false);
             renderCoachPendingLinks();
           } catch (err) {
             alert(err.message || 'דחיית החיבור נכשלה.');
@@ -2974,7 +3678,9 @@
       });
       active.forEach(link => {
         const row = createElement('div', 'coach-pending-row');
-        row.innerHTML = `<div><strong>מתאמן מחובר</strong><span>${link.traineeId}</span></div><span>${trainershipStatusLabel(link.status)}</span>`;
+        row.append(createElement('div', '', ''), createElement('span', '', trainershipStatusLabel(link.status)));
+        row.firstChild.append(createElement('strong', '', 'מתאמן מחובר'),
+          createElement('span', '', link.traineeId));
         list.append(row);
       });
     } catch (error) {
@@ -3674,6 +4380,18 @@
     recoverySelect.value = existingPlan?.recoveryGoal ||
       recoveryGoals.find(goal => goal.seconds === Number(existingPlan?.defaultRestSeconds))?.id || 'balanced';
     recoveryLabel.append(recoverySelect);
+    const scheduleDays = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+    const scheduledDayLabel = createElement('label', '', 'יום בתוכנית השבועית');
+    const scheduledDaySelect = document.createElement('select');
+    scheduledDaySelect.name = 'scheduledDay';
+    scheduleDays.forEach((day, index) => {
+      const option = document.createElement('option');
+      option.value = String(index);
+      option.textContent = day;
+      scheduledDaySelect.append(option);
+    });
+    scheduledDaySelect.value = String(Number(existingPlan?.scheduledDay) || 0);
+    scheduledDayLabel.append(scheduledDaySelect);
     const restLabel = createElement('label', 'builder-rest-field', 'מנוחה מוצעת (שניות)');
     const restInput = document.createElement('input');
     restInput.type = 'number';
@@ -3689,8 +4407,8 @@
     });
     const submit = createElement('button', 'btn-action-primary builder-submit', 'שמירת אימון');
     submit.type = 'submit';
-    form.append(note, categoryLabel, nameLabel, exerciseList, addExercise, durationLabel, recoveryLabel, restLabel, submit);
-    form.addEventListener('submit', event => {
+    form.append(note, categoryLabel, nameLabel, scheduledDayLabel, exerciseList, addExercise, durationLabel, recoveryLabel, restLabel, submit);
+    form.addEventListener('submit', async event => {
       event.preventDefault();
       if (!nameInput.value.trim()) {
         alert('הזינו שם לאימון.');
@@ -3714,7 +4432,8 @@
           setPrescriptions: prescriptions.map(item => ({
             weight: Number(item.weight) || 0,
             reps: Number(item.reps) || 1
-          }))
+          })),
+          exerciseName: getExercise(row.preferredExerciseId)?.name || row.preferredExerciseId
         };
       });
       if (exercises.some(entry => !Number.isInteger(entry.sets) || entry.sets < 1 || entry.sets > 20 ||
@@ -3733,6 +4452,7 @@
         durationMinutes: Number(durationInput.value), level: existingPlan?.level || 'אישי',
         badge: existingPlan?.badge || 'אימון אישי', defaultRestSeconds: Number(restInput.value),
         recoveryGoal: recoverySelect.value,
+        scheduledDay: Number(scheduledDaySelect.value),
         ...(isTrainerRole() && state.selectedTraineeId
           ? { audienceTraineeId: state.selectedTraineeId }
           : existingPlan?.audienceTraineeId ? { audienceTraineeId: existingPlan.audienceTraineeId } : {}),
@@ -3740,6 +4460,20 @@
           ? { sourceRoutineId: existingPlan.sourceRoutineId || existingPlan.id.slice('assigned-'.length) } : {}),
         exercises
       };
+      const cloudCoach = window.FitPulseFirebase?.isConfigured &&
+        window.FitPulseFirebase.currentUid?.() === state.currentUser?.id;
+      if (isTrainerRole() && state.selectedTraineeId && cloudCoach) {
+        submit.disabled = true;
+        try {
+          const saved = await window.FitPulseFirebase.saveCoachWorkoutPlan(state.selectedTraineeId, plan);
+          plan.id = saved.id;
+        } catch (error) {
+          console.error('[Coach] Could not save workout to the selected trainee plan.', error);
+          alert(`לא ניתן לשמור את האימון בתוכנית המתאמן: ${error.message || error}`);
+          submit.disabled = false;
+          return;
+        }
+      }
       const existingIndex = FIT_DATA.presetWorkouts.findIndex(item => item.id === plan.id);
       if (existingIndex >= 0) FIT_DATA.presetWorkouts[existingIndex] = plan;
       else FIT_DATA.presetWorkouts.push(plan);
@@ -3747,7 +4481,7 @@
       if (savedIndex >= 0) state.customRoutines[savedIndex] = plan;
       else state.customRoutines.push(plan);
       if (!writeStorage(STORAGE_KEYS.customRoutines, state.customRoutines)) return;
-      if (isTrainerRole() && state.selectedTraineeId) {
+      if (isTrainerRole() && state.selectedTraineeId && !cloudCoach) {
         const assignments = readStorage('fitpulse_demo_assignments', {});
         const traineeAssignments = assignments[state.selectedTraineeId] || [];
         const assignedIndex = traineeAssignments.findIndex(item => item.id === plan.sourceRoutineId);
@@ -3759,7 +4493,12 @@
         }
       }
       renderWorkoutsTab();
-      setTab('tab-workouts');
+      if (isTrainerRole() && state.selectedTraineeId) {
+        setCoachSubpage('plan');
+        renderCoach();
+      } else {
+        setTab('tab-workouts');
+      }
       overlay.remove();
     });
     dialog.append(header, form);
@@ -4438,19 +5177,52 @@
   }
 
   function applyRoleAuthority(role) {
+    const currentUserId = state.currentUser?.id || state.currentUser?.uid;
+    if (role === 'coach' && currentUserId && state.coachModeUserId !== currentUserId) {
+      const savedMode = readStorage(STORAGE_KEYS.coachMode, 'coaching');
+      state.coachViewMode = savedMode === 'training' ? 'training' : 'coaching';
+      state.coachModeUserId = currentUserId;
+    }
+    if (role !== 'coach') {
+      state.coachViewMode = 'coaching';
+      state.coachModeUserId = null;
+    }
+
     const coachTab = byId('navTabCoach');
     const managerTab = byId('navTabAppManager');
     const equivTab = byId('navTabEquivalents');
     const equivBtn = byId('manageEquivalentExercisesBtn');
+    const coachModeButton = byId('headerCoachModeToggleBtn');
+    const showCoachPages = role === 'coach' && state.coachViewMode === 'coaching';
+    const isManager = role === 'manager';
+    const traineeMode = role === 'trainee' || (role === 'coach' && state.coachViewMode === 'training');
 
-    if (coachTab) coachTab.hidden = !(role === 'coach' || role === 'manager');
-    if (managerTab) managerTab.hidden = role !== 'manager';
-    if (equivTab) equivTab.hidden = !(role === 'coach' || role === 'manager');
-    if (equivBtn) equivBtn.hidden = !(role === 'coach' || role === 'manager');
+    if (coachTab) coachTab.hidden = !showCoachPages;
+    if (managerTab) managerTab.hidden = !isManager;
+    if (equivTab) equivTab.hidden = !showCoachPages;
+    if (equivBtn) equivBtn.hidden = !showCoachPages;
+    if (coachModeButton) {
+      coachModeButton.hidden = role !== 'coach';
+      coachModeButton.textContent = state.coachViewMode === 'coaching' ? 'מצב אימון' : 'מצב התאמנות';
+      coachModeButton.setAttribute('aria-pressed', String(state.coachViewMode === 'coaching'));
+      coachModeButton.title = state.coachViewMode === 'coaching'
+        ? 'החלפה למצב התאמנות'
+        : 'החלפה למצב אימון';
+    }
+    const coachSearchTab = byId('navTabCoachSearch');
+    if (coachSearchTab) coachSearchTab.hidden = !traineeMode;
+    document.querySelectorAll('.nav-tab-btn').forEach(button => {
+      button.hidden = !isTabAllowedForRole(button.getAttribute('data-tab'));
+    });
+    document.querySelectorAll('.tab-pane').forEach(pane => {
+      pane.hidden = !isTabAllowedForRole(pane.id);
+    });
+    if (byId('headerStartWorkoutBtn')) byId('headerStartWorkoutBtn').hidden = !traineeMode;
 
-    const isTrainer = role === 'coach' || role === 'manager';
+    const isTrainer = showCoachPages;
     if (byId('coachAccessNotice')) byId('coachAccessNotice').hidden = isTrainer;
     if (byId('coachAdminContent')) byId('coachAdminContent').hidden = !isTrainer;
+    if (!isTabAllowedForRole(state.activeTab)) setTab(defaultTabForRole());
   }
 
   function showAuthView(viewName) {
@@ -4544,8 +5316,23 @@
     }
   }
 
+  function accountAccessMessage(profile) {
+    if (profile?.status === 'rejected' || profile?.approvalStatus === 'rejected') {
+      return 'בקשת הגישה שלך נדחתה על ידי מנהל המערכת. לא ניתן להתחבר.';
+    }
+    if (profile?.status === 'suspended' || profile?.status === 'disabled') {
+      return 'חשבונך הושעה על ידי מנהל המערכת. לא ניתן להתחבר.';
+    }
+    if (profile?.status === 'pending_approval' || profile?.approvalStatus === 'pending') {
+      return 'חשבונך ממתין לאישור מנהל המערכת.';
+    }
+    return '';
+  }
+
   function loginUser(user) {
     if (!user) return;
+    if (typeof profileListenerUnsubscribe === 'function') profileListenerUnsubscribe();
+    profileListenerUnsubscribe = null;
     state.currentUser = user;
     writeSession('fitpulse_auth_session', user);
     localStorage.removeItem('fitpulse_auth_session');
@@ -4560,6 +5347,45 @@
 
     applyRoleAuthority(user.role);
     updateHeaderUserChip();
+    if (user.id && getAuthUserId() === user.id && window.FitPulseFirebase?.subscribeUserProfile) {
+      try {
+        profileListenerUnsubscribe = window.FitPulseFirebase.subscribeUserProfile(user.id, profile => {
+          if (!profile || !state.currentUser || state.currentUser.id !== user.id) return;
+          const restrictedMessage = accountAccessMessage(profile);
+          if (restrictedMessage) {
+            logoutUser();
+            const errorBox = byId('authErrorMessage');
+            if (errorBox) {
+              errorBox.textContent = restrictedMessage;
+              errorBox.hidden = false;
+            }
+            return;
+          }
+          const previousRole = state.currentUser.role;
+          const role = ['manager', 'admin'].includes(profile.role) ? 'manager' :
+            (profile.role === 'coach' || profile.isTrainer === true ? 'coach' : 'trainee');
+          state.currentUser = {
+            ...state.currentUser,
+            role,
+            isTrainer: role !== 'trainee',
+            name: profile.fullName || state.currentUser.name
+          };
+          writeSession('fitpulse_auth_session', state.currentUser);
+          applyRoleAuthority(role);
+          updateHeaderUserChip();
+          if ((state.activeTab === 'tab-coach' && role === 'trainee') ||
+              (state.activeTab === 'tab-app-manager' && role !== 'manager')) {
+            setTab('tab-dashboard');
+          } else if (role === 'coach' && state.activeTab === 'tab-app-manager') {
+            setTab('tab-coach');
+          } else if (role === 'coach' && previousRole !== 'coach' && state.activeTab === 'tab-dashboard') {
+            setTab('tab-coach');
+          }
+        }, error => console.error('[Auth] User role/profile subscription failed.', error));
+      } catch (error) {
+        console.error('[Auth] Could not subscribe to the signed-in user profile.', error);
+      }
+    }
 
     if (window.FitPulseFirebase?.logAudit) {
       window.FitPulseFirebase.logAudit('USER_LOGIN', `התחברות משתמש: ${user.name} (${user.email || user.id})`, {
@@ -4582,6 +5408,8 @@
 
   function logoutUser() {
     const prevUser = state.currentUser;
+    if (typeof profileListenerUnsubscribe === 'function') profileListenerUnsubscribe();
+    profileListenerUnsubscribe = null;
     state.currentUser = null;
     sessionStorage.removeItem('fitpulse_auth_session');
     localStorage.removeItem('fitpulse_auth_session');
@@ -4645,6 +5473,15 @@
           role,
           traineeId: role === 'trainee' ? 'client_1' : undefined
         };
+        const restrictedMessage = accountAccessMessage(found);
+        if (restrictedMessage) {
+          const errorBox = byId('authErrorMessage');
+          if (errorBox) {
+            errorBox.textContent = restrictedMessage;
+            errorBox.hidden = false;
+          }
+          return;
+        }
         loginUser(found);
       });
     });
@@ -4674,17 +5511,25 @@
             if (window.FitPulseFirebase?.getUserProfile) {
               profile = await window.FitPulseFirebase.getUserProfile(user.uid);
             }
-            const isTrainer = profile?.isTrainer === true || emailInput.includes('coach') || emailInput.includes('trainer');
+            const role = ['manager', 'admin'].includes(profile?.role) ? 'manager' :
+              (profile?.role === 'coach' || profile?.isTrainer === true ? 'coach' : 'trainee');
             authenticatedUser = {
               id: user.uid,
               email: user.email || emailInput,
               name: profile?.fullName || user.displayName || emailInput.split('@')[0],
-              role: emailInput.includes('manager') ? 'manager' : isTrainer ? 'coach' : 'trainee',
-              traineeId: isTrainer ? undefined : (profile?.userId || user.uid)
+              role,
+              traineeId: role === 'trainee' ? (profile?.userId || user.uid) : undefined
             };
           }
         } catch (fbErr) {
           console.warn('Firebase Auth error, checking local/demo users:', fbErr.message);
+          if (window.FitPulseFirebase?.isConfigured) {
+            if (errorBox) {
+              errorBox.textContent = fbErr.message || 'לא ניתן לאמת את החשבון כרגע.';
+              errorBox.hidden = false;
+            }
+            return;
+          }
         }
       }
 
@@ -4706,6 +5551,15 @@
             authenticatedUser = state.systemUsers.find(u => u.traineeId === 'client_1');
           }
         }
+      }
+
+      const restrictedMessage = accountAccessMessage(authenticatedUser);
+      if (restrictedMessage) {
+        if (errorBox) {
+          errorBox.textContent = restrictedMessage;
+          errorBox.hidden = false;
+        }
+        return;
       }
 
       if (authenticatedUser) {
@@ -4739,7 +5593,7 @@
           googleBtn.innerHTML = '<span>מתחבר לחשבון Google...</span>';
         }
 
-        const { user, profile, isNewUser, isPendingApproval, isRejected } = await window.FitPulseFirebase.signInWithGoogle();
+        const { user, profile, isNewUser, isPendingApproval, isRejected, isSuspended } = await window.FitPulseFirebase.signInWithGoogle();
 
         // 1. If user DOES NOT exist in database -> Transition to Onboarding / Registration view
         if (isNewUser || !profile) {
@@ -4783,7 +5637,9 @@
         }
 
         // 2. If user exists but is awaiting manager approval
-        if (isPendingApproval || profile.status === 'pending_approval' || profile.approvalStatus === 'pending') {
+        if (!isRejected && profile.status !== 'rejected' && profile.approvalStatus !== 'rejected' &&
+            !isSuspended && profile.status !== 'suspended' && profile.status !== 'disabled' &&
+            (isPendingApproval || profile.status === 'pending_approval' || profile.approvalStatus === 'pending')) {
           state.pendingGoogleUser = user;
           const isTrainer = profile.isTrainer === true || profile.role === 'coach';
           if (byId('pendingUserName')) byId('pendingUserName').textContent = profile.fullName || user.displayName || user.email.split('@')[0];
@@ -4805,7 +5661,7 @@
           return;
         }
 
-        if (isRejected || profile.status === 'rejected') {
+        if (isRejected || profile.status === 'rejected' || profile.approvalStatus === 'rejected') {
           if (errorBox) {
             errorBox.textContent = 'חשבונך נדחה על ידי מנהל המערכת. אנא פנה למנהל האפליקציה.';
             errorBox.hidden = false;
@@ -4816,16 +5672,28 @@
           return;
         }
 
+        if (isSuspended || profile.status === 'suspended' || profile.status === 'disabled') {
+          if (errorBox) {
+            errorBox.textContent = 'חשבונך הושעה על ידי מנהל המערכת. אנא פנה למנהל האפליקציה.';
+            errorBox.hidden = false;
+          }
+          if (window.FitPulseFirebase?.signOut) {
+            try { await window.FitPulseFirebase.signOut(); } catch (e) {}
+          }
+          return;
+        }
+
         // 3. Existing APPROVED user -> Direct Login!
-        const isTrainer = profile?.isTrainer === true || profile?.role === 'coach';
+        const role = ['manager', 'admin'].includes(profile?.role) ? 'manager' :
+          (profile?.role === 'coach' || profile?.isTrainer === true ? 'coach' : 'trainee');
         const appUser = {
           id: user.uid,
           name: profile?.fullName || user.displayName || user.email.split('@')[0],
           email: user.email,
-          role: isTrainer ? 'coach' : 'trainee',
-          isTrainer,
+          role,
+          isTrainer: role !== 'trainee',
           avatar: profile?.profileImageUrl || user.photoURL || null,
-          traineeId: isTrainer ? undefined : (profile?.userId || user.uid)
+          traineeId: role === 'trainee' ? (profile?.userId || user.uid) : undefined
         };
 
         loginUser(appUser);
@@ -5011,16 +5879,27 @@
           btn.textContent = 'בודק סטטוס מול הענן...';
         }
         const profile = await window.FitPulseFirebase?.getUserProfile(user.uid);
+        const restrictedMessage = accountAccessMessage(profile);
+        if (restrictedMessage) {
+          if (notice) {
+            notice.textContent = restrictedMessage;
+            notice.hidden = false;
+          }
+          state.pendingGoogleUser = null;
+          if (window.FitPulseFirebase?.signOut) await window.FitPulseFirebase.signOut();
+          return;
+        }
         if (profile && (profile.status === 'active' || profile.approvalStatus === 'approved')) {
-          const isTrainer = profile.isTrainer === true || profile.role === 'coach';
+          const role = ['manager', 'admin'].includes(profile.role) ? 'manager' :
+            (profile.role === 'coach' || profile.isTrainer === true ? 'coach' : 'trainee');
           const appUser = {
             id: user.uid,
             name: profile.fullName || user.displayName || user.email.split('@')[0],
             email: user.email,
-            role: isTrainer ? 'coach' : 'trainee',
-            isTrainer,
+            role,
+            isTrainer: role !== 'trainee',
             avatar: profile.profileImageUrl || user.photoURL || null,
-            traineeId: isTrainer ? undefined : (profile.userId || user.uid)
+            traineeId: role === 'trainee' ? (profile.userId || user.uid) : undefined
           };
           state.pendingGoogleUser = null;
           loginUser(appUser);
@@ -5063,6 +5942,18 @@
     });
 
     byId('headerLogoutBtn')?.addEventListener('click', logoutUser);
+    byId('headerCoachModeToggleBtn')?.addEventListener('click', () => {
+      if (!isCoachRole() || !state.currentUser) return;
+      const previousMode = state.coachViewMode;
+      state.coachViewMode = previousMode === 'coaching' ? 'training' : 'coaching';
+      if (!writeStorage(STORAGE_KEYS.coachMode, state.coachViewMode)) {
+        state.coachViewMode = previousMode;
+        applyRoleAuthority('coach');
+        return;
+      }
+      applyRoleAuthority('coach');
+      renderAll();
+    });
 
     // If not authenticated in the current session, or URL requests #login, force gate
     if (!sessionStorage.getItem('fitpulse_auth_session') || window.location.hash === '#login') {
@@ -5089,22 +5980,51 @@
       applyRoleAuthority('trainee');
       updateHeaderUserChip();
     }
+    if (window.FitPulseFirebase?.isConfigured && window.FitPulseFirebase?.onAuthStateChanged) {
+      window.FitPulseFirebase.onAuthStateChanged(async authUser => {
+        if (!authUser || state.currentUser?.id !== authUser.uid) return;
+        try {
+          const profile = await window.FitPulseFirebase.getLoginProfile(authUser);
+          const restrictedMessage = accountAccessMessage(profile);
+          if (restrictedMessage) {
+            logoutUser();
+            const errorBox = byId('authErrorMessage');
+            if (errorBox) {
+              errorBox.textContent = restrictedMessage;
+              errorBox.hidden = false;
+            }
+          }
+        } catch (error) {
+          console.error('[Auth] Could not verify the restored account status.', error);
+          logoutUser();
+          const errorBox = byId('authErrorMessage');
+          if (errorBox) {
+            errorBox.textContent = 'לא ניתן לאמת את סטטוס החשבון. נסו להתחבר שוב לאחר בדיקת החיבור.';
+            errorBox.hidden = false;
+          }
+        }
+      });
+    }
   }
 
   function initCoachRegisterModal() {
     const modal = byId('coachRegisterTraineeModal');
-    const openBtn = byId('coachRegisterTraineeBtn');
+    const openButtons = [byId('coachRegisterTraineeBtn'), byId('coachConnectTraineeBtn')].filter(Boolean);
     const closeBtn = byId('closeRegisterTraineeModalBtn');
     const cancelBtn = byId('cancelRegisterTraineeBtn');
     const form = byId('coachRegisterTraineeForm');
+    const traineeIdInput = byId('coachTraineeUid');
+    const status = byId('coachConnectionRequestStatus');
 
     const closeModal = () => {
       if (modal) modal.hidden = true;
     };
 
-    openBtn?.addEventListener('click', () => {
+    openButtons.forEach(button => button.addEventListener('click', () => {
       if (modal) modal.hidden = false;
-    });
+      if (status) status.textContent = '';
+      traineeIdInput?.focus();
+    }));
     closeBtn?.addEventListener('click', closeModal);
     cancelBtn?.addEventListener('click', closeModal);
     modal?.addEventListener('click', event => {
@@ -5113,111 +6033,28 @@
 
     form?.addEventListener('submit', async event => {
       event.preventDefault();
-      const name = byId('newTraineeName')?.value.trim();
-      const email = byId('newTraineeEmail')?.value.trim();
-      const password = byId('newTraineePassword')?.value;
-      const routine = byId('newTraineeRoutine')?.value.trim() || 'Push-Pull-Legs 4D';
-      const age = parseInt(byId('newTraineeAge')?.value, 10) || 26;
-      const gender = byId('newTraineeGender')?.value || 'male';
-      const height = parseInt(byId('newTraineeHeight')?.value, 10) || 178;
-      const weight = parseFloat(byId('newTraineeWeight')?.value) || 78;
-      const calories = parseInt(byId('newTraineeCalories')?.value, 10) || 2400;
-      const protein = parseInt(byId('newTraineeProtein')?.value, 10) || 165;
-      const water = parseInt(byId('newTraineeWater')?.value, 10) || 3000;
-      const notes = byId('newTraineeNotes')?.value.trim() || '';
-
-      if (!name || !email || !password) {
-        alert('נא למלא שם, אימייל וסיסמה.');
-        return;
-      }
-
+      const traineeId = traineeIdInput?.value.trim();
       const submitBtn = byId('submitRegisterTraineeBtn');
       if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.textContent = 'רושם מתאמן...';
+        submitBtn.textContent = 'שולח בקשה...';
       }
 
       try {
-        if (window.FitPulseFirebase?.registerNewTraineeAuth) {
-          await window.FitPulseFirebase.registerNewTraineeAuth(email, password, { name, role: 'trainee' });
-        }
-
-        let traineeId = `client_${Date.now()}`;
-        try {
-          const res = await fetch('/api/trainees/create', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              name,
-              email,
-              routine,
-              age,
-              gender,
-              height,
-              weight,
-              calories,
-              protein,
-              water,
-              notes
-            })
-          });
-          if (res.ok) {
-            const data = await res.json();
-            if (data.success && data.trainee?.id) {
-              traineeId = data.trainee.id;
-            }
-          }
-        } catch (err) {
-          console.warn('Backend server trainee create offline, proceeding locally:', err);
-        }
-
-        const newUser = {
-          id: traineeId,
-          name,
-          email,
-          role: 'trainee',
-          traineeId,
-          routine,
-          status: 'active',
-          createdAt: new Date().toISOString().split('T')[0]
-        };
-        state.systemUsers.push(newUser);
-
-        if (!Array.isArray(FIT_DATA.coachTrainees)) FIT_DATA.coachTrainees = [];
-        FIT_DATA.coachTrainees.push({
-          id: traineeId,
-          name,
-          email,
-          currentRoutine: routine,
-          currentWeightKg: weight,
-          targetCalories: calories,
-          targetProtein: protein,
-          targetWaterMl: water,
-          hasWorkedOutToday: false
-        });
-
-        if (window.FitPulseFirebase?.logAudit) {
-          window.FitPulseFirebase.logAudit('TRAINEE_REGISTERED', `המאמן רשם מתאמן חדש: ${name} (${email})`, {
-            coachEmail: state.currentUser?.email,
-            traineeId,
-            routine
-          });
-        }
-
+        if (!traineeId) throw new Error('יש להזין UID של מתאמן קיים.');
+        const coachName = state.currentUser?.name || state.currentUser?.displayName || 'מאמן';
+        await window.FitPulseFirebase.requestTraineeConnection(traineeId, coachName);
         closeModal();
         form.reset();
-        alert(`המתאמן/ת ${name} נרשם/ה בהצלחה למערכת!\nנוצרה תיקיית נתונים אישית ומזהה: ${traineeId}.\nהמתאמן יכול כעת להתחבר עם כתובת האימייל.`);
-
-        state.selectedTraineeId = traineeId;
-        renderCoach();
-        if (isManagerRole()) renderAppManager();
+        if (status) status.textContent = 'בקשת החיבור נשלחה. המשתמש יצטרך לאשר לפני יצירת קשר פעיל.';
+        await renderCoachPendingLinks();
       } catch (error) {
-        console.error('Registration failed:', error);
-        alert('שגיאה ברישום המתאמן: ' + (error.message || error));
+        console.error('[Coach] Could not send trainee connection request.', error);
+        if (status) status.textContent = `לא ניתן לשלוח את הבקשה: ${error.message || error}`;
       } finally {
         if (submitBtn) {
           submitBtn.disabled = false;
-          submitBtn.textContent = 'יצירת חשבון והתחלת ליווי';
+          submitBtn.textContent = 'שליחת בקשת חיבור';
         }
       }
     });
@@ -5310,6 +6147,23 @@
       }
     } catch (uErr) {
       console.warn('[AppManager] Could not fetch server users:', uErr.message);
+    }
+
+    if (window.FitPulseFirebase?.isConfigured && window.FitPulseFirebase?.listManagedUsers) {
+      try {
+        const cloudUsers = await window.FitPulseFirebase.listManagedUsers();
+        cloudUsers.forEach(cloudUser => {
+          const idx = state.systemUsers.findIndex(user =>
+            user.id === cloudUser.id ||
+            user.id === cloudUser.userId ||
+            (user.email && user.email.toLowerCase() === (cloudUser.email || '').toLowerCase())
+          );
+          if (idx >= 0) state.systemUsers[idx] = { ...state.systemUsers[idx], ...cloudUser };
+          else state.systemUsers.push(cloudUser);
+        });
+      } catch (error) {
+        console.warn('[AppManager] Could not refresh users from Firestore:', error.message);
+      }
     }
 
     renderManagerPendingApprovals();
@@ -5556,8 +6410,11 @@
       if (user.status === 'pending_approval') {
         statusText = 'ממתין לאישור';
         statusClass = 'manager-status-indicator status-busy';
-      } else if (user.status === 'rejected' || user.status === 'suspended') {
+      } else if (user.status === 'suspended') {
         statusText = 'מושעה';
+        statusClass = 'manager-status-indicator status-offline';
+      } else if (user.status === 'rejected') {
+        statusText = 'נדחה';
         statusClass = 'manager-status-indicator status-offline';
       }
       const statusBadge = createElement('span', statusClass, statusText);
@@ -5582,30 +6439,81 @@
         });
         tdActions.append(approveQuickBtn);
       } else {
-        const toggleRoleBtn = createElement('button', 'btn-action-ghost', user.role === 'trainee' ? 'שדרוג למאמן' : user.role === 'coach' ? 'שינוי למתאמן' : 'סמכות עליונה');
-        toggleRoleBtn.style.padding = '3px 8px';
-        toggleRoleBtn.style.fontSize = '0.72rem';
-
-        if (user.role === 'manager') {
-          toggleRoleBtn.disabled = true;
-          toggleRoleBtn.style.opacity = '0.5';
-        } else {
-          toggleRoleBtn.addEventListener('click', () => {
-            user.role = user.role === 'trainee' ? 'coach' : 'trainee';
-            if (window.FitPulseFirebase?.logAudit) {
-              window.FitPulseFirebase.logAudit('USER_ROLE_CHANGED', `שינוי תפקיד למשתמש ${user.name} ל-${user.role}`, {
-                userId: user.id,
-                newRole: user.role
-              });
-            }
-            renderManagerUsersTable();
-            if (state.currentUser?.id === user.id) {
-              applyRoleAuthority(user.role);
-              updateHeaderUserChip();
+        if (user.status === 'suspended') {
+          const reactivateBtn = createElement('button', 'btn-action-primary', 'הפעל מחדש');
+          reactivateBtn.type = 'button';
+          reactivateBtn.style.marginInlineEnd = '6px';
+          reactivateBtn.addEventListener('click', async () => {
+            reactivateBtn.disabled = true;
+            try {
+              if (!window.FitPulseFirebase?.setUserStatus) throw new Error('שירות עדכון סטטוס אינו זמין.');
+              await window.FitPulseFirebase.setUserStatus(user.id, 'active');
+              user.status = 'active';
+              user.approvalStatus = 'approved';
+              renderManagerUsersTable();
+            } catch (error) {
+              console.error('[AppManager] Could not reactivate user.', error);
+              alert(`לא ניתן להפעיל מחדש את חשבון המשתמש: ${error.message || error}`);
+              reactivateBtn.disabled = false;
             }
           });
+          tdActions.append(reactivateBtn);
         }
-        tdActions.append(toggleRoleBtn);
+        if (user.status === 'rejected') {
+          const cancelRejectionBtn = createElement('button', 'btn-action-primary', 'ביטול דחייה');
+          cancelRejectionBtn.type = 'button';
+          cancelRejectionBtn.style.marginInlineEnd = '6px';
+          cancelRejectionBtn.addEventListener('click', async () => {
+            cancelRejectionBtn.disabled = true;
+            try {
+              if (!window.FitPulseFirebase?.setUserStatus) throw new Error('שירות עדכון סטטוס אינו זמין.');
+              await window.FitPulseFirebase.setUserStatus(user.id, 'active');
+              user.status = 'active';
+              user.approvalStatus = 'approved';
+              renderManagerUsersTable();
+            } catch (error) {
+              console.error('[AppManager] Could not cancel user rejection.', error);
+              alert(`לא ניתן לבטל את דחיית המשתמש: ${error.message || error}`);
+              cancelRejectionBtn.disabled = false;
+            }
+          });
+          tdActions.append(cancelRejectionBtn);
+        }
+        if (!(user.role === 'trainee' && (user.status === 'rejected' || user.approvalStatus === 'rejected'))) {
+          const toggleRoleBtn = createElement('button', 'btn-action-ghost', user.role === 'trainee' ? 'שדרוג למאמן' : user.role === 'coach' ? 'שינוי למתאמן' : 'סמכות עליונה');
+          toggleRoleBtn.style.padding = '3px 8px';
+          toggleRoleBtn.style.fontSize = '0.72rem';
+
+          if (user.role === 'manager') {
+            toggleRoleBtn.disabled = true;
+            toggleRoleBtn.style.opacity = '0.5';
+          } else {
+            toggleRoleBtn.addEventListener('click', async () => {
+              const nextRole = user.role === 'trainee' ? 'coach' : 'trainee';
+              toggleRoleBtn.disabled = true;
+              try {
+                if (window.FitPulseFirebase?.isConfigured) {
+                  await window.FitPulseFirebase.setUserRole(user.id, nextRole);
+                }
+                user.role = nextRole;
+                user.isTrainer = nextRole === 'coach';
+                renderManagerUsersTable();
+                if (state.currentUser?.id === user.id) {
+                  state.currentUser = { ...state.currentUser, role: nextRole, isTrainer: user.isTrainer };
+                  writeSession('fitpulse_auth_session', state.currentUser);
+                  applyRoleAuthority(nextRole);
+                  updateHeaderUserChip();
+                  setTab(nextRole === 'coach' ? 'tab-coach' : 'tab-dashboard');
+                }
+              } catch (error) {
+                console.error('[AppManager] Could not persist user role change.', error);
+                alert(`לא ניתן לשנות את תפקיד המשתמש: ${error.message || error}`);
+                toggleRoleBtn.disabled = false;
+              }
+            });
+          }
+          tdActions.append(toggleRoleBtn);
+        }
       }
 
       tr.append(tdName, tdEmail, tdRole, tdRoutine, tdStatus, tdActions);
@@ -5669,6 +6577,100 @@
       if (byId('barcodeScannerDialog')) byId('barcodeScannerDialog').hidden = true;
     });
     byId('startBarcodeScannerBtn')?.addEventListener('click', startBarcodeScanner);
+    byId('barcodeManualLookupForm')?.addEventListener('submit', event => {
+      event.preventDefault();
+      stopBarcodeScanner();
+      resolveScannedCode(byId('barcodeManualInput')?.value || '');
+    });
+    byId('openManualFoodBtn')?.addEventListener('click', () => {
+      stopBarcodeScanner();
+      openBarcodeFoodEditor({
+        title: 'הזנת מוצר חדש',
+        hint: 'הזינו ידנית את שם המוצר והערכים ל־100 גרם.',
+        source: 'manual'
+      });
+    });
+    byId('barcodeFoodEditorForm')?.addEventListener('submit', submitBarcodeFoodEditor);
+    byId('closeBarcodeFoodEditorBtn')?.addEventListener('click', closeBarcodeFoodEditor);
+    byId('traineeCoachLinkForm')?.addEventListener('submit', async event => {
+      event.preventDefault();
+      try {
+        const select = byId('traineeCoachSelect');
+        const coach = (await window.FitPulseFirebase.listCoaches(byId('traineeCoachSearchInput')?.value || ''))
+          .find(item => item.id === select?.value);
+        if (!coach) throw new Error('בחרו מאמן שמופיע במדריך הציבורי.');
+        const traineeName = state.currentUser?.name || state.profile.name || 'מתאמן';
+        await window.FitPulseFirebase.requestCoachConnection(coach.id, traineeName, coach.name);
+        await renderTraineeCoachLinkCard();
+      } catch (error) {
+        alert(error.message || 'שליחת בקשת החיבור נכשלה.');
+      }
+    });
+    byId('traineeCoachSearchInput')?.addEventListener('input', renderTraineeCoachLinkCard);
+    byId('coachDirectoryOptIn')?.addEventListener('change', async event => {
+      const status = byId('coachDirectoryStatus');
+      const checkbox = event.currentTarget;
+      if (!isCoachModeActive()) {
+        checkbox.checked = false;
+        if (status) status.textContent = '';
+        return;
+      }
+      checkbox.disabled = true;
+      if (status) status.textContent = 'שומר הגדרה…';
+      try {
+        await window.FitPulseFirebase.setCoachDirectoryListing(
+          checkbox.checked,
+          state.currentUser?.name || state.profile.name || 'מאמן'
+        );
+        if (status) status.textContent = checkbox.checked
+          ? 'הפרופיל שלך מופיע כעת במדריך הציבורי.'
+          : 'הפרופיל שלך הוסר מהמדריך הציבורי.';
+      } catch (error) {
+        checkbox.checked = !checkbox.checked;
+        if (status) status.textContent = error.message || 'עדכון המדריך נכשל.';
+      } finally {
+        checkbox.disabled = false;
+      }
+    });
+    byId('coachPermissionRequestForm')?.addEventListener('submit', async event => {
+      event.preventDefault();
+      const status = byId('coachPermissionRequestStatus');
+      const traineeId = state.selectedTraineeId;
+      const categories = [...event.currentTarget.querySelectorAll('input[name="coachPermissionCategory"]:checked')]
+        .map(input => input.value);
+      try {
+        if (!traineeId) throw new Error('בחרו מתאמן מחובר לפני שליחת בקשת הרשאה.');
+        await window.FitPulseFirebase.createCoachPermissionRequest(
+          traineeId,
+          categories,
+          state.currentUser?.name || state.profile.name || 'מאמן'
+        );
+        if (status) status.textContent = 'בקשת ההרשאה נשלחה למתאמן.';
+        event.currentTarget.reset();
+      } catch (error) {
+        if (status) status.textContent = error.message || 'שליחת בקשת ההרשאה נכשלה.';
+      }
+    });
+    byId('coachTaskForm')?.addEventListener('submit', async event => {
+      event.preventDefault();
+      const status = byId('coachTaskStatus');
+      const traineeId = state.selectedTraineeId;
+      const validated = window.FitPulseDomain?.validateCoachTask?.({
+        type: byId('coachTaskType')?.value,
+        title: byId('coachTaskTitle')?.value
+      });
+      try {
+        if (!traineeId) throw new Error('בחרו מתאמן מחובר לפני שליחת משימה.');
+        if (!validated?.ok) throw new Error(validated?.error || 'פרטי המשימה אינם תקינים.');
+        await window.FitPulseFirebase.createCoachTask(traineeId, validated.task.type, validated.task.title);
+        if (status) status.textContent = 'המשימה נשלחה למתאמן.';
+        event.currentTarget.reset();
+        if (byId('coachTaskTitle')) byId('coachTaskTitle').value = 'נדרשת שקילה';
+      } catch (error) {
+        console.error('Could not assign coach task.', error);
+        if (status) status.textContent = error.message || 'שליחת המשימה נכשלה.';
+      }
+    });
     byId('barcodeScannerDialog')?.addEventListener('click', event => {
       if (event.target === byId('barcodeScannerDialog')) {
         stopBarcodeScanner();
@@ -5796,7 +6798,47 @@
       if (writeStorage(STORAGE_KEYS.profile, state.profile)) renderDashboard();
     });
     byId('openCreateWorkoutModalBtn')?.addEventListener('click', () => createWorkoutModal());
-    byId('coachBuildProgramBtn')?.addEventListener('click', () => createWorkoutModal());
+    byId('coachBuildProgramBtn')?.addEventListener('click', () => openCoachWorkoutEditor());
+    byId('coachAddWorkoutBtn')?.addEventListener('click', () => openCoachWorkoutEditor());
+    byId('coachEditorAddWorkoutBtn')?.addEventListener('click', () => openCoachWorkoutEditor());
+    byId('coachNutritionTargetsForm')?.addEventListener('submit', async event => {
+      event.preventDefault();
+      const status = byId('coachNutritionTargetsStatus');
+      const traineeId = state.selectedTraineeId;
+      const targets = {
+        targetCalories: Number(byId('coachTargetCalories')?.value),
+        targetProteinGrams: Number(byId('coachTargetProtein')?.value),
+        targetCarbsGrams: Number(byId('coachTargetCarbs')?.value),
+        targetFatsGrams: Number(byId('coachTargetFats')?.value)
+      };
+      try {
+        if (!traineeId) throw new Error('בחרו מתאמן לפני שמירת היעדים.');
+        if (!Number.isFinite(targets.targetCalories) || targets.targetCalories <= 0 || targets.targetCalories > 15000 ||
+            !Number.isFinite(targets.targetProteinGrams) || targets.targetProteinGrams < 0 || targets.targetProteinGrams > 1000 ||
+            !Number.isFinite(targets.targetCarbsGrams) || targets.targetCarbsGrams < 0 || targets.targetCarbsGrams > 2000 ||
+            !Number.isFinite(targets.targetFatsGrams) || targets.targetFatsGrams < 0 || targets.targetFatsGrams > 1000) {
+          throw new Error('הזינו ערכי תזונה תקינים בטווח המותר.');
+        }
+        if (window.FitPulseFirebase?.isConfigured && getAuthUserId() === state.currentUser?.id) {
+          await window.FitPulseFirebase.saveCoachNutritionGoal(traineeId, targets);
+        } else {
+          const demoTargets = readStorage('fitpulse_demo_nutrition_targets', {});
+          demoTargets[traineeId] = {
+            targetCalories: targets.targetCalories,
+            targetProtein: targets.targetProteinGrams,
+            targetCarbs: targets.targetCarbsGrams,
+            targetFats: targets.targetFatsGrams
+          };
+          if (!writeStorage('fitpulse_demo_nutrition_targets', demoTargets)) {
+            throw new Error('לא ניתן לשמור את היעדים באחסון המקומי.');
+          }
+        }
+        if (status) status.textContent = 'יעדי התזונה נשמרו.';
+      } catch (error) {
+        console.error('[Coach] Could not save nutrition targets.', error);
+        if (status) status.textContent = `לא ניתן לשמור יעדים: ${error.message || error}`;
+      }
+    });
     byId('manageEquivalentExercisesBtn')?.addEventListener('click', () => setTab('tab-equivalents'));
     byId('equivalentsBackBtn')?.addEventListener('click', () => setTab('tab-workouts'));
     byId('equivalentExerciseForm')?.addEventListener('submit', saveEquivalentExerciseGroup);
@@ -5929,13 +6971,13 @@
         return;
       }
       if (window.location.hash === '#/admin/dashboard') {
-        if (!isTrainerRole()) {
+        if (!isCoachRole() && !isManagerRole()) {
           alert('הנתיב מוגן בתצוגה המקומית. יש להיכנס למצב מאמן הדגמה, שאינו אימות מאובטח.');
           window.location.hash = '#/';
           setTab('tab-dashboard');
           return;
         }
-        setTab('tab-coach');
+        setTab(defaultTabForRole());
       }
     });
     window.addEventListener('resize', () => {
@@ -6001,7 +7043,7 @@
       }
     }, 60000);
     if (window.location.hash === '#/admin/dashboard') {
-      if (isTrainerRole()) setTab('tab-coach');
+      if (isCoachRole() || isManagerRole()) setTab(defaultTabForRole());
       else {
         window.location.hash = '#/';
         setTab('tab-dashboard');

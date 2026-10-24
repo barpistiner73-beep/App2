@@ -16,13 +16,24 @@
   <!-- Header & Navigation -->
   <header class="app-header">
     <div class="header-container">
-      <div class="brand-wrapper" id="brandHomeBtn" role="button" tabindex="0">
-        <div class="logo-badge">
-          <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+      <div class="header-brand-column">
+        <div class="brand-wrapper" id="brandHomeBtn" role="button" tabindex="0">
+          <div class="logo-badge">
+            <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+          </div>
+          <div class="brand-text">
+            <h1>FitPulse</h1>
+            <span>פיטפולס • כושר ותזונה מתקדמת</span>
+          </div>
         </div>
-        <div class="brand-text">
-          <h1>FitPulse</h1>
-          <span>פיטפולס • כושר ותזונה מתקדמת</span>
+        <div class="header-user-chip" id="headerUserChip" style="display: none;">
+          <div class="header-user-avatar" id="headerUserAvatar">FP</div>
+          <div class="header-user-info">
+            <span class="header-user-name" id="headerUserName">משתמש</span>
+            <span class="header-user-role-badge role-trainee" id="headerUserRoleBadge">מתאמן</span>
+          </div>
+          <button class="header-coach-mode-btn" id="headerCoachModeToggleBtn" type="button" hidden aria-pressed="true">מצב אימון</button>
+          <button class="header-logout-btn" id="headerLogoutBtn" type="button" title="התנתקות או החלפת משתמש">החלף משתמש / יציאה</button>
         </div>
       </div>
 
@@ -42,6 +53,9 @@
         <button class="nav-tab-btn" data-tab="tab-nutrition" id="navTabNutrition">
           <svg viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path></svg>
           תזונה
+        </button>
+        <button class="nav-tab-btn" data-tab="tab-coach-search" id="navTabCoachSearch" hidden>
+          מציאת מאמן
         </button>
         <button class="nav-tab-btn" data-tab="tab-daily-report" id="navTabDailyReport">
           <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
@@ -63,14 +77,6 @@
 
       <div class="header-actions">
         <button class="header-logout-btn" id="headerLoginBtn" type="button" style="display: none; background: rgba(124, 58, 237, 0.25); color: #c4b5fd;">כניסה למערכת</button>
-        <div class="header-user-chip" id="headerUserChip">
-          <div class="header-user-avatar" id="headerUserAvatar">FP</div>
-          <div class="header-user-info">
-            <span class="header-user-name" id="headerUserName">משתמש</span>
-            <span class="header-user-role-badge role-trainee" id="headerUserRoleBadge">מתאמן</span>
-          </div>
-          <button class="header-logout-btn" id="headerLogoutBtn" type="button" title="התנתקות או החלפת משתמש">החלף משתמש / יציאה</button>
-        </div>
         <button class="btn-action-primary" id="headerStartWorkoutBtn">
           <span>התחל אימון</span>
         </button>
@@ -91,6 +97,10 @@
         </div>
         <button class="btn-action-primary" id="dashboardAddMealBtn" type="button">＋ הוספת ארוחה</button>
       </div>
+      <section class="glass-card coach-link-card" id="traineePendingTasksCard">
+        <div class="card-header-flex"><div><span class="eyebrow">משימות מהמאמן</span><h2>משימות פתוחות</h2></div></div>
+        <div id="traineePendingTasks" class="coach-pending-list" aria-live="polite">טוען משימות…</div>
+      </section>
       <div class="hero-dashboard-grid">
         <div class="glass-card energy-overview-card">
           <div class="card-header-flex">
@@ -307,6 +317,27 @@
       <div class="meals-list" id="mealsContainer"></div>
     </section>
 
+    <section class="tab-pane" id="tab-coach-search">
+      <div class="coach-header-banner">
+        <h2>מציאת מאמן וחיבור מאובטח</h2>
+        <p>חפשו מאמנים שבחרו להופיע בספרייה. נתונים אישיים ישותפו רק לאחר אישור מפורש לכל תחום.</p>
+      </div>
+      <label class="food-search-field coach-directory-search">
+        <span aria-hidden="true">⌕</span>
+        <input id="coachDirectorySearch" type="search" placeholder="חיפוש מאמן לפי שם..." autocomplete="off" aria-label="חיפוש מאמנים">
+      </label>
+      <p id="coachDirectoryStatus" class="food-search-status" role="status" aria-live="polite"></p>
+      <div class="coach-trainees-grid" id="coachDirectoryList"></div>
+      <section class="coach-table-section">
+        <h3>בקשות החיבור שלך</h3>
+        <div class="coach-trainees-grid" id="traineeConnectionRequests"></div>
+      </section>
+      <section class="coach-table-section">
+        <h3>בקשות גישה לנתונים</h3>
+        <div class="coach-trainees-grid" id="traineePermissionRequests"></div>
+      </section>
+    </section>
+
     <!-- TAB: DAILY TRAINEE REPORT (דוח יומי למתאמן) -->
     <section class="tab-pane" id="tab-daily-report">
       <div class="daily-report-header">
@@ -456,25 +487,101 @@
 
     <!-- TAB 5: COACH DASHBOARD (עמודת המאמן הבלעדית) -->
     <section class="tab-pane" id="tab-coach">
-      <div class="coach-header-banner">
-        <h2>לוח בקרה מרכזי למאמן · מעקב דוחות יומיים</h2>
-        <p>סקירה מקיפה של נתוני המתאמנים, היסטוריית דיווחים, ועמידה ביעדי תזונה ואימונים.</p>
-      </div>
       <div id="coachAccessNotice" class="coach-access-notice" role="status" hidden>לוח המאמן זמין רק בתצוגת trainer_admin המקומית. הגדרת תפקיד בדפדפן אינה RBAC מאובטח.</div>
       <div id="coachAdminContent" hidden>
+        <div class="coach-header-banner">
+          <h2>לוח בקרה מרכזי למאמן · מעקב דוחות יומיים</h2>
+          <p>סקירה מקיפה של נתוני המתאמנים, היסטוריית דיווחים, ועמידה ביעדי תזונה ואימונים.</p>
+          <section class="coach-table-section coach-directory-visibility" data-coach-page="management">
+          <label class="coach-directory-optin">
+            <input id="coachDirectoryOptIn" type="checkbox">
+            <span>חשיפה למתאמנים חדשים</span>
+          </label>
+          <p id="coachDirectoryOptInStatus" class="food-search-status" role="status" aria-live="polite"></p>
+          </section>
+        </div>
+        <section class="coach-table-section" data-coach-page="management">
+          <h3>בקשות חיבור ממתאמנים</h3>
+          <div class="coach-trainees-grid" id="coachConnectionRequests"></div>
+        </section>
         <div class="coach-tools-row">
           <label>חיפוש מתאמנים <input id="coachTraineeSearch" type="search" placeholder="שם מתאמן..."></label>
           <label>סינון פעילות <select id="coachTraineeFilter"><option value="all">כולם</option><option value="active">התאמנו היום</option><option value="inactive">טרם התאמנו היום</option></select></label>
           <label>בחירת מתאמן <select id="coachTraineeSelect"></select></label>
           <button class="btn-action-primary" id="coachBuildProgramBtn" type="button">＋ בניית תוכנית</button>
-          <button class="btn-action-secondary" id="coachRegisterTraineeBtn" type="button">➕ רישום מתאמן חדש</button>
+          <button class="btn-action-secondary" id="coachRegisterTraineeBtn" type="button">🔗 חיבור מתאמן קיים</button>
         </div>
+        <nav class="coach-workspace-tabs" id="coachWorkspaceNav" role="tablist" aria-label="אזורי ניהול המאמן">
+          <button type="button" class="active" data-coach-subpage="management" role="tab" aria-selected="true">מתאמנים והרשאות</button>
+          <button type="button" data-coach-subpage="plan" role="tab" aria-selected="false">תוכנית שבועית ויעדים</button>
+          <button type="button" data-coach-subpage="activity" role="tab" aria-selected="false">מדדים והיסטוריה</button>
+          <button type="button" data-coach-subpage="editor" role="tab" aria-selected="false">עורך אימון</button>
+        </nav>
+        <section class="coach-table-section coach-plan-section" id="coachPlanPage" data-coach-page="plan" hidden>
+          <h3>יעדי תזונה ותוכנית שבועית</h3>
+          <form id="coachNutritionTargetsForm" class="nutrition-form coach-targets-form">
+            <label>קלוריות ליום<input id="coachTargetCalories" type="number" min="1" max="15000" required></label>
+            <label>חלבון (גרם)<input id="coachTargetProtein" type="number" min="0" max="1000" required></label>
+            <label>פחמימות (גרם)<input id="coachTargetCarbs" type="number" min="0" max="2000" required></label>
+            <label>שומן (גרם)<input id="coachTargetFats" type="number" min="0" max="1000" required></label>
+            <button class="btn-action-primary" type="submit">שמירת יעדי תזונה</button>
+          </form>
+          <p id="coachNutritionTargetsStatus" class="food-search-status" role="status" aria-live="polite"></p>
+          <div class="coach-section-header-flex">
+            <h3>אימונים בתוכנית השבועית</h3>
+            <button class="btn-action-primary" id="coachAddWorkoutBtn" type="button">＋ הוספת אימון</button>
+          </div>
+          <p id="coachWeeklyPlanStatus" class="food-search-status" role="status" aria-live="polite"></p>
+          <div id="coachWeeklyWorkoutList" class="coach-trainees-grid"></div>
+        </section>
+        <section class="coach-table-section coach-editor-page" id="coachWorkoutEditorPage" data-coach-page="editor" hidden>
+          <h3>עורך אימון</h3>
+          <p>בחרו אימון לעריכה או התחילו אימון חדש עבור המתאמן שנבחר. שמירה בענן כפופה להרשאת היסטוריית אימונים.</p>
+          <button class="btn-action-primary" id="coachEditorAddWorkoutBtn" type="button">＋ יצירת אימון חדש</button>
+          <div id="coachEditorWorkoutList" class="coach-trainees-grid"></div>
+        </section>
+        <section class="coach-table-section" data-coach-page="management">
+          <h3>בקשת הרשאות נתונים</h3>
+          <form id="coachPermissionRequestForm" class="nutrition-form">
+            <p>הבקשה תישלח למתאמן שנבחר למעלה: <strong id="coachPermissionTraineeLabel">אין מתאמן מחובר</strong></p>
+            <fieldset class="permission-category-list">
+              <legend>בחרו אילו תחומים לבקש</legend>
+              <label><input type="checkbox" name="permissionCategory" value="nutrition_logs"> יומני תזונה</label>
+              <label><input type="checkbox" name="permissionCategory" value="workout_history"> היסטוריית אימונים</label>
+              <label><input type="checkbox" name="permissionCategory" value="body_metrics"> מדדי גוף (רשומות נפרדות)</label>
+              <label><input type="checkbox" name="permissionCategory" value="sleep_logs"> יומני שינה ובדיקה יומית</label>
+              <label><input type="checkbox" name="permissionCategory" value="daily_reports"> דוחות יומיים (כוללים סיכומי תזונה, אימון ומדדים)</label>
+            </fieldset>
+            <button class="btn-action-primary" type="submit">שליחת בקשת הרשאות</button>
+          </form>
+          <p id="coachPermissionStatus" class="food-search-status" role="status" aria-live="polite"></p>
+        </section>
+        <section class="coach-table-section" data-coach-page="activity">
+          <h3>שליחת משימה למתאמן</h3>
+          <form id="coachTaskForm" class="nutrition-form">
+            <label>סוג משימה
+              <select id="coachTaskType"><option value="weight_check">בקשת שקילה</option><option value="progress_photos">בקשת תמונות התקדמות</option><option value="check_in">צ׳ק-אין</option><option value="custom">משימה אישית</option></select>
+            </label>
+            <label>כותרת
+              <input id="coachTaskTitle" type="text" maxlength="120" value="נדרשת שקילה" required>
+            </label>
+            <button class="btn-action-primary" type="submit">שליחת משימה למתאמן שנבחר</button>
+          </form>
+          <p id="coachTaskStatus" class="food-search-status" role="status" aria-live="polite"></p>
+          <h3>סטטוס משימות שנשלחו</h3>
+          <div id="coachTaskHistoryList" class="coach-pending-list" aria-live="polite"></div>
+        </section>
+        <section class="coach-table-section" data-coach-page="management">
+          <h3>מתאמנים מחוברים</h3>
+          <div class="coach-trainees-grid" id="coachConnectionsList"></div>
+        </section>
+        <p id="coachDataAccessStatus" class="food-search-status" role="status" aria-live="polite"></p>
 
         <!-- Trainee Quick Overview Bar -->
-        <div class="coach-trainee-profile-bar" id="coachTraineeProfileBar"></div>
+        <div class="coach-trainee-profile-bar" id="coachTraineeProfileBar" data-coach-page="activity"></div>
 
         <!-- Historical Daily Reports Section -->
-        <section class="coach-table-section">
+        <section class="coach-table-section" data-coach-page="activity">
           <div class="coach-section-header-flex">
             <div>
               <h3>היסטוריית דוחות יומיים · מסד נתונים מרכזי</h3>
@@ -703,10 +810,52 @@
   <div class="dialog-backdrop" id="barcodeScannerDialog" hidden>
     <section class="dialog-card scanner-dialog" role="dialog" aria-modal="true" aria-labelledby="barcodeScannerTitle">
       <div class="dialog-header"><div><span class="eyebrow">סריקה באמצעות מצלמה</span><h2 id="barcodeScannerTitle">סריקת ברקוד מזון</h2></div><button class="icon-button" id="closeBarcodeScannerBtn" type="button">סגירה</button></div>
-      <p class="scanner-hint">הצביעו על ברקוד EAN-13 או UPC. הנתונים ייבדקו מול Open Food Facts ויתווספו ליומן לפי 100 גרם.</p>
+      <p class="scanner-hint">סרקו ברקוד EAN/UPC או קוד QR שמכיל כתובת HTTPS למידע תזונתי. מוצר קיים יישלף ממאגר המזון; מוצר חדש יאומת לפני שמירה.</p>
       <video id="barcodeVideo" class="barcode-video" muted playsinline></video>
       <p id="barcodeScannerStatus" class="scanner-status" role="status">המצלמה עדיין לא הופעלה.</p>
       <button class="btn-action-primary" id="startBarcodeScannerBtn" type="button">הפעלת מצלמה</button>
+    </section>
+  </div>
+
+  <div class="dialog-backdrop" id="foodProductDialog" hidden>
+    <section class="dialog-card scanner-dialog" role="dialog" aria-modal="true" aria-labelledby="foodProductTitle">
+      <div class="dialog-header">
+        <div><span class="eyebrow">מזון משותף · כמויות אישיות ביומן שלך</span><h2 id="foodProductTitle">אימות פרטי מוצר</h2></div>
+        <button class="icon-button icon-button-ghost" id="closeFoodProductDialogBtn" type="button" aria-label="סגירה">✕</button>
+      </div>
+      <form id="foodProductForm" class="nutrition-form">
+        <input id="foodProductBarcode" type="hidden">
+        <input id="foodProductSource" type="hidden">
+        <label>שם המוצר<input id="foodProductName" type="text" maxlength="200" required></label>
+        <label>מותג<input id="foodProductBrand" type="text" maxlength="100"></label>
+        <p class="food-search-status">ערכים תזונתיים ל־100 גרם</p>
+        <div class="form-grid-4">
+          <label>קלוריות<input id="foodProductCalories" type="number" min="0" max="1500" step="0.1" required></label>
+          <label>חלבון (ג׳)<input id="foodProductProtein" type="number" min="0" max="100" step="0.1" required></label>
+          <label>פחמימות (ג׳)<input id="foodProductCarbs" type="number" min="0" max="100" step="0.1" required></label>
+          <label>שומנים (ג׳)<input id="foodProductFats" type="number" min="0" max="100" step="0.1" required></label>
+          <label>שומן רווי (ג׳)<input id="foodProductSaturatedFats" type="number" min="0" max="100" step="0.1" value="0" required></label>
+          <label>שומן טראנס (ג׳)<input id="foodProductTransFats" type="number" min="0" max="100" step="0.1" value="0" required></label>
+        </div>
+        <fieldset class="permission-category-list">
+          <legend>מיקרו-נוטריינטים וחומצות שומן ל־100 גרם (ערך לא ידוע = 0)</legend>
+          <div class="form-grid-4">
+            <label>נתרן (מ״ג)<input id="foodProductSodium" type="number" min="0" max="50000" step="0.1" value="0" required></label>
+            <label>אשלגן (מ״ג)<input id="foodProductPotassium" type="number" min="0" max="50000" step="0.1" value="0" required></label>
+            <label>סידן (מ״ג)<input id="foodProductCalcium" type="number" min="0" max="10000" step="0.1" value="0" required></label>
+            <label>ברזל (מ״ג)<input id="foodProductIron" type="number" min="0" max="1000" step="0.1" value="0" required></label>
+            <label>ויטמין C (מ״ג)<input id="foodProductVitaminC" type="number" min="0" max="10000" step="0.1" value="0" required></label>
+            <label>אומגה־3 (ג׳)<input id="foodProductOmega3" type="number" min="0" max="100" step="0.1" value="0" required></label>
+            <label>אומגה־6 (ג׳)<input id="foodProductOmega6" type="number" min="0" max="100" step="0.1" value="0" required></label>
+          </div>
+        </fieldset>
+        <label>כמות ביומן (גרם)<input id="foodProductAmount" type="number" min="1" max="10000" step="1" value="100" required></label>
+        <p id="foodProductStatus" class="food-search-status" role="status" aria-live="polite"></p>
+        <div class="equivalent-form-actions">
+          <button class="btn-action-primary" id="saveFoodProductBtn" type="submit">אישור והוספה ליומן</button>
+          <button class="btn-action-secondary" id="cancelFoodProductBtn" type="button">ביטול</button>
+        </div>
+      </form>
     </section>
   </div>
 
@@ -784,68 +933,25 @@
     </section>
   </div>
 
-  <!-- COACH REGISTER TRAINEE MODAL -->
+  <!-- COACH-INITIATED CONNECTION REQUEST -->
   <div class="dialog-backdrop" id="coachRegisterTraineeModal" hidden>
     <section class="dialog-card coach-register-modal-card" role="dialog" aria-modal="true" aria-labelledby="registerModalTitle">
       <div class="dialog-header">
         <div>
-          <span class="eyebrow">הרשאת מאמן · הוספת משתמש למערכת</span>
-          <h2 id="registerModalTitle">רישום מתאמן חדש</h2>
+          <span class="eyebrow">בקשת חיבור מאובטחת</span>
+          <h2 id="registerModalTitle">חיבור למתאמן קיים</h2>
         </div>
         <button class="icon-button icon-button-ghost" id="closeRegisterTraineeModalBtn" type="button" aria-label="סגירה">✕</button>
       </div>
       <form class="register-trainee-form" id="coachRegisterTraineeForm">
-        <div class="form-grid-2">
-          <label>שם מלא:
-            <input type="text" id="newTraineeName" placeholder="למשל: דניאל כהן" required>
-          </label>
-          <label>כתובת אימייל (משמש להתחברות):
-            <input type="email" id="newTraineeEmail" placeholder="trainee@fitpulse.com" required>
-          </label>
-        </div>
-        <div class="form-grid-2">
-          <label>סיסמה ראשונית (לפחות 6 תווים):
-            <input type="password" id="newTraineePassword" placeholder="••••••" minlength="6" required>
-          </label>
-          <label>תוכנית אימונים ראשונית:
-            <input type="text" id="newTraineeRoutine" placeholder="Push-Pull-Legs 4D" value="Push-Pull-Legs 4D">
-          </label>
-        </div>
-        <div class="form-grid-4">
-          <label>גיל:
-            <input type="number" id="newTraineeAge" value="26" min="14" max="99">
-          </label>
-          <label>מגדר:
-            <select id="newTraineeGender">
-              <option value="male">זכר</option>
-              <option value="female">נקבה</option>
-              <option value="other">אחר</option>
-            </select>
-          </label>
-          <label>גובה (ס"מ):
-            <input type="number" id="newTraineeHeight" value="178" min="120" max="230">
-          </label>
-          <label>משקל נוכחי (ק"ג):
-            <input type="number" id="newTraineeWeight" value="78.0" step="0.1" min="30" max="250">
-          </label>
-        </div>
-        <div class="form-grid-3">
-          <label>יעד קלוריות יומי:
-            <input type="number" id="newTraineeCalories" value="2400" step="50">
-          </label>
-          <label>יעד חלבון (גרם):
-            <input type="number" id="newTraineeProtein" value="165" step="5">
-          </label>
-          <label>יעד מים (מ"ל):
-            <input type="number" id="newTraineeWater" value="3000" step="250">
-          </label>
-        </div>
-        <label>דגשים והערות ליווי למתאמן:
-          <textarea id="newTraineeNotes" rows="2" placeholder="דגשים לתקופת המסה/חיטוב, פציעות עבר, יעדי כוח..."></textarea>
+        <p>הזינו UID של משתמש קיים. המשתמש יקבל בקשה ויצטרך לאשר לפני שייווצר קשר; הרשאות מידע נשארות כבויות עד להסכמה נפרדת.</p>
+        <label>מזהה משתמש (UID)
+          <input type="text" id="coachTraineeUid" maxlength="128" required autocomplete="off" dir="ltr" placeholder="Firebase user UID">
         </label>
+        <p id="coachConnectionRequestStatus" class="food-search-status" role="status" aria-live="polite"></p>
         <div class="form-actions-row">
           <button type="button" class="btn-action-ghost" id="cancelRegisterTraineeBtn">ביטול</button>
-          <button type="submit" class="btn-action-primary" id="submitRegisterTraineeBtn">יצירת חשבון והתחלת ליווי</button>
+          <button type="submit" class="btn-action-primary" id="submitRegisterTraineeBtn">שליחת בקשת חיבור</button>
         </div>
       </form>
     </section>

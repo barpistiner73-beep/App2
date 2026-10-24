@@ -1,7 +1,6 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const url = require('url');
 const db = require('./database');
 
 const PORT = process.env.PORT || 3000;
@@ -64,7 +63,8 @@ setInterval(() => {
 }, 10 * 60 * 1000);
 
 const server = http.createServer(async (req, res) => {
-  const parsedUrl = url.parse(req.url, true);
+  const parsedUrl = new URL(req.url, 'http://localhost');
+  const query = parsedUrl.searchParams;
   const pathname = parsedUrl.pathname;
   const method = req.method;
 
@@ -107,7 +107,7 @@ const server = http.createServer(async (req, res) => {
 
       // GET /api/users/status?userId=...&email=... (User checking approval status)
       if (pathname === '/api/users/status' && method === 'GET') {
-        const identifier = parsedUrl.query.userId || parsedUrl.query.email;
+        const identifier = query.get('userId') || query.get('email');
         if (!identifier) {
           return sendJson(res, 400, { success: false, error: 'Missing userId or email' });
         }
@@ -147,8 +147,8 @@ const server = http.createServer(async (req, res) => {
 
       // GET /api/users (Manager user directory)
       if (pathname === '/api/users' && method === 'GET') {
-        const role = parsedUrl.query.role || null;
-        const status = parsedUrl.query.status || null;
+        const role = query.get('role') || null;
+        const status = query.get('status') || null;
         const users = db.getUsers({ role, status });
         return sendJson(res, 200, { success: true, users });
       }
@@ -194,10 +194,10 @@ const server = http.createServer(async (req, res) => {
 
       // GET /api/reports?traineeId=...&days=14&startDate=...&endDate=...
       if (pathname === '/api/reports' && method === 'GET') {
-        const traineeId = parsedUrl.query.traineeId || 'client_1';
-        const days = parsedUrl.query.days ? parseInt(parsedUrl.query.days, 10) : 14;
-        const startDate = parsedUrl.query.startDate || null;
-        const endDate = parsedUrl.query.endDate || null;
+        const traineeId = query.get('traineeId') || 'client_1';
+        const days = query.get('days') ? parseInt(query.get('days'), 10) : 14;
+        const startDate = query.get('startDate') || null;
+        const endDate = query.get('endDate') || null;
 
         const reports = db.getReports(traineeId, { days, startDate, endDate });
         return sendJson(res, 200, { success: true, traineeId, count: reports.length, reports });
@@ -205,8 +205,8 @@ const server = http.createServer(async (req, res) => {
 
       // GET /api/reports/monthly?traineeId=...&month=YYYY-MM
       if (pathname === '/api/reports/monthly' && method === 'GET') {
-        const traineeId = parsedUrl.query.traineeId || 'client_1';
-        const month = parsedUrl.query.month || new Date().toISOString().substring(0, 7);
+        const traineeId = query.get('traineeId') || 'client_1';
+        const month = query.get('month') || new Date().toISOString().substring(0, 7);
         const monthData = db.getMonthlyReports(traineeId, month);
         return sendJson(res, 200, { success: true, ...monthData });
       }
@@ -273,8 +273,8 @@ const server = http.createServer(async (req, res) => {
       // --- Israeli Culinary & Food Database Endpoints ---
       // GET /api/foods?query=...&category=...
       if (pathname === '/api/foods' && method === 'GET') {
-        const query = (parsedUrl.query.query || '').trim().toLowerCase();
-        const category = parsedUrl.query.category || 'all';
+        const searchQuery = (query.get('query') || '').trim().toLowerCase();
+        const category = query.get('category') || 'all';
         const catalogPath = path.join(__dirname, 'data', 'israeli_culinary_database', 'foods_catalog.json');
         let foodsList = [];
         try {
@@ -288,12 +288,12 @@ const server = http.createServer(async (req, res) => {
         const filtered = foodsList.filter(food => {
           const catMatches = category === 'all' || food.category === category;
           if (!catMatches) return false;
-          if (!query) return true;
+          if (!searchQuery) return true;
           const searchable = [food.name, food.nameEn, food.brand, food.categoryName, ...(food.dietaryTags || [])]
             .filter(Boolean)
             .join(' ')
             .toLowerCase();
-          return searchable.includes(query);
+          return searchable.includes(searchQuery);
         });
 
         return sendJson(res, 200, { success: true, count: filtered.length, totalCatalog: foodsList.length, foods: filtered });

@@ -24,7 +24,7 @@ service cloud.firestore {
     //      - email: string (required, valid email address format, max 150 chars)
     //      - isTrainer: bool (required, true for coach and manager)
     //      - role: string (required going forward, enum: 'trainee' | 'coach' | 'manager')
-    //      - status: string (optional, enum: 'pending_approval' | 'active' | 'suspended' | 'rejected')
+    //      - status: string (optional, enum: 'pending_approval' | 'active' | 'suspended' | 'disabled' | 'rejected')
     //      - approvalStatus: string (optional, enum: 'pending' | 'approved' | 'rejected')
     //      - profileImageUrl: string (optional, valid http/https URL or empty string, max 1000 chars)
     //      - createdAt: timestamp (required, immutable, recent timestamp on creation)
@@ -110,7 +110,8 @@ service cloud.firestore {
     //      - isActive: bool (required, active status toggle)
     //
     // 8. users/{userId}/foodLogs/{foodLogId}
-    //    Meal/food entries for a calendar day. Query by userId parent + logDate.
+    //    Private quantity-scaled meal entries; macros, saturated/trans fats,
+    //    micronutrients, and fatty acids are stored under the owning user.
     //
     // 9. exerciseCatalog/{exerciseId} and equivalenceGroups/{groupId}
     //    Shared exercise library and coach-owned equivalent-exercise groups.
@@ -131,11 +132,44 @@ service cloud.firestore {
     //    Crowdsourced barcode fields (Document ID == barcode):
     //      - barcode: string
     //      - name, brand, servingSize
-    //      - macrosPer100g: { calories, protein, carbs, fats }
+    //      - macrosPer100g: { calories, protein, carbs, fats, saturatedFats, transFats }
+    //      - micronutrients: { sodium, potassium, calcium, iron, vitaminC } in mg
+    //      - fattyAcids: { omega3, omega6 } in g
     //      - source: 'scraped' | 'manual'
     //      - createdAt: timestamp
     //      - createdBy: UID of contributing user
     //    Personal meal diary is NEVER stored here; use users/{userId}/foodLogs.
+    //
+    // 12. coachDirectory/{coachId}
+    //    Opt-in directory entry containing only a coach UID and public display name.
+    //    isPublicVisible is accepted as a legacy alias for isDiscoverable.
+    //
+    // 13. coachingRequests/{traineeId}_{coachId}
+    //    Pending request initiated by either party; only the recipient may accept,
+    //    creating trainerships/{coachId}_{traineeId} in the same batch.
+    //
+    // 14. coachTraineeProfiles/{coachId}_{traineeId}
+    //    Display name only; readable by the trainee or their active coach.
+    //
+    // 15. coachingPermissionRequests/{requestId}
+    //    Coach-originated request for one or more named data categories.
+    //
+    // 16. permissionScopes/{coachId}_{traineeId}
+    //    Trainee-controlled consent for categories:
+    //    nutrition_logs, workout_history, body_metrics, sleep_logs, daily_reports.
+    //
+    // 17. users/{userId}/bodyMetrics/{metricId}
+    //    Private, domain-separated body measurements; coaches require body_metrics consent.
+    //
+    // 18. foods/{foodId} crowdsourced nutrient profile
+    //    macrosPer100g includes calories, protein, carbs, fats, saturatedFats,
+    //    transFats; micronutrients includes sodium, potassium, calcium, iron,
+    //    vitaminC; fattyAcids includes omega3 and omega6.
+    //
+    // 19. users/{userId}/pendingTasks/{taskId}
+    //    Coach-created private assignments: coachId, traineeId, type
+    //    ('weight_check'|'progress_photos'|'check_in'|'custom'), title (1-120 chars), pending/completed status,
+    //    immutable createdAt, and optional trainee-set completion metadata.
     //
     // =========================================================================
 
@@ -143,9 +177,25 @@ service cloud.firestore {
     // Core Helper Functions
     // =========================================================================
 
-    // Check if user is authenticated via Firebase Auth
+    // Check account status before allowing access to application data.
+    function hasActiveAccount() {
+      return request.auth != null &&
+        (!exists(/databases/$(database)/documents/users/$(request.auth.uid)) ||
+          ((!('status' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data) ||
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'active') &&
+           (!('approvalStatus' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data) ||
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.approvalStatus == 'approved')));
+    }
+
+    // Check if the user is authenticated and their account is active.
     function isAuthenticated() {
-      return request.auth != null;
+      return hasActiveAccount();
+    }
+
+    // Profile status must remain readable by its owner so blocked users can see
+    // why access is denied and admins can restore the account.
+    function isUserIdentity(userId) {
+      return request.auth != null && request.auth.uid == userId;
     }
 
     // Check if current authenticated user matches given UID
@@ -153,39 +203,35 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Check if current authenticated user has manager role/claim or bootstrap email
+    // Persisted roles take precedence over custom claims so role changes take effect immediately.
     function isManagerUser() {
-      return isAuthenticated() && (
-        (request.auth.token != null && (
-          ('email' in request.auth.token && (
-            request.auth.token.email == 'manager@fitpulse.com' ||
-            request.auth.token.email.matches('(?i)^manager@fitpulse\\.com$')
-          )) ||
-          ('role' in request.auth.token && (request.auth.token.role == 'manager' || request.auth.token.role == 'admin')) ||
-          ('manager' in request.auth.token && request.auth.token.manager == true) ||
-          ('admin' in request.auth.token && request.auth.token.admin == true)
-        )) ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-         'role' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data &&
-         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'manager' ||
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'))
-      );
+      return isAuthenticated() &&
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          ? (('role' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data &&
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['manager', 'admin']) &&
+             (!('status' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data) ||
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'active'))
+          : (request.auth.token != null && (
+              ('role' in request.auth.token && request.auth.token.role in ['manager', 'admin']) ||
+              ('manager' in request.auth.token && request.auth.token.manager == true)
+            )));
     }
 
-    // Check if current user has trainer role/claim
+    // Trusted claims are used only for accounts without a persisted profile.
     function isTrainerUser() {
       return isAuthenticated() && (
         isManagerUser() ||
-        (request.auth.token != null && (
-          ('isTrainer' in request.auth.token && request.auth.token.isTrainer == true) ||
-          ('role' in request.auth.token && (request.auth.token.role == 'trainer' || request.auth.token.role == 'coach'))
-        )) ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && (
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isTrainer == true ||
-          ('role' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data &&
-           (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'coach' ||
-            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'trainer'))
-        ))
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          ? ((('role' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data &&
+               get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['coach', 'trainer']) ||
+              (!('role' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data) &&
+               get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isTrainer == true)) &&
+             (!('status' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data) ||
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'active'))
+          : (request.auth.token != null && (
+              ('isTrainer' in request.auth.token && request.auth.token.isTrainer == true) ||
+              ('role' in request.auth.token && (request.auth.token.role == 'trainer' || request.auth.token.role == 'coach'))
+            )))
       );
     }
 
@@ -234,38 +280,47 @@ service cloud.firestore {
         get(/databases/$(database)/documents/trainerships/$(trainerId + '_' + traineeId)).data.status == 'active';
     }
 
-    // Safely retrieves trainership document data
-    function getTrainership(trainerId, traineeId) {
-      return get(/databases/$(database)/documents/trainerships/$(trainerId + '_' + traineeId)).data;
-    }
-
     // Permission checks for active trainership
     function trainerCanViewDailyLogs(trainerId, traineeId) {
-      return hasActiveTrainership(trainerId, traineeId) &&
-        getTrainership(trainerId, traineeId).permissions.canViewDailyLogs == true;
+      return trainerCanViewCategory(trainerId, traineeId, 'sleep_logs');
     }
 
     function trainerCanViewWorkouts(trainerId, traineeId) {
-      return hasActiveTrainership(trainerId, traineeId) &&
-        getTrainership(trainerId, traineeId).permissions.canViewWorkouts == true;
+      return trainerCanViewCategory(trainerId, traineeId, 'workout_history');
     }
 
     function trainerCanViewNutrition(trainerId, traineeId) {
-      return hasActiveTrainership(trainerId, traineeId) &&
-        getTrainership(trainerId, traineeId).permissions.canViewNutrition == true;
+      return trainerCanViewCategory(trainerId, traineeId, 'nutrition_logs');
     }
 
-    function trainerCanViewSleep(trainerId, traineeId) {
-      return hasActiveTrainership(trainerId, traineeId) &&
-        getTrainership(trainerId, traineeId).permissions.canViewSleep == true;
+    function trainerCanViewDailyReports(trainerId, traineeId) {
+      return trainerCanViewCategory(trainerId, traineeId, 'daily_reports');
     }
 
-    // Check if authenticated user and target user share an active or pending trainership
-    function isConnectedUser(otherUserId) {
-      return isAuthenticated() && (
-        exists(/databases/$(database)/documents/trainerships/$(request.auth.uid + '_' + otherUserId)) ||
-        exists(/databases/$(database)/documents/trainerships/$(otherUserId + '_' + request.auth.uid))
-      );
+    function trainerCanViewBodyMetrics(trainerId, traineeId) {
+      return trainerCanViewCategory(trainerId, traineeId, 'body_metrics');
+    }
+
+    function trainerCanViewCategory(trainerId, traineeId, category) {
+      let scopePath = /databases/$(database)/documents/permissionScopes/$(trainerId + '_' + traineeId);
+      let requestPath = /databases/$(database)/documents/coachingPermissionRequests/$(get(scopePath).data.requestId);
+      return hasActiveTrainership(trainerId, traineeId) &&
+        exists(scopePath) &&
+        get(scopePath).data.status == 'active' &&
+        get(scopePath).data.categories[category] == true &&
+        exists(requestPath) &&
+        get(requestPath).data.status == 'accepted' &&
+        get(requestPath).data.coachId == trainerId &&
+        get(requestPath).data.traineeId == traineeId;
+    }
+
+    function isCoachAccount(coachId) {
+      return exists(/databases/$(database)/documents/users/$(coachId)) &&
+        get(/databases/$(database)/documents/users/$(coachId)).data.isTrainer == true &&
+        (!('role' in get(/databases/$(database)/documents/users/$(coachId)).data) ||
+         get(/databases/$(database)/documents/users/$(coachId)).data.role in ['coach', 'manager']) &&
+        (!('status' in get(/databases/$(database)/documents/users/$(coachId)).data) ||
+         get(/databases/$(database)/documents/users/$(coachId)).data.status == 'active');
     }
 
     // Helper to verify full permissions map for self-training
@@ -292,12 +347,27 @@ service cloud.firestore {
         data.email is string && data.email.size() <= 150 && isValidEmail(data.email) &&
         data.isTrainer is bool &&
         data.createdAt is timestamp &&
-        (!('role' in data) || (data.role is string && data.role in ['trainee', 'coach', 'manager'])) &&
-        (!('status' in data) || (data.status is string && data.status in ['pending_approval', 'active', 'suspended', 'rejected'])) &&
+        (!('role' in data) ||
+          (data.role is string && data.role in ['trainee', 'coach', 'manager'] &&
+           data.isTrainer == (data.role in ['coach', 'manager']))) &&
+        (!('status' in data) || (data.status is string && data.status in ['pending_approval', 'active', 'suspended', 'disabled', 'rejected'])) &&
         (!('approvalStatus' in data) || (data.approvalStatus is string && data.approvalStatus in ['pending', 'approved', 'rejected'])) &&
         (!('approvedAt' in data) || data.approvedAt == null || data.approvedAt is timestamp) &&
         (!('approvedBy' in data) || data.approvedBy == null || (data.approvedBy is string && data.approvedBy.size() >= 1 && data.approvedBy.size() <= 128)) &&
         (!('profileImageUrl' in data) || data.profileImageUrl == null || (data.profileImageUrl is string && data.profileImageUrl.size() <= 1000 && (data.profileImageUrl == '' || isValidUrl(data.profileImageUrl))));
+    }
+
+    function isValidManagedRoleUpdate(userId) {
+      return userId != request.auth.uid &&
+        (!('role' in resource.data) || !(resource.data.role in ['manager', 'admin'])) &&
+        isValidUser(request.resource.data) &&
+        request.resource.data.userId == resource.data.userId &&
+        request.resource.data.createdAt == resource.data.createdAt &&
+        request.resource.data.role is string &&
+        request.resource.data.role in ['trainee', 'coach'] &&
+        request.resource.data.isTrainer is bool &&
+        request.resource.data.isTrainer == (request.resource.data.role == 'coach') &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'isTrainer']);
     }
 
     // 2. Trainership Permissions Map Validator
@@ -465,13 +535,40 @@ service cloud.firestore {
 
     // 10. Food Item Validator (catalog OR crowdsourced barcode document)
     function isValidMacrosPer100g(macros) {
+      let expectedCalories = macros.protein * 4 + macros.carbs * 4 + macros.fats * 9;
       return macros is map &&
-        macros.keys().hasAll(['calories', 'protein', 'carbs', 'fats']) &&
-        macros.keys().hasOnly(['calories', 'protein', 'carbs', 'fats']) &&
-        macros.calories is number && macros.calories >= 0 && macros.calories <= 15000 &&
-        macros.protein is number && macros.protein >= 0 && macros.protein <= 1000 &&
-        macros.carbs is number && macros.carbs >= 0 && macros.carbs <= 1000 &&
-        macros.fats is number && macros.fats >= 0 && macros.fats <= 1000;
+        macros.keys().hasAll(['calories', 'protein', 'carbs', 'fats', 'saturatedFats', 'transFats']) &&
+        macros.keys().hasOnly(['calories', 'protein', 'carbs', 'fats', 'saturatedFats', 'transFats']) &&
+        macros.calories is number && macros.calories >= 0 && macros.calories <= 1500 &&
+        macros.protein is number && macros.protein >= 0 && macros.protein <= 100 &&
+        macros.carbs is number && macros.carbs >= 0 && macros.carbs <= 100 &&
+        macros.fats is number && macros.fats >= 0 && macros.fats <= 100 &&
+        macros.saturatedFats is number && macros.saturatedFats >= 0 && macros.saturatedFats <= macros.fats &&
+        macros.transFats is number && macros.transFats >= 0 && macros.transFats <= macros.fats &&
+        macros.saturatedFats + macros.transFats <= macros.fats &&
+        macros.protein + macros.carbs + macros.fats <= 100 &&
+        macros.calories <= expectedCalories + 40 &&
+        macros.calories + 40 >= expectedCalories;
+    }
+
+    function isValidFoodMicronutrients(values) {
+      return values is map &&
+        values.keys().hasAll(['sodium', 'potassium', 'calcium', 'iron', 'vitaminC']) &&
+        values.keys().hasOnly(['sodium', 'potassium', 'calcium', 'iron', 'vitaminC']) &&
+        values.sodium is number && values.sodium >= 0 && values.sodium <= 50000 &&
+        values.potassium is number && values.potassium >= 0 && values.potassium <= 50000 &&
+        values.calcium is number && values.calcium >= 0 && values.calcium <= 10000 &&
+        values.iron is number && values.iron >= 0 && values.iron <= 1000 &&
+        values.vitaminC is number && values.vitaminC >= 0 && values.vitaminC <= 10000;
+    }
+
+    function isValidFoodFattyAcids(values) {
+      return values is map &&
+        values.keys().hasAll(['omega3', 'omega6']) &&
+        values.keys().hasOnly(['omega3', 'omega6']) &&
+        values.omega3 is number && values.omega3 >= 0 && values.omega3 <= 100 &&
+        values.omega6 is number && values.omega6 >= 0 && values.omega6 <= 100 &&
+        values.omega3 + values.omega6 <= 100;
     }
 
     function isValidCatalogFoodDoc(data) {
@@ -509,16 +606,26 @@ service cloud.firestore {
     function isValidCrowdsourcedFoodDoc(data) {
       return hasRequiredFields(data, ['barcode', 'name', 'servingSize', 'macrosPer100g', 'source', 'createdAt', 'createdBy']) &&
         hasOnlyAllowedFields(data, [
-          'barcode', 'name', 'brand', 'servingSize', 'macrosPer100g', 'source', 'createdAt', 'createdBy'
+          'barcode', 'name', 'brand', 'servingSize', 'macrosPer100g', 'micronutrients',
+          'fattyAcids', 'source', 'createdAt', 'createdBy'
         ]) &&
-        data.barcode is string && data.barcode.size() >= 8 && data.barcode.size() <= 80 &&
+        data.barcode is string &&
+        ((data.barcode.matches('^[0-9]{8,14}$')) ||
+         (data.barcode.size() <= 500 && isValidUrl(data.barcode) && data.barcode.matches('^https://.*'))) &&
         data.name is string && data.name.size() >= 1 && data.name.size() <= 200 &&
         data.servingSize is string && data.servingSize.size() >= 1 && data.servingSize.size() <= 50 &&
         isValidMacrosPer100g(data.macrosPer100g) &&
+        isValidFoodMicronutrients(data.micronutrients) &&
+        isValidFoodFattyAcids(data.fattyAcids) &&
         data.source in ['scraped', 'manual'] &&
         data.createdAt is timestamp &&
         data.createdBy is string && data.createdBy.size() >= 1 && data.createdBy.size() <= 128 &&
         (!('brand' in data) || (data.brand is string && data.brand.size() <= 100));
+    }
+
+    function isCrowdsourcedFoodDocumentId(foodId, barcode) {
+      return (barcode.matches('^[0-9]{8,14}$') && foodId == barcode) ||
+        (barcode.matches('^https://.*') && foodId.matches('^url_[0-9a-f]{64}$'));
     }
 
     function isValidFoodDoc(data) {
@@ -529,20 +636,154 @@ service cloud.firestore {
       return hasRequiredFields(data, ['userId', 'logDate', 'name', 'grams', 'calories', 'loggedAt']) &&
         hasOnlyAllowedFields(data, [
           'foodLogId', 'userId', 'logDate', 'foodId', 'name', 'grams', 'calories',
-          'protein', 'carbs', 'fat', 'source', 'loggedAt'
+          'protein', 'carbs', 'fat', 'saturatedFats', 'transFats', 'sodium',
+          'potassium', 'calcium', 'iron', 'vitaminC', 'omega3', 'omega6',
+          'source', 'loggedAt'
         ]) &&
         data.userId is string && data.userId == userId &&
         data.logDate is string && data.logDate.size() >= 8 && data.logDate.size() <= 30 &&
         data.name is string && data.name.size() >= 1 && data.name.size() <= 200 &&
         data.grams is number && data.grams > 0 && data.grams <= 10000 &&
-        data.calories is number && data.calories >= 0 && data.calories <= 15000 &&
+        data.calories is number && data.calories >= 0 && data.calories <= 150000 &&
         data.loggedAt is timestamp &&
         (!('foodLogId' in data) || (data.foodLogId is string && data.foodLogId.size() <= 100)) &&
-        (!('foodId' in data) || data.foodId == null || (data.foodId is string && data.foodId.size() <= 200)) &&
-        (!('protein' in data) || (data.protein is number && data.protein >= 0 && data.protein <= 1000)) &&
-        (!('carbs' in data) || (data.carbs is number && data.carbs >= 0 && data.carbs <= 2000)) &&
-        (!('fat' in data) || (data.fat is number && data.fat >= 0 && data.fat <= 1000)) &&
+        (!('foodId' in data) || data.foodId == null || (data.foodId is string && data.foodId.size() <= 500)) &&
+        (!('protein' in data) || (data.protein is number && data.protein >= 0 && data.protein <= 100000)) &&
+        (!('carbs' in data) || (data.carbs is number && data.carbs >= 0 && data.carbs <= 100000)) &&
+        (!('fat' in data) || (data.fat is number && data.fat >= 0 && data.fat <= 100000)) &&
+        (!('saturatedFats' in data) || (data.saturatedFats is number && data.saturatedFats >= 0 && data.saturatedFats <= 100000)) &&
+        (!('transFats' in data) || (data.transFats is number && data.transFats >= 0 && data.transFats <= 100000)) &&
+        (!('sodium' in data) || (data.sodium is number && data.sodium >= 0 && data.sodium <= 500000000)) &&
+        (!('potassium' in data) || (data.potassium is number && data.potassium >= 0 && data.potassium <= 500000000)) &&
+        (!('calcium' in data) || (data.calcium is number && data.calcium >= 0 && data.calcium <= 100000000)) &&
+        (!('iron' in data) || (data.iron is number && data.iron >= 0 && data.iron <= 10000000)) &&
+        (!('vitaminC' in data) || (data.vitaminC is number && data.vitaminC >= 0 && data.vitaminC <= 100000000)) &&
+        (!('omega3' in data) || (data.omega3 is number && data.omega3 >= 0 && data.omega3 <= 1000000)) &&
+        (!('omega6' in data) || (data.omega6 is number && data.omega6 >= 0 && data.omega6 <= 1000000)) &&
         (!('source' in data) || (data.source is string && data.source.size() <= 300));
+    }
+
+    function validPermissionCategories(categories) {
+      return categories is list &&
+        categories.size() >= 1 &&
+        categories.size() <= 5 &&
+        categories.hasOnly(['nutrition_logs', 'workout_history', 'body_metrics', 'sleep_logs', 'daily_reports']);
+    }
+
+    function isValidCoachDirectoryEntry(data, coachId) {
+      return hasRequiredFields(data, ['coachId', 'displayName', 'updatedAt']) &&
+        hasOnlyAllowedFields(data, ['coachId', 'displayName', 'isDiscoverable', 'isPublicVisible', 'updatedAt']) &&
+        data.coachId == coachId &&
+        data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 100 &&
+        (('isDiscoverable' in data && data.isDiscoverable is bool) ||
+         ('isPublicVisible' in data && data.isPublicVisible is bool)) &&
+        (!('isDiscoverable' in data) || data.isDiscoverable is bool) &&
+        (!('isPublicVisible' in data) || data.isPublicVisible is bool) &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidCoachDirectoryUpdate(data, coachId) {
+      return isValidCoachDirectoryEntry(data, coachId) &&
+        data.coachId == resource.data.coachId &&
+        isRecent(data.updatedAt) &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['displayName', 'isDiscoverable', 'isPublicVisible', 'updatedAt']);
+    }
+
+    function isValidCoachingRequest(data, requestId) {
+      return hasRequiredFields(data, ['coachId', 'traineeId', 'coachDisplayName', 'traineeDisplayName', 'status', 'createdAt', 'updatedAt']) &&
+        hasOnlyAllowedFields(data, ['coachId', 'traineeId', 'coachDisplayName', 'traineeDisplayName', 'initiatedBy', 'status', 'createdAt', 'updatedAt']) &&
+        data.coachId is string && data.coachId.size() >= 1 && data.coachId.size() <= 128 &&
+        data.traineeId is string && data.traineeId.size() >= 1 && data.traineeId.size() <= 128 &&
+        requestId == (data.traineeId + '_' + data.coachId) &&
+        data.coachDisplayName is string && data.coachDisplayName.size() >= 1 && data.coachDisplayName.size() <= 100 &&
+        data.traineeDisplayName is string && data.traineeDisplayName.size() >= 1 && data.traineeDisplayName.size() <= 100 &&
+        (!('initiatedBy' in data) || data.initiatedBy in ['trainee', 'coach']) &&
+        data.status in ['pending', 'accepted', 'rejected'] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidCoachTraineeProfile(data, coachId, traineeId) {
+      return hasRequiredFields(data, ['coachId', 'traineeId', 'displayName', 'updatedAt']) &&
+        hasOnlyAllowedFields(data, ['coachId', 'traineeId', 'displayName', 'updatedAt']) &&
+        data.coachId == coachId &&
+        data.traineeId == traineeId &&
+        data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 100 &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidCoachingPermissionRequest(data) {
+      return hasRequiredFields(data, ['coachId', 'traineeId', 'coachDisplayName', 'requestedCategories', 'status', 'createdAt']) &&
+        hasOnlyAllowedFields(data, ['coachId', 'traineeId', 'coachDisplayName', 'requestedCategories', 'status', 'createdAt', 'respondedAt']) &&
+        data.coachId is string && data.coachId.size() >= 1 && data.coachId.size() <= 128 &&
+        data.traineeId is string && data.traineeId.size() >= 1 && data.traineeId.size() <= 128 &&
+        data.coachDisplayName is string && data.coachDisplayName.size() >= 1 && data.coachDisplayName.size() <= 100 &&
+        validPermissionCategories(data.requestedCategories) &&
+        data.status in ['pending', 'accepted', 'rejected'] &&
+        data.createdAt is timestamp &&
+        (!('respondedAt' in data) || data.respondedAt is timestamp);
+    }
+
+    function isValidPermissionScope(data, coachId, traineeId) {
+      return hasRequiredFields(data, ['coachId', 'traineeId', 'requestId', 'categories', 'status', 'updatedAt']) &&
+        hasOnlyAllowedFields(data, ['coachId', 'traineeId', 'requestId', 'categories', 'status', 'updatedAt']) &&
+        data.coachId == coachId &&
+        data.traineeId == traineeId &&
+        data.requestId is string && data.requestId.size() >= 1 && data.requestId.size() <= 128 &&
+        data.categories is map &&
+        data.categories.keys().hasAll(['nutrition_logs', 'workout_history', 'body_metrics', 'sleep_logs', 'daily_reports']) &&
+        data.categories.keys().hasOnly(['nutrition_logs', 'workout_history', 'body_metrics', 'sleep_logs', 'daily_reports']) &&
+        data.categories.nutrition_logs is bool &&
+        data.categories.workout_history is bool &&
+        data.categories.body_metrics is bool &&
+        data.categories.sleep_logs is bool &&
+        data.categories.daily_reports is bool &&
+        data.status == 'active' &&
+        data.updatedAt is timestamp;
+    }
+
+    function grantedCategoriesWereRequested(scope, permissionRequest) {
+      return (!scope.categories.nutrition_logs || permissionRequest.requestedCategories.hasAny(['nutrition_logs'])) &&
+        (!scope.categories.workout_history || permissionRequest.requestedCategories.hasAny(['workout_history'])) &&
+        (!scope.categories.body_metrics || permissionRequest.requestedCategories.hasAny(['body_metrics'])) &&
+        (!scope.categories.sleep_logs || permissionRequest.requestedCategories.hasAny(['sleep_logs'])) &&
+        (!scope.categories.daily_reports || permissionRequest.requestedCategories.hasAny(['daily_reports']));
+    }
+
+    function isValidBodyMetric(data, userId) {
+      return hasRequiredFields(data, ['userId', 'measuredAt']) &&
+        hasOnlyAllowedFields(data, ['userId', 'measuredAt', 'weightKg', 'bodyFatPercent', 'waistCm', 'heightCm', 'taskIds']) &&
+        data.userId == userId &&
+        data.measuredAt is timestamp &&
+        (!('weightKg' in data) || (data.weightKg is number && data.weightKg >= 20 && data.weightKg <= 500)) &&
+        (!('bodyFatPercent' in data) || (data.bodyFatPercent is number && data.bodyFatPercent >= 0 && data.bodyFatPercent <= 100)) &&
+        (!('waistCm' in data) || (data.waistCm is number && data.waistCm >= 20 && data.waistCm <= 300)) &&
+        (!('heightCm' in data) || (data.heightCm is number && data.heightCm >= 50 && data.heightCm <= 300)) &&
+        (!('taskIds' in data) ||
+          (data.taskIds is list && data.taskIds.size() == 1 &&
+           data.taskIds[0] is string && data.taskIds[0].size() >= 1 && data.taskIds[0].size() <= 100));
+    }
+
+    function isValidPendingTask(data, traineeId, taskId) {
+      return hasRequiredFields(data, ['coachId', 'traineeId', 'type', 'title', 'status', 'createdAt']) &&
+        hasOnlyAllowedFields(data, [
+          'coachId', 'traineeId', 'type', 'title', 'status', 'createdAt',
+          'completedAt', 'completionMetricId'
+        ]) &&
+        data.coachId is string && data.coachId.size() >= 1 && data.coachId.size() <= 128 &&
+        data.traineeId == traineeId &&
+        data.type in ['weight_check', 'progress_photos', 'check_in', 'custom'] &&
+        data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+        data.status in ['pending', 'completed'] &&
+        data.createdAt is timestamp &&
+        (!('completedAt' in data) || data.completedAt is timestamp) &&
+        (!('completionMetricId' in data) ||
+          (data.completionMetricId is string && data.completionMetricId.size() >= 1 &&
+           data.completionMetricId.size() <= 100)) &&
+        taskId is string && taskId.size() >= 1 && taskId.size() <= 100 &&
+        ((data.status == 'pending' && !('completedAt' in data) && !('completionMetricId' in data)) ||
+         (data.status == 'completed' && 'completedAt' in data));
     }
 
     // =========================================================================
@@ -553,20 +794,9 @@ service cloud.firestore {
     // 1. Users Collection
     // -------------------------------------------------------------------------
     match /users/{userId} {
-      // Document owner can read their profile; managers can read; connected users/coaches can view profiles;
-      // coaches with isTrainer==true can be viewed by authenticated users.
-      allow get: if isOwner(userId) ||
-                    isManagerUser() ||
-                    isConnectedUser(userId) ||
-                    (isAuthenticated() && resource.data.isTrainer == true);
-
-      // Managers can list users (especially status == 'pending_approval');
-      // Authenticated users can list trainers (isTrainer == true) or look up their own profile by email
-      allow list: if isAuthenticated() && (
-        isManagerUser() ||
-        resource.data.isTrainer == true ||
-        (request.auth.token != null && 'email' in request.auth.token && resource.data.email == request.auth.token.email)
-      );
+      // Profile documents contain private account data and are not a coach directory.
+      allow get: if isUserIdentity(userId) || isManagerUser();
+      allow list: if isManagerUser();
 
       // Only the user themselves can create their profile on registration.
       // Status can be 'pending_approval' or 'active'.
@@ -576,7 +806,7 @@ service cloud.firestore {
                        isRecent(request.resource.data.createdAt) &&
                        (!('status' in request.resource.data) || request.resource.data.status in ['pending_approval', 'active']) &&
                        (!('approvalStatus' in request.resource.data) || request.resource.data.approvalStatus in ['pending', 'approved']) &&
-                       (!('role' in request.resource.data) || request.resource.data.role != 'manager' || isManagerUser()) &&
+                       (!('role' in request.resource.data) || !(request.resource.data.role in ['manager', 'admin']) || isManagerUser()) &&
                        (!('approvedAt' in request.resource.data) || isManagerUser()) &&
                        (!('approvedBy' in request.resource.data) || isManagerUser());
 
@@ -584,12 +814,18 @@ service cloud.firestore {
       // 1. Manager can update user document to approve/activate them (status, approvalStatus, approvedAt, approvedBy, role).
       // 2. Owner can update their profile (cannot modify isTrainer, role, status, approvalStatus, approvedAt, approvedBy).
       allow update: if isAuthenticated() &&
-                       isValidUser(request.resource.data) &&
-                       request.resource.data.userId == resource.data.userId &&
-                       request.resource.data.createdAt == resource.data.createdAt &&
                        (
-                         isManagerUser() ||
-                         (isOwner(userId) && areImmutableFieldsUnchanged(['isTrainer', 'role', 'status', 'approvalStatus', 'approvedAt', 'approvedBy']))
+                         (isManagerUser() &&
+                          isValidUser(request.resource.data) &&
+                          request.resource.data.userId == resource.data.userId &&
+                          request.resource.data.createdAt == resource.data.createdAt &&
+                          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isTrainer'])) ||
+                         (isManagerUser() && isValidManagedRoleUpdate(userId)) ||
+                         (isOwner(userId) &&
+                          isValidUser(request.resource.data) &&
+                          request.resource.data.userId == resource.data.userId &&
+                          request.resource.data.createdAt == resource.data.createdAt &&
+                          areImmutableFieldsUnchanged(['isTrainer', 'role', 'status', 'approvalStatus', 'approvedAt', 'approvedBy']))
                        );
 
       // Raw client-side document deletion disallowed.
@@ -634,6 +870,55 @@ service cloud.firestore {
 
         allow delete: if isOwner(userId);
       }
+
+      match /bodyMetrics/{metricId} {
+        allow read: if isOwner(userId) || trainerCanViewBodyMetrics(request.auth.uid, userId);
+        allow create: if isOwner(userId) && isValidBodyMetric(request.resource.data, userId);
+        allow update: if isOwner(userId) &&
+                         isValidBodyMetric(request.resource.data, userId) &&
+                         areImmutableFieldsUnchanged(['userId', 'measuredAt']);
+        allow delete: if isOwner(userId);
+      }
+
+      match /pendingTasks/{taskId} {
+        // Task metadata may be read by its creator only while the relationship is active.
+        allow read: if isOwner(userId) ||
+                       (isAuthenticated() &&
+                        request.auth.uid == resource.data.coachId &&
+                        resource.data.traineeId == userId &&
+                        hasActiveTrainership(request.auth.uid, userId));
+
+        allow create: if isAuthenticated() &&
+                         request.resource.data.coachId == request.auth.uid &&
+                         request.resource.data.traineeId == userId &&
+                         request.resource.data.status == 'pending' &&
+                         isCoachAccount(request.auth.uid) &&
+                         hasActiveTrainership(request.auth.uid, userId) &&
+                         isValidPendingTask(request.resource.data, userId, taskId) &&
+                         isRecent(request.resource.data.createdAt);
+
+        allow update: if isOwner(userId) &&
+                         resource.data.status == 'pending' &&
+                         request.resource.data.status == 'completed' &&
+                         isValidPendingTask(request.resource.data, userId, taskId) &&
+                         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                           'status', 'completedAt', 'completionMetricId'
+                         ]) &&
+                         isRecent(request.resource.data.completedAt) &&
+                         (
+                           (resource.data.type == 'weight_check' &&
+                            request.resource.data.completionMetricId is string &&
+                            !exists(/databases/$(database)/documents/users/$(userId)/bodyMetrics/$(request.resource.data.completionMetricId)) &&
+                            existsAfter(/databases/$(database)/documents/users/$(userId)/bodyMetrics/$(request.resource.data.completionMetricId)) &&
+                            getAfter(/databases/$(database)/documents/users/$(userId)/bodyMetrics/$(request.resource.data.completionMetricId)).data.userId == userId &&
+                            getAfter(/databases/$(database)/documents/users/$(userId)/bodyMetrics/$(request.resource.data.completionMetricId)).data.weightKg is number &&
+                            getAfter(/databases/$(database)/documents/users/$(userId)/bodyMetrics/$(request.resource.data.completionMetricId)).data.taskIds.hasAny([taskId])) ||
+                           (resource.data.type in ['progress_photos', 'check_in', 'custom'] &&
+                            !('completionMetricId' in request.resource.data))
+                         );
+
+        allow delete: if false;
+      }
     }
 
     // -------------------------------------------------------------------------
@@ -651,8 +936,7 @@ service cloud.firestore {
       // Must use deterministic ID `${trainerId}_${traineeId}`.
       // System manager can provision trainer self-training relation upon approval.
       // Self-training (trainerId == traineeId) automatically activates with full permissions.
-      // Verified coach can create active trainership when provisioning a trainee.
-      // Standard coach/trainee invites initiate in 'pending' status.
+      // An active trainership may be created only after the recipient accepts the request.
       allow create: if isAuthenticated() &&
                        (isManagerUser() ||
                         request.auth.uid == request.resource.data.trainerId ||
@@ -667,10 +951,20 @@ service cloud.firestore {
                          (request.resource.data.trainerId == request.resource.data.traineeId &&
                           request.resource.data.status == 'active' &&
                           hasFullPermissions(request.resource.data.permissions)) ||
-                         // Coach provisioning: authenticated coach creating active trainership for a trainee
+                         // A non-self relationship becomes active only when a coach accepts the trainee's request.
                          (request.auth.uid == request.resource.data.trainerId &&
                           isTrainerUser() &&
-                          request.resource.data.status == 'active') ||
+                          request.resource.data.status == 'active' &&
+                          existsAfter(/databases/$(database)/documents/coachingRequests/$(request.resource.data.traineeId + '_' + request.resource.data.trainerId)) &&
+                          getAfter(/databases/$(database)/documents/coachingRequests/$(request.resource.data.traineeId + '_' + request.resource.data.trainerId)).data.status == 'accepted' &&
+                          (!('initiatedBy' in getAfter(/databases/$(database)/documents/coachingRequests/$(request.resource.data.traineeId + '_' + request.resource.data.trainerId)).data) ||
+                           getAfter(/databases/$(database)/documents/coachingRequests/$(request.resource.data.traineeId + '_' + request.resource.data.trainerId)).data.initiatedBy == 'trainee')) ||
+                         (request.auth.uid == request.resource.data.traineeId &&
+                          isCoachAccount(request.resource.data.trainerId) &&
+                          request.resource.data.status == 'active' &&
+                          existsAfter(/databases/$(database)/documents/coachingRequests/$(request.resource.data.traineeId + '_' + request.resource.data.trainerId)) &&
+                          getAfter(/databases/$(database)/documents/coachingRequests/$(request.resource.data.traineeId + '_' + request.resource.data.trainerId)).data.status == 'accepted' &&
+                          getAfter(/databases/$(database)/documents/coachingRequests/$(request.resource.data.traineeId + '_' + request.resource.data.trainerId)).data.initiatedBy == 'coach') ||
                          // Standard invite initiated as pending
                          (request.resource.data.status == 'pending')
                        );
@@ -696,20 +990,239 @@ service cloud.firestore {
                           hasFullPermissions(request.resource.data.permissions)) ||
                          // Non-self trainership rules:
                          (resource.data.trainerId != resource.data.traineeId && (
-                           // Trainee (data owner) can accept, reject, terminate, and adjust permission flags
-                           (request.auth.uid == resource.data.traineeId) ||
+                           // Trainee can respond to a pending invite, adjust legacy flags, or terminate.
+                           (request.auth.uid == resource.data.traineeId &&
+                            ((resource.data.status == 'pending' &&
+                              request.resource.data.status in ['active', 'rejected', 'terminated']) ||
+                             (resource.data.status == 'active' &&
+                              request.resource.data.status in ['active', 'terminated']) ||
+                             (resource.data.status in ['rejected', 'terminated'] &&
+                              request.resource.data.status == resource.data.status))) ||
                            // Trainer can accept/reject pending invites, or later terminate; cannot alter permissions
                            (request.auth.uid == resource.data.trainerId &&
                             request.resource.data.permissions == resource.data.permissions &&
                             (
                               (resource.data.status == 'pending' &&
                                request.resource.data.status in ['active', 'rejected', 'terminated']) ||
-                              (resource.data.status != 'pending')
+                              (resource.data.status == 'active' &&
+                               request.resource.data.status in ['active', 'terminated']) ||
+                              (resource.data.status in ['rejected', 'terminated'] &&
+                               request.resource.data.status == resource.data.status)
                             ))
                          ))
                        );
 
       // Deletions disallowed; state transitions should use 'terminated' status
+      allow delete: if false;
+    }
+
+    match /coachDirectory/{coachId} {
+      allow get: if isOwner(coachId) ||
+                    (isAuthenticated() &&
+                     ((('isDiscoverable' in resource.data) && resource.data.isDiscoverable == true) ||
+                      (('isPublicVisible' in resource.data) && resource.data.isPublicVisible == true)));
+      allow list: if isAuthenticated() &&
+                     ((('isDiscoverable' in resource.data) && resource.data.isDiscoverable == true) ||
+                      (('isPublicVisible' in resource.data) && resource.data.isPublicVisible == true));
+
+      allow create: if isOwner(coachId) &&
+                       isCoachAccount(coachId) &&
+                       isValidCoachDirectoryEntry(request.resource.data, coachId) &&
+                       isRecent(request.resource.data.updatedAt);
+      // Public visibility is stored only in this minimal public directory document;
+      // coaches may update their own entry without exposing or editing private user profiles.
+      allow update: if isOwner(coachId) &&
+                       isCoachAccount(coachId) &&
+                       isValidCoachDirectoryUpdate(request.resource.data, coachId);
+      allow delete: if isOwner(coachId) && isCoachAccount(coachId);
+    }
+
+    match /coachingRequests/{requestId} {
+      allow read: if isAuthenticated() &&
+                     (resource.data.traineeId == request.auth.uid ||
+                      resource.data.coachId == request.auth.uid);
+
+      allow create: if isOwner(request.resource.data.traineeId) &&
+                       (!('initiatedBy' in request.resource.data) || request.resource.data.initiatedBy == 'trainee') &&
+                       request.resource.data.status == 'pending' &&
+                       isValidCoachingRequest(request.resource.data, requestId) &&
+                       isRecent(request.resource.data.createdAt) &&
+                       isRecent(request.resource.data.updatedAt) &&
+                       exists(/databases/$(database)/documents/coachDirectory/$(request.resource.data.coachId)) &&
+                       ((('isDiscoverable' in get(/databases/$(database)/documents/coachDirectory/$(request.resource.data.coachId)).data) &&
+                         get(/databases/$(database)/documents/coachDirectory/$(request.resource.data.coachId)).data.isDiscoverable == true) ||
+                        (('isPublicVisible' in get(/databases/$(database)/documents/coachDirectory/$(request.resource.data.coachId)).data) &&
+                         get(/databases/$(database)/documents/coachDirectory/$(request.resource.data.coachId)).data.isPublicVisible == true)) &&
+                       (!exists(/databases/$(database)/documents/trainerships/$(request.resource.data.coachId + '_' + request.resource.data.traineeId)) ||
+                        get(/databases/$(database)/documents/trainerships/$(request.resource.data.coachId + '_' + request.resource.data.traineeId)).data.status != 'active') ||
+                       (isOwner(request.resource.data.coachId) &&
+                        request.resource.data.initiatedBy == 'coach' &&
+                        request.resource.data.status == 'pending' &&
+                        isTrainerUser() &&
+                        isValidCoachingRequest(request.resource.data, requestId) &&
+                        isRecent(request.resource.data.createdAt) &&
+                        isRecent(request.resource.data.updatedAt) &&
+                        exists(/databases/$(database)/documents/users/$(request.resource.data.traineeId)) &&
+                        get(/databases/$(database)/documents/users/$(request.resource.data.traineeId)).data.role == 'trainee' &&
+                        get(/databases/$(database)/documents/users/$(request.resource.data.traineeId)).data.status == 'active' &&
+                        (!exists(/databases/$(database)/documents/trainerships/$(request.resource.data.coachId + '_' + request.resource.data.traineeId)) ||
+                         get(/databases/$(database)/documents/trainerships/$(request.resource.data.coachId + '_' + request.resource.data.traineeId)).data.status != 'active'));
+
+      allow update: if isAuthenticated() &&
+                       isValidCoachingRequest(request.resource.data, requestId) &&
+                       request.resource.data.coachId == resource.data.coachId &&
+                       request.resource.data.traineeId == resource.data.traineeId &&
+                       request.resource.data.coachDisplayName is string &&
+                       request.resource.data.traineeDisplayName is string &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'createdAt', 'updatedAt', 'coachDisplayName', 'traineeDisplayName']) &&
+                       (
+                         (request.auth.uid == resource.data.coachId &&
+                          (!('initiatedBy' in resource.data) || resource.data.initiatedBy == 'trainee') &&
+                          resource.data.status == 'pending' &&
+                          request.resource.data.status in ['accepted', 'rejected'] &&
+                          request.resource.data.createdAt == resource.data.createdAt &&
+                          isRecent(request.resource.data.updatedAt) &&
+                          (request.resource.data.status == 'rejected' ||
+                           (existsAfter(/databases/$(database)/documents/trainerships/$(resource.data.coachId + '_' + resource.data.traineeId)) &&
+                            getAfter(/databases/$(database)/documents/trainerships/$(resource.data.coachId + '_' + resource.data.traineeId)).data.status == 'active'))) ||
+                         (request.auth.uid == resource.data.traineeId &&
+                          resource.data.initiatedBy == 'coach' &&
+                          resource.data.status == 'pending' &&
+                          request.resource.data.status in ['accepted', 'rejected'] &&
+                          request.resource.data.createdAt == resource.data.createdAt &&
+                          isRecent(request.resource.data.updatedAt) &&
+                          (request.resource.data.status == 'rejected' ||
+                           (isCoachAccount(resource.data.coachId) &&
+                            existsAfter(/databases/$(database)/documents/trainerships/$(resource.data.coachId + '_' + resource.data.traineeId)) &&
+                            getAfter(/databases/$(database)/documents/trainerships/$(resource.data.coachId + '_' + resource.data.traineeId)).data.status == 'active'))) ||
+                         (request.auth.uid == resource.data.traineeId &&
+                          (!('initiatedBy' in resource.data) || resource.data.initiatedBy == 'trainee') &&
+                          resource.data.status == 'rejected' &&
+                          request.resource.data.status == 'pending' &&
+                          isRecent(request.resource.data.createdAt) &&
+                          isRecent(request.resource.data.updatedAt) &&
+                          !exists(/databases/$(database)/documents/trainerships/$(resource.data.coachId + '_' + resource.data.traineeId))) ||
+                         (request.auth.uid == resource.data.coachId &&
+                          isCoachAccount(resource.data.coachId) &&
+                          resource.data.initiatedBy == 'coach' &&
+                          resource.data.status == 'rejected' &&
+                          request.resource.data.status == 'pending' &&
+                          isRecent(request.resource.data.createdAt) &&
+                          isRecent(request.resource.data.updatedAt) &&
+                          !exists(/databases/$(database)/documents/trainerships/$(resource.data.coachId + '_' + resource.data.traineeId)))
+                       );
+      allow delete: if false;
+    }
+
+    match /coachTraineeProfiles/{profileId} {
+      allow get: if isAuthenticated() &&
+                    (resource == null ||
+                     request.auth.uid == resource.data.traineeId ||
+                     (request.auth.uid == resource.data.coachId &&
+                      hasActiveTrainership(resource.data.coachId, resource.data.traineeId)));
+      allow list: if false;
+
+      allow create: if isOwner(request.resource.data.traineeId) &&
+                       profileId == (request.resource.data.coachId + '_' + request.resource.data.traineeId) &&
+                       isValidCoachTraineeProfile(request.resource.data, request.resource.data.coachId, request.resource.data.traineeId) &&
+                       isRecent(request.resource.data.updatedAt) &&
+                       existsAfter(/databases/$(database)/documents/coachingRequests/$(request.resource.data.traineeId + '_' + request.resource.data.coachId)) &&
+                       (
+                         (getAfter(/databases/$(database)/documents/coachingRequests/$(request.resource.data.traineeId + '_' + request.resource.data.coachId)).data.status == 'pending' &&
+                          (getAfter(/databases/$(database)/documents/coachingRequests/$(request.resource.data.traineeId + '_' + request.resource.data.coachId)).data.initiatedBy == null ||
+                           getAfter(/databases/$(database)/documents/coachingRequests/$(request.resource.data.traineeId + '_' + request.resource.data.coachId)).data.initiatedBy == 'trainee')) ||
+                         (getAfter(/databases/$(database)/documents/coachingRequests/$(request.resource.data.traineeId + '_' + request.resource.data.coachId)).data.status == 'accepted' &&
+                          getAfter(/databases/$(database)/documents/coachingRequests/$(request.resource.data.traineeId + '_' + request.resource.data.coachId)).data.initiatedBy == 'coach' &&
+                          request.auth.uid == request.resource.data.traineeId)
+                       );
+      allow update: if isOwner(resource.data.traineeId) &&
+                       profileId == (resource.data.coachId + '_' + resource.data.traineeId) &&
+                       isValidCoachTraineeProfile(request.resource.data, resource.data.coachId, resource.data.traineeId) &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'updatedAt']) &&
+                       isRecent(request.resource.data.updatedAt);
+      allow delete: if false;
+    }
+
+    match /coachingPermissionRequests/{requestId} {
+      allow read: if isAuthenticated() &&
+                     (resource.data.coachId == request.auth.uid ||
+                      resource.data.traineeId == request.auth.uid);
+
+      allow create: if isAuthenticated() &&
+                       request.auth.uid == request.resource.data.coachId &&
+                       requestId == (request.resource.data.coachId + '_' + request.resource.data.traineeId) &&
+                       hasActiveTrainership(request.resource.data.coachId, request.resource.data.traineeId) &&
+                       isValidCoachingPermissionRequest(request.resource.data) &&
+                       request.resource.data.status == 'pending' &&
+                       isRecent(request.resource.data.createdAt);
+
+      allow update: if isAuthenticated() &&
+                       isValidCoachingPermissionRequest(request.resource.data) &&
+                       request.resource.data.coachId == resource.data.coachId &&
+                       request.resource.data.traineeId == resource.data.traineeId &&
+                       requestId == (resource.data.coachId + '_' + resource.data.traineeId) &&
+                       (
+                         (request.auth.uid == resource.data.traineeId &&
+                          request.resource.data.coachDisplayName == resource.data.coachDisplayName &&
+                          request.resource.data.requestedCategories == resource.data.requestedCategories &&
+                          request.resource.data.createdAt == resource.data.createdAt &&
+                          resource.data.status == 'pending' &&
+                          request.resource.data.status in ['accepted', 'rejected'] &&
+                          request.resource.data.respondedAt is timestamp &&
+                          isRecent(request.resource.data.respondedAt) &&
+                          (request.resource.data.status == 'rejected' ||
+                           (existsAfter(/databases/$(database)/documents/permissionScopes/$(resource.data.coachId + '_' + resource.data.traineeId)) &&
+                            getAfter(/databases/$(database)/documents/permissionScopes/$(resource.data.coachId + '_' + resource.data.traineeId)).data.status == 'active' &&
+                            getAfter(/databases/$(database)/documents/permissionScopes/$(resource.data.coachId + '_' + resource.data.traineeId)).data.requestId == requestId))) ||
+                         (request.auth.uid == resource.data.coachId &&
+                          hasActiveTrainership(resource.data.coachId, resource.data.traineeId) &&
+                          resource.data.status in ['accepted', 'rejected'] &&
+                          request.resource.data.status == 'pending' &&
+                          request.resource.data.createdAt is timestamp &&
+                          isRecent(request.resource.data.createdAt) &&
+                          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                            'coachDisplayName', 'requestedCategories', 'status', 'createdAt', 'respondedAt'
+                          ]))
+                       );
+      allow delete: if false;
+    }
+
+    match /permissionScopes/{scopeId} {
+      allow get: if isAuthenticated() &&
+                    (resource == null ||
+                     request.auth.uid == resource.data.traineeId ||
+                     (request.auth.uid == resource.data.coachId &&
+                      hasActiveTrainership(resource.data.coachId, resource.data.traineeId)));
+      allow list: if false;
+
+      allow create: if isOwner(request.resource.data.traineeId) &&
+                       scopeId == (request.resource.data.coachId + '_' + request.resource.data.traineeId) &&
+                       hasActiveTrainership(request.resource.data.coachId, request.resource.data.traineeId) &&
+                       isValidPermissionScope(request.resource.data, request.resource.data.coachId, request.resource.data.traineeId) &&
+                       isRecent(request.resource.data.updatedAt) &&
+                       existsAfter(/databases/$(database)/documents/coachingPermissionRequests/$(request.resource.data.requestId)) &&
+                       getAfter(/databases/$(database)/documents/coachingPermissionRequests/$(request.resource.data.requestId)).data.status == 'accepted' &&
+                       getAfter(/databases/$(database)/documents/coachingPermissionRequests/$(request.resource.data.requestId)).data.coachId == request.resource.data.coachId &&
+                       getAfter(/databases/$(database)/documents/coachingPermissionRequests/$(request.resource.data.requestId)).data.traineeId == request.resource.data.traineeId &&
+                       grantedCategoriesWereRequested(
+                         request.resource.data,
+                         getAfter(/databases/$(database)/documents/coachingPermissionRequests/$(request.resource.data.requestId)).data
+                       );
+
+      allow update: if isOwner(resource.data.traineeId) &&
+                       scopeId == (resource.data.coachId + '_' + resource.data.traineeId) &&
+                       hasActiveTrainership(resource.data.coachId, resource.data.traineeId) &&
+                       isValidPermissionScope(request.resource.data, resource.data.coachId, resource.data.traineeId) &&
+                       request.resource.data.requestId == resource.data.requestId &&
+                       request.resource.data.status == resource.data.status &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['categories', 'updatedAt']) &&
+                       isRecent(request.resource.data.updatedAt) &&
+                       existsAfter(/databases/$(database)/documents/coachingPermissionRequests/$(resource.data.requestId)) &&
+                       getAfter(/databases/$(database)/documents/coachingPermissionRequests/$(resource.data.requestId)).data.status == 'accepted' &&
+                       grantedCategoriesWereRequested(
+                         request.resource.data,
+                         getAfter(/databases/$(database)/documents/coachingPermissionRequests/$(resource.data.requestId)).data
+                       );
       allow delete: if false;
     }
 
@@ -825,24 +1338,14 @@ service cloud.firestore {
     // Path: trainees/{traineeId}
     // -------------------------------------------------------------------------
     match /trainees/{traineeId} {
-      // Read: if authenticated and (self || trainer || connected trainer)
-      allow read: if isAuthenticated() && (
-        request.auth.uid == traineeId ||
-        isTrainerUser() ||
-        hasActiveTrainership(request.auth.uid, traineeId)
-      );
-
-      // Write (create/update): if authenticated and (self || trainer)
-      allow create, update: if isAuthenticated() && (
-        request.auth.uid == traineeId ||
-        isTrainerUser()
-      ) && isValidTraineeDoc(request.resource.data);
-
-      // Delete: Trainee owner or coach
-      allow delete: if isAuthenticated() && (
-        request.auth.uid == traineeId ||
-        isTrainerUser()
-      );
+      // Legacy roster documents mix identity and health data; coaches must use
+      // the domain-separated user subcollections and explicit permission scopes.
+      allow read: if isOwner(traineeId) || isManagerUser();
+      allow create: if isOwner(traineeId) && isValidTraineeDoc(request.resource.data);
+      allow update: if isOwner(traineeId) &&
+                       isValidTraineeDoc(request.resource.data) &&
+                       areImmutableFieldsUnchanged(['uid', 'email']);
+      allow delete: if isOwner(traineeId) || isManagerUser();
     }
 
     // -------------------------------------------------------------------------
@@ -850,11 +1353,11 @@ service cloud.firestore {
     // Path: dailyReports/{reportId}
     // -------------------------------------------------------------------------
     match /dailyReports/{reportId} {
-      // Read: if authenticated and (own report || trainer with canViewDailyLogs || trainer)
+      // These legacy reports combine nutrition, workout, sleep, and body data.
+      // A separate explicit daily_reports consent is required to read the document.
       allow read: if isAuthenticated() && (
         resource.data.traineeId == request.auth.uid ||
-        trainerCanViewDailyLogs(request.auth.uid, resource.data.traineeId) ||
-        isTrainerUser()
+        trainerCanViewDailyReports(request.auth.uid, resource.data.traineeId)
       );
 
       // Create: if authenticated and trainee creating their own report
@@ -868,7 +1371,7 @@ service cloud.firestore {
                        request.resource.data.traineeId == resource.data.traineeId &&
                        (
                          (resource.data.traineeId == request.auth.uid) ||
-                         (trainerCanViewDailyLogs(request.auth.uid, resource.data.traineeId) &&
+                         (trainerCanViewDailyReports(request.auth.uid, resource.data.traineeId) &&
                           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['coachFeedback', 'updatedAt']))
                        );
 
@@ -902,8 +1405,9 @@ service cloud.firestore {
     // Path: foods/{foodId}
     // -------------------------------------------------------------------------
     match /foods/{foodId} {
-      // Read: open to all authenticated and guest users for nutritional logging and search
-      allow read: if true;
+      // Shared catalog data is readable to signed-in users; private meal entries
+      // remain in users/{uid}/foodLogs.
+      allow read: if isAuthenticated();
 
       // Create & Update: Authenticated users with valid catalog or crowdsourced barcode schema.
       // Crowdsourced documents must use Document ID == barcode and stamp the contributing UID.
@@ -913,24 +1417,15 @@ service cloud.firestore {
                          isValidCatalogFoodDoc(request.resource.data) ||
                          (
                            isValidCrowdsourcedFoodDoc(request.resource.data) &&
-                           foodId == request.resource.data.barcode &&
+                           isCrowdsourcedFoodDocumentId(foodId, request.resource.data.barcode) &&
                            request.resource.data.createdBy == request.auth.uid &&
                            isRecent(request.resource.data.createdAt)
                          )
                        );
 
       allow update: if isAuthenticated() &&
-                       isValidFoodDoc(request.resource.data) &&
-                       (
-                         isValidCatalogFoodDoc(request.resource.data) ||
-                         (
-                           isValidCrowdsourcedFoodDoc(request.resource.data) &&
-                           foodId == request.resource.data.barcode &&
-                           request.resource.data.barcode == resource.data.barcode &&
-                           request.resource.data.createdBy == resource.data.createdBy &&
-                           request.resource.data.createdAt == resource.data.createdAt
-                         )
-                       );
+                       isValidCatalogFoodDoc(request.resource.data) &&
+                       isValidCatalogFoodDoc(resource.data);
 
       // Delete: Managers and coaches only
       allow delete: if isAuthenticated() && (isManagerUser() || isTrainerUser());

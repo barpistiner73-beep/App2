@@ -4,7 +4,7 @@
   "month": "2026-10",
   "year": 2026,
   "monthNumber": 10,
-  "totalReports": 20,
+  "totalReports": 21,
   "workoutsCompleted": 13,
   "reports": [
     {
@@ -3481,6 +3481,18 @@
       "workouts": [],
       "coachFeedback": null,
       "autoClosedNote": "הדוח נסגר אוטומטית בחצות בסוף היום ונשמר במסד הנתונים."
+    },
+    {
+      "traineeId": "client_1",
+      "date": "2026-10-22",
+      "status": "finalized",
+      "finalizedAt": "2026-10-22T01:12:35.654Z",
+      "id": "client_1_2026-10-22",
+      "createdAt": "2026-10-22T01:12:35.654Z",
+      "updatedAt": "2026-10-22T01:12:35.654Z",
+      "metrics": {},
+      "nutrition": {},
+      "workouts": []
     }
   ]
 }

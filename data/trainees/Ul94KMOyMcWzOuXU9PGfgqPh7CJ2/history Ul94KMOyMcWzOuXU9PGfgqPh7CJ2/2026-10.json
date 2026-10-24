@@ -1,0 +1,288 @@
+{
+  "traineeId": "Ul94KMOyMcWzOuXU9PGfgqPh7CJ2",
+  "month": "2026-10",
+  "totalReports": 1,
+  "reports": [
+    {
+      "id": "Ul94KMOyMcWzOuXU9PGfgqPh7CJ2_2026-10-22",
+      "traineeId": "Ul94KMOyMcWzOuXU9PGfgqPh7CJ2",
+      "date": "2026-10-22",
+      "status": "draft",
+      "createdAt": "2026-10-22T02:09:08.861Z",
+      "updatedAt": "2026-10-22T02:09:08.861Z",
+      "finalizedAt": null,
+      "metrics": {
+        "morningWeightKg": null,
+        "sleepHours": 7.5,
+        "sleepQuality": 8,
+        "waterMl": 2500,
+        "steps": 9000,
+        "energyLevel": 4,
+        "hungerLevel": 2,
+        "stressLevel": 2,
+        "digestion": "good",
+        "traineeNotes": ""
+      },
+      "nutrition": {
+        "totalCalories": 0,
+        "totalProtein": 0,
+        "totalCarbs": 0,
+        "totalFat": 0,
+        "totalFiber": 30,
+        "totalSodium": 2100,
+        "targetCalories": 2200,
+        "targetProtein": 160,
+        "meals": []
+      },
+      "workouts": [
+        {
+          "id": "workout-1792634947471",
+          "routineId": "session_push",
+          "name": "Push Session",
+          "startedAt": "2026-10-22T02:09:04.095Z",
+          "completedAt": "2026-10-22T02:09:07.470Z",
+          "time": "05:09",
+          "durationMinutes": 1,
+          "completedSets": 0,
+          "totalSets": 26,
+          "totalVolume": 0,
+          "difficulty": 8,
+          "notes": "",
+          "exercises": [
+            {
+              "name": "Barbell Bench Press",
+              "exerciseId": "ex_bench_press",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 70,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "05:09"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 70,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "05:09"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 70,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "05:09"
+                },
+                {
+                  "setNumber": 4,
+                  "weight": 70,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "05:09"
+                }
+              ]
+            },
+            {
+              "name": "Incline Dumbbell Press",
+              "exerciseId": "ex_incline_db_press",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 24,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "05:09"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 24,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "05:09"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 24,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "05:09"
+                }
+              ]
+            },
+            {
+              "name": "Machine Chest Press",
+              "exerciseId": "ex_machine_chest_press",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 55,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "05:09"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 55,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "05:09"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 55,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "05:09"
+                }
+              ]
+            },
+            {
+              "name": "Pec Deck Fly",
+              "exerciseId": "ex_pec_deck",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 45,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "05:09"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 45,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "05:09"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 45,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "05:09"
+                }
+              ]
+            },
+            {
+              "name": "Overhead Barbell Press (OHP)",
+              "exerciseId": "ex_ohp",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 45,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "05:09"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 45,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "05:09"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 45,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "05:09"
+                }
+              ]
+            },
+            {
+              "name": "Cable Lateral Raise",
+              "exerciseId": "ex_cable_lateral_raise",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 7.5,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "05:09"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 7.5,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "05:09"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 7.5,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "05:09"
+                },
+                {
+                  "setNumber": 4,
+                  "weight": 7.5,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "05:09"
+                }
+              ]
+            },
+            {
+              "name": "Cable Rope Tricep Pushdown",
+              "exerciseId": "ex_tricep_pushdown",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 25,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "05:09"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 25,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "05:09"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 25,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "05:09"
+                }
+              ]
+            },
+            {
+              "name": "Cable Overhead Triceps Extension",
+              "exerciseId": "ex_overhead_cable_triceps",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 20,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "05:09"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 20,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "05:09"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 20,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "05:09"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "coachFeedback": null
+    }
+  ]
+}

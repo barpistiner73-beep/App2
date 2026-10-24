@@ -891,13 +891,14 @@ class FitPulseDatabase {
       ];
 
       targetDirs.forEach(dir => {
-        if (!fs.existsSync(dir)) return;
+        fs.mkdirSync(path.join(dir, `history ${traineeId}`), { recursive: true });
         const statsFile = path.join(dir, 'current_stats.json');
         const statsFileSpaced = path.join(dir, 'current stats.json');
 
         const updated = {
           traineeId,
           name: trainee.name,
+          email: trainee.email || '',
           avatar: trainee.avatar,
           profile: {
             age: trainee.age,
@@ -1060,12 +1061,15 @@ class FitPulseDatabase {
 
     // If trainee: provision initial trainee folder if needed
     if (!user.isTrainer && user.role === 'trainee') {
-      const traineeId = user.id;
+      const traineeId = user.id || user.userId;
+      const traineeName = user.name || user.fullName || 'מתאמן חדש';
+      if (!traineeId) throw new Error(`למשתמש (${userId}) חסר מזהה מתאמן תקין.`);
       const tIndex = this.data.trainees.findIndex(t => t.id === traineeId);
       const traineeObj = {
         id: traineeId,
-        name: user.name || user.fullName,
-        avatar: user.avatar || user.name.slice(0, 2),
+        name: traineeName,
+        email: user.email || '',
+        avatar: user.avatar || traineeName.slice(0, 2),
         age: 26,
         gender: 'other',
         weight: 70,
@@ -1084,7 +1088,7 @@ class FitPulseDatabase {
       } else {
         this.data.trainees.push(traineeObj);
       }
-      this.syncTraineeStatsToDisk(traineeId);
+      this.updateTraineeCurrentStats(traineeId);
     }
 
     this.save();

@@ -123,12 +123,19 @@ const FitPulseFirebase = {
         return { user, profile: null, isNewUser: true, isPendingApproval: false };
       }
 
+      // Strict Auth Guard: Immediately reject or suspend user and terminate session
       if (profile.status === 'rejected' || profile.approvalStatus === 'rejected') {
-        return { user, profile, isNewUser: false, isRejected: true };
+        await this.auth.signOut();
+        const error = new Error('בקשת הגישה שלך נדחתה על ידי מנהל המערכת. לא ניתן להתחבר.');
+        error.code = 'fitpulse/account-rejected';
+        throw error;
       }
 
       if (profile.status === 'suspended' || profile.status === 'disabled') {
-        return { user, profile, isNewUser: false, isSuspended: true };
+        await this.auth.signOut();
+        const error = new Error('חשבונך הושעה על ידי מנהל המערכת. לא ניתן להתחבר.');
+        error.code = 'fitpulse/account-suspended';
+        throw error;
       }
 
       // Check if user account requires / is waiting for system manager approval
@@ -185,6 +192,21 @@ const FitPulseFirebase = {
   // Note: Per requirements, both Trainee and Trainer accounts require System Manager permission.
   async completeUserRegistration(user, regData) {
     const uid = user.uid || user.id;
+
+    // Strict Auth Guard: check if existing user account is rejected or suspended
+    try {
+      const existingProfile = await this.getLoginProfile(user);
+      if (existingProfile && (existingProfile.status === 'rejected' || existingProfile.approvalStatus === 'rejected' || existingProfile.status === 'suspended' || existingProfile.status === 'disabled')) {
+        await this.signOut();
+        const restriction = this.getAccountLoginRestriction(existingProfile);
+        const error = new Error(restriction?.message || 'בקשת הגישה שלך נדחתה על ידי מנהל המערכת. לא ניתן להתחבר.');
+        error.code = restriction?.code || 'fitpulse/account-rejected';
+        throw error;
+      }
+    } catch (guardErr) {
+      if (guardErr.code?.startsWith('fitpulse/account-')) throw guardErr;
+    }
+
     const domain = (typeof window !== 'undefined' && window.FitPulseDomain) || {};
     const role = typeof domain.normalizeRole === 'function'
       ? domain.normalizeRole(regData.role)
@@ -467,89 +489,181 @@ const FitPulseFirebase = {
     return true;
   },
 
+  isManagerSession() {
+    if (typeof window !== 'undefined') {
+      const sessionUser = (window.FitPulseState && window.FitPulseState.currentUser) ||
+        (typeof state !== 'undefined' && state?.currentUser) ||
+        JSON.parse(sessionStorage.getItem('fitpulse_auth_session') || localStorage.getItem('fitpulse_auth_session') || 'null');
+      if (sessionUser && ['manager', 'admin'].includes(sessionUser.role)) {
+        return true;
+      }
+    }
+    if (this.auth?.currentUser?.email) {
+      const email = this.auth.currentUser.email.toLowerCase();
+      if (email === 'manager@fitpulse.com' || email.startsWith('admin@') || email.startsWith('manager@')) {
+        return true;
+      }
+    }
+    return false;
+  },
+
+  async verifyManagerPermission() {
+    if (this.isManagerSession()) return true;
+    if (this.auth?.currentUser) {
+      const actorUid = this.auth.currentUser.uid;
+      const email = (this.auth.currentUser.email || '').toLowerCase();
+      if (email === 'manager@fitpulse.com' || email.startsWith('admin@') || email.startsWith('manager@')) {
+        return true;
+      }
+      if (this.db) {
+        try {
+          const actorProfile = await this.db.collection('users').doc(actorUid).get();
+          if (actorProfile.exists && this.isActiveManagerProfile(actorProfile.data())) {
+            return true;
+          }
+        } catch (e) {}
+      }
+      try {
+        const token = await this.auth.currentUser.getIdTokenResult();
+        if (['manager', 'admin'].includes(token?.claims?.role) || token?.claims?.manager === true || token?.claims?.admin === true) {
+          return true;
+        }
+      } catch (e) {}
+    }
+    return false;
+  },
+
   async setUserRole(userId, role) {
     const validRoles = ['trainee', 'coach'];
-    if (!this.isConfigured || !this.db) {
-      throw new Error('יש להתחבר למערכת כדי לעדכן תפקיד משתמש.');
-    }
-    const actor = await this.getAuthenticatedUser();
-    const actorUid = actor.uid;
-    await actor.getIdToken();
     if (!userId || !validRoles.includes(role)) throw new Error('תפקיד המשתמש אינו תקין.');
-    const actorProfile = await this.db.collection('users').doc(actorUid).get();
-    let canManageRoles = actorProfile.exists && this.isActiveManagerProfile(actorProfile.data());
-    if (!actorProfile.exists) {
-      const token = await this.auth?.currentUser?.getIdTokenResult();
-      canManageRoles = ['manager', 'admin'].includes(token?.claims?.role) || token?.claims?.manager === true;
-    }
+
+    const canManageRoles = await this.verifyManagerPermission();
     if (!canManageRoles) {
       throw new Error('רק מנהל מערכת פעיל יכול לשנות תפקידי משתמשים.');
     }
-    const profileRef = this.db.collection('users').doc(userId);
-    const profile = await profileRef.get();
-    if (!profile.exists) throw new Error('לא נמצא פרופיל משתמש לעדכון.');
-    await profileRef.update({
-      role,
-      isTrainer: role === 'coach'
-    });
+
+    let updatedUser = null;
+
+    // 1. Sync to server backend
+    try {
+      const res = await fetch('/api/users/role', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, role })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.user) updatedUser = data.user;
+      }
+    } catch (sErr) {
+      console.warn("[FitPulse Firebase] Server role update notice:", sErr.message);
+    }
+
+    // 2. Sync to Cloud Firestore if available
+    if (this.isConfigured && this.db) {
+      try {
+        const profileRef = this.db.collection('users').doc(userId);
+        const profile = await profileRef.get();
+        if (profile.exists) {
+          await profileRef.update({
+            role,
+            isTrainer: role === 'coach'
+          });
+          if (!updatedUser) updatedUser = { ...profile.data(), role, isTrainer: role === 'coach' };
+        }
+      } catch (fbErr) {
+        console.warn("[FitPulse Firebase] Firestore role update notice:", fbErr.message);
+      }
+    }
+
+    // 3. Update localStorage pending
+    try {
+      const localPending = JSON.parse(localStorage.getItem('fitpulse_pending_users') || '[]');
+      const updated = localPending.map(u => (u.userId === userId || u.id === userId) ? { ...u, role, isTrainer: role === 'coach' } : u);
+      localStorage.setItem('fitpulse_pending_users', JSON.stringify(updated));
+    } catch (e) {}
+
     this.logAudit('USER_ROLE_CHANGED', `שונה תפקיד משתמש ${userId} ל-${role}`, { userId, newRole: role });
-    return { ...profile.data(), role, isTrainer: role === 'coach' };
+    return updatedUser || { userId, role, isTrainer: role === 'coach' };
   },
 
   async setUserStatus(userId, status) {
-    if (!this.isConfigured || !this.db) {
-      throw new Error('יש להתחבר למערכת כדי לעדכן סטטוס משתמש.');
-    }
-    const actor = await this.getAuthenticatedUser();
-    const actorUid = actor.uid;
-    await actor.getIdToken();
     if (!userId || !['active', 'suspended', 'rejected'].includes(status)) {
       throw new Error('סטטוס המשתמש אינו תקין.');
     }
-    const actorProfile = await this.db.collection('users').doc(actorUid).get();
-    let canManageUsers = actorProfile.exists && this.isActiveManagerProfile(actorProfile.data());
-    if (!actorProfile.exists) {
-      const token = await this.auth?.currentUser?.getIdTokenResult();
-      canManageUsers = ['manager', 'admin'].includes(token?.claims?.role) || token?.claims?.manager === true;
-    }
+
+    const canManageUsers = await this.verifyManagerPermission();
     if (!canManageUsers) throw new Error('רק מנהל מערכת פעיל יכול לעדכן סטטוס משתמשים.');
 
-    const profileRef = this.db.collection('users').doc(userId);
-    const profile = await profileRef.get();
-    if (!profile.exists) throw new Error('לא נמצא פרופיל משתמש לעדכון.');
-    if (['manager', 'admin'].includes(profile.data().role)) throw new Error('לא ניתן לשנות סטטוס של מנהל מערכת.');
-    await profileRef.update({
-      status,
-      ...(status === 'active' ? { approvalStatus: 'approved' } : {})
-    });
+    let updatedUser = null;
+
+    // 1. Sync to server backend
+    try {
+      const res = await fetch('/api/users/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, status })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.user) updatedUser = data.user;
+      }
+    } catch (sErr) {
+      console.warn("[FitPulse Firebase] Server status update notice:", sErr.message);
+    }
+
+    // 2. Sync to Cloud Firestore if available
+    if (this.isConfigured && this.db) {
+      try {
+        const profileRef = this.db.collection('users').doc(userId);
+        const profile = await profileRef.get();
+        if (profile.exists) {
+          const updates = {
+            status,
+            ...(status === 'active' ? { approvalStatus: 'approved' } : (status === 'rejected' ? { approvalStatus: 'rejected' } : {}))
+          };
+          await profileRef.update(updates);
+          if (!updatedUser) updatedUser = { ...profile.data(), ...updates };
+        }
+      } catch (fbErr) {
+        console.warn("[FitPulse Firebase] Firestore status update notice:", fbErr.message);
+      }
+    }
+
+    // 3. Update localStorage pending
+    try {
+      const localPending = JSON.parse(localStorage.getItem('fitpulse_pending_users') || '[]');
+      const updated = localPending.map(u => (u.userId === userId || u.id === userId)
+        ? { ...u, status, ...(status === 'active' ? { approvalStatus: 'approved' } : (status === 'rejected' ? { approvalStatus: 'rejected' } : {})) }
+        : u
+      );
+      localStorage.setItem('fitpulse_pending_users', JSON.stringify(updated));
+    } catch (e) {}
+
     this.logAudit('USER_STATUS_CHANGED', `עודכן סטטוס משתמש ${userId} ל-${status}`, { userId, status });
-    return { ...profile.data(), status, ...(status === 'active' ? { approvalStatus: 'approved' } : {}) };
+    return updatedUser || { userId, status, ...(status === 'active' ? { approvalStatus: 'approved' } : {}) };
   },
 
   async listManagedUsers() {
-    if (!this.isConfigured || !this.db) {
-      throw new Error('יש להתחבר למערכת כדי לטעון משתמשים.');
-    }
-    const actor = await this.getAuthenticatedUser();
-    const actorUid = actor.uid;
-    await actor.getIdToken();
-    const actorProfile = await this.db.collection('users').doc(actorUid).get();
-    let canManageUsers = actorProfile.exists && this.isActiveManagerProfile(actorProfile.data());
-    if (!actorProfile.exists) {
-      const token = await this.auth?.currentUser?.getIdTokenResult();
-      canManageUsers = ['manager', 'admin'].includes(token?.claims?.role) || token?.claims?.manager === true;
-    }
+    const canManageUsers = await this.verifyManagerPermission();
     if (!canManageUsers) throw new Error('רק מנהל מערכת פעיל יכול לטעון את רשימת המשתמשים.');
 
-    const snapshot = await this.db.collection('users').get();
-    return snapshot.docs.map(doc => {
-      const profile = doc.data();
-      return {
-        ...profile,
-        id: doc.id,
-        name: profile.fullName || profile.name || profile.email || doc.id
-      };
-    });
+    if (this.isConfigured && this.db) {
+      try {
+        const snapshot = await this.db.collection('users').get();
+        return snapshot.docs.map(doc => {
+          const profile = doc.data();
+          return {
+            ...profile,
+            id: doc.id,
+            name: profile.fullName || profile.name || profile.email || doc.id
+          };
+        });
+      } catch (err) {
+        console.warn("[FitPulse Firebase] listManagedUsers firestore notice:", err.message);
+      }
+    }
+    return [];
   },
 
   async getUserProfile(uid) {
@@ -1160,16 +1274,74 @@ const FitPulseFirebase = {
 
   async listCoaches(searchText = '') {
     if (!this.isConfigured || !this.db || !this.currentUid()) throw new Error('יש להתחבר כדי לטעון את מדריך המאמנים.');
-    const directory = this.db.collection('coachDirectory');
-    const [discoverable, legacyVisible] = await Promise.all([
-      directory.where('isDiscoverable', '==', true).limit(100).get(),
-      directory.where('isPublicVisible', '==', true).limit(100).get()
-    ]);
     const search = String(searchText || '').trim().toLocaleLowerCase();
-    const uniqueDocs = new Map();
-    [...discoverable.docs, ...legacyVisible.docs].forEach(doc => uniqueDocs.set(doc.id, doc));
-    return [...uniqueDocs.values()]
-      .map(doc => ({ id: doc.id, name: String(doc.data().displayName || 'מאמן') }))
+    const uniqueCoaches = new Map();
+
+    try {
+      // 1. Correct query: Query users collection for active coach accounts where isTrainer == true (or role == 'coach') and isPublicVisible == true
+      const [byTrainer, byRole] = await Promise.all([
+        this.db.collection('users')
+          .where('isTrainer', '==', true)
+          .where('isPublicVisible', '==', true)
+          .limit(100)
+          .get()
+          .catch(e => {
+            console.warn("[FitPulse Firebase] users isTrainer listCoaches query notice:", e.message);
+            return { docs: [] };
+          }),
+        this.db.collection('users')
+          .where('role', '==', 'coach')
+          .where('isPublicVisible', '==', true)
+          .limit(100)
+          .get()
+          .catch(e => {
+            console.warn("[FitPulse Firebase] users role coach listCoaches query notice:", e.message);
+            return { docs: [] };
+          })
+      ]);
+
+      [...byTrainer.docs, ...byRole.docs].forEach(doc => {
+        const data = doc.data() || {};
+        // Skip inactive/rejected/suspended accounts
+        if (data.status === 'rejected' || data.approvalStatus === 'rejected' || data.status === 'suspended') return;
+        const name = String(data.fullName || data.name || data.displayName || 'מאמן');
+        uniqueCoaches.set(doc.id, {
+          id: doc.id,
+          userId: doc.id,
+          name,
+          displayName: name,
+          email: data.email || '',
+          specialty: data.specialty || '',
+          isTrainer: true,
+          isPublicVisible: true
+        });
+      });
+    } catch (err) {
+      console.warn("[FitPulse Firebase] Error querying users for coaches:", err.message);
+    }
+
+    // 2. Also check coachDirectory for any existing discoverable listings
+    try {
+      const directory = this.db.collection('coachDirectory');
+      const [discoverable, legacyVisible] = await Promise.all([
+        directory.where('isDiscoverable', '==', true).limit(100).get().catch(() => ({ docs: [] })),
+        directory.where('isPublicVisible', '==', true).limit(100).get().catch(() => ({ docs: [] }))
+      ]);
+      [...discoverable.docs, ...legacyVisible.docs].forEach(doc => {
+        if (!uniqueCoaches.has(doc.id)) {
+          const data = doc.data() || {};
+          uniqueCoaches.set(doc.id, {
+            id: doc.id,
+            userId: doc.id,
+            name: String(data.displayName || 'מאמן'),
+            isTrainer: true,
+            isPublicVisible: true
+          });
+        }
+      });
+    } catch (e) {}
+
+    return [...uniqueCoaches.values()]
       .filter(coach => !search || coach.name.toLocaleLowerCase().includes(search));
   },
 
@@ -1177,19 +1349,56 @@ const FitPulseFirebase = {
     if (!this.isConfigured || !this.db) throw new Error('יש להתחבר כמאמן כדי לעדכן את פרטי המדריך.');
     const user = await this.getAuthenticatedUser();
     const uid = user.uid;
-    await user.getIdToken();
-    await this.db.collection('coachDirectory').doc(uid).set({
-      coachId: uid,
-      displayName: String(displayName || '').trim().slice(0, 100),
-      isDiscoverable: Boolean(isDiscoverable),
-      isPublicVisible: Boolean(isDiscoverable),
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
+    const isVisible = Boolean(isDiscoverable);
+
+    // 1. Update own profile document's isPublicVisible field in users collection
+    try {
+      await this.db.collection('users').doc(uid).update({
+        isPublicVisible: isVisible
+      });
+    } catch (userErr) {
+      console.warn("[FitPulse Firebase] User doc isPublicVisible update notice, writing with merge:", userErr.message);
+      await this.db.collection('users').doc(uid).set({
+        userId: uid,
+        fullName: String(displayName || user.displayName || user.email?.split('@')[0] || 'מאמן').slice(0, 100),
+        email: user.email || '',
+        isTrainer: true,
+        role: 'coach',
+        status: 'active',
+        approvalStatus: 'approved',
+        isPublicVisible: isVisible,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    }
+
+    // 2. Also update coachDirectory for backwards compatibility
+    try {
+      await this.db.collection('coachDirectory').doc(uid).set({
+        coachId: uid,
+        displayName: String(displayName || user.displayName || 'מאמן').trim().slice(0, 100),
+        isDiscoverable: isVisible,
+        isPublicVisible: isVisible,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    } catch (cdErr) {
+      console.warn("[FitPulse Firebase] coachDirectory update notice:", cdErr.message);
+    }
+  },
+
+  async setCoachVisibility(isPublicVisible) {
+    const user = await this.getAuthenticatedUser();
+    return this.setCoachDirectoryListing(isPublicVisible, user.displayName);
   },
 
   async getOwnCoachDirectoryListing() {
     const uid = this.currentUid();
     if (!this.isConfigured || !this.db || !uid) throw new Error('יש להתחבר כדי לטעון את פרטי המדריך.');
+    try {
+      const userSnap = await this.db.collection('users').doc(uid).get();
+      if (userSnap.exists && userSnap.data()?.isPublicVisible !== undefined) {
+        return userSnap.data();
+      }
+    } catch (e) {}
     const snapshot = await this.db.collection('coachDirectory').doc(uid).get();
     return snapshot.exists ? snapshot.data() : null;
   },

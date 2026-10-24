@@ -24860,10 +24860,10 @@
       "id": "Ul94KMOyMcWzOuXU9PGfgqPh7CJ2_2026-10-22",
       "traineeId": "Ul94KMOyMcWzOuXU9PGfgqPh7CJ2",
       "date": "2026-10-22",
-      "status": "draft",
+      "status": "auto_closed",
       "createdAt": "2026-10-22T02:09:08.861Z",
-      "updatedAt": "2026-10-22T02:09:08.861Z",
-      "finalizedAt": null,
+      "updatedAt": "2026-10-24T22:52:26.992Z",
+      "finalizedAt": "2026-10-22T23:59:59.000Z",
       "metrics": {
         "morningWeightKg": null,
         "sleepHours": 7.5,
@@ -25135,7 +25135,8 @@
           ]
         }
       ],
-      "coachFeedback": null
+      "coachFeedback": null,
+      "autoClosedNote": "הדוח נסגר אוטומטית בחצות בסוף היום ונשמר במסד הנתונים."
     }
   },
   "users": [
@@ -25175,7 +25176,9 @@
       "routine": "Push-Pull-Legs 4D",
       "status": "active",
       "approvalStatus": "approved",
-      "createdAt": "2026-09-01T00:00:00.000Z"
+      "createdAt": "2026-09-01T00:00:00.000Z",
+      "approvedAt": "2026-10-24T22:52:27.027Z",
+      "approvedBy": "usr_mgr"
     },
     {
       "id": "usr_c2",
@@ -25248,8 +25251,8 @@
       "email": "some.private.adress@gmail.com",
       "isTrainer": false,
       "role": "trainee",
-      "status": "rejected",
-      "approvalStatus": "rejected",
+      "status": "active",
+      "approvalStatus": "approved",
       "avatar": "https://lh3.googleusercontent.com/a/ACg8ocKmmjGjPYSPdl21gmgz2GVa2I7WU-uC_-8KgqoMpi8-CrHHYA=s96-c",
       "profileImageUrl": "https://lh3.googleusercontent.com/a/ACg8ocKmmjGjPYSPdl21gmgz2GVa2I7WU-uC_-8KgqoMpi8-CrHHYA=s96-c",
       "specialty": "אימון כושר ותזונת ספורט",
@@ -25262,7 +25265,9 @@
           "_methodName": "FieldValue.serverTimestamp"
         }
       },
-      "rejectedReason": "לא אושר על ידי מנהל מערכת"
+      "rejectedReason": "לא אושר על ידי מנהל מערכת",
+      "approvedAt": "2026-10-24T23:09:27.573Z",
+      "approvedBy": "usr_mgr"
     },
     {
       "id": "hzQZZunYMSgiwYzUTouErbk2DZn1",
@@ -25297,8 +25302,8 @@
       "email": "eilon.halevy12@gmail.com",
       "isTrainer": false,
       "role": "trainee",
-      "status": "rejected",
-      "approvalStatus": "rejected",
+      "status": "active",
+      "approvalStatus": "approved",
       "avatar": "https://lh3.googleusercontent.com/a/ACg8ocKIiWS8ewt4rt2Xab_n0VnTKPFZNbypbVBtKdcD92rjFXyfqg=s96-c",
       "profileImageUrl": "https://lh3.googleusercontent.com/a/ACg8ocKIiWS8ewt4rt2Xab_n0VnTKPFZNbypbVBtKdcD92rjFXyfqg=s96-c",
       "specialty": "אימון כושר ותזונת ספורט",
@@ -25311,10 +25316,72 @@
           "_methodName": "FieldValue.serverTimestamp"
         }
       },
-      "rejectedReason": "לא אושר על ידי מנהל מערכת"
+      "rejectedReason": "לא אושר על ידי מנהל מערכת",
+      "approvedAt": "2026-10-24T23:09:19.227Z",
+      "approvedBy": "usr_mgr"
     }
   ],
   "auditLogs": [
+    {
+      "id": "log_1792883367593_sbo6a",
+      "type": "USER_STATUS_CHANGED",
+      "description": "עודכן סטטוס משתמש N2HkpQ5OffZvxp5JhXDjkXlitQn1 ל-active",
+      "meta": {
+        "userId": "N2HkpQ5OffZvxp5JhXDjkXlitQn1",
+        "status": "active"
+      },
+      "timestamp": "2026-10-24T23:09:27.593Z"
+    },
+    {
+      "id": "log_1792883359239_dyhei",
+      "type": "USER_STATUS_CHANGED",
+      "description": "עודכן סטטוס משתמש 2IqoYDMLhNc8kUS6Hk6OR1SBN4J3 ל-active",
+      "meta": {
+        "userId": "2IqoYDMLhNc8kUS6Hk6OR1SBN4J3",
+        "status": "active"
+      },
+      "timestamp": "2026-10-24T23:09:19.239Z"
+    },
+    {
+      "id": "log_1792882347068_yx03k",
+      "type": "USER_ROLE_CHANGED",
+      "description": "שונה תפקיד משתמש usr_c1 ל-trainee",
+      "meta": {
+        "userId": "usr_c1",
+        "role": "trainee"
+      },
+      "timestamp": "2026-10-24T22:52:27.068Z"
+    },
+    {
+      "id": "log_1792882347052_1h572",
+      "type": "USER_ROLE_CHANGED",
+      "description": "שונה תפקיד משתמש usr_c1 ל-coach",
+      "meta": {
+        "userId": "usr_c1",
+        "role": "coach"
+      },
+      "timestamp": "2026-10-24T22:52:27.052Z"
+    },
+    {
+      "id": "log_1792882347034_5vo91",
+      "type": "USER_STATUS_CHANGED",
+      "description": "עודכן סטטוס משתמש usr_c1 ל-active",
+      "meta": {
+        "userId": "usr_c1",
+        "status": "active"
+      },
+      "timestamp": "2026-10-24T22:52:27.034Z"
+    },
+    {
+      "id": "log_1792882347019_srlub",
+      "type": "USER_STATUS_CHANGED",
+      "description": "עודכן סטטוס משתמש usr_c1 ל-rejected",
+      "meta": {
+        "userId": "usr_c1",
+        "status": "rejected"
+      },
+      "timestamp": "2026-10-24T22:52:27.019Z"
+    },
     {
       "id": "log_1792637221871_lncvv",
       "type": "USER_REJECTED",

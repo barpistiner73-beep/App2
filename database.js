@@ -1113,6 +1113,46 @@ class FitPulseDatabase {
     this.logActivity('USER_REJECTED', `נדחתה בקשת הרשמה (${user.id}) ע"י מנהל מערכת: ${reason}`);
     return user;
   }
+
+  setUserStatus(userId, status, managerId = 'usr_mgr') {
+    if (!Array.isArray(this.data.users)) this.data.users = [];
+    const user = this.data.users.find(u =>
+      (u.id && u.id === userId) ||
+      (u.userId && u.userId === userId) ||
+      (u.email && u.email.toLowerCase() === String(userId).toLowerCase())
+    );
+    if (!user) {
+      throw new Error(`משתמש (${userId}) לא נמצא במסד הנתונים.`);
+    }
+    user.status = status;
+    if (status === 'active') {
+      user.approvalStatus = 'approved';
+      user.approvedAt = new Date().toISOString();
+      user.approvedBy = managerId;
+    } else if (status === 'rejected') {
+      user.approvalStatus = 'rejected';
+    }
+    this.save();
+    this.logActivity('USER_STATUS_CHANGED', `עודכן סטטוס משתמש ${userId} ל-${status}`, { userId, status });
+    return user;
+  }
+
+  setUserRole(userId, role, managerId = 'usr_mgr') {
+    if (!Array.isArray(this.data.users)) this.data.users = [];
+    const user = this.data.users.find(u =>
+      (u.id && u.id === userId) ||
+      (u.userId && u.userId === userId) ||
+      (u.email && u.email.toLowerCase() === String(userId).toLowerCase())
+    );
+    if (!user) {
+      throw new Error(`משתמש (${userId}) לא נמצא במסד הנתונים.`);
+    }
+    user.role = role;
+    user.isTrainer = role === 'coach';
+    this.save();
+    this.logActivity('USER_ROLE_CHANGED', `שונה תפקיד משתמש ${userId} ל-${role}`, { userId, role });
+    return user;
+  }
 }
 
 module.exports = new FitPulseDatabase();

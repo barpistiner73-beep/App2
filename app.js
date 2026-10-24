@@ -3621,7 +3621,15 @@
         window.FitPulseFirebase.getCoachPermissionRequests()
       ]);
       const optIn = byId('coachDirectoryOptIn');
-      if (optIn) optIn.checked = listing?.isDiscoverable === true || listing?.isPublicVisible === true;
+      if (optIn) {
+        optIn.checked = listing?.isPublicVisible === true || listing?.isDiscoverable === true || state.currentUser?.isPublicVisible === true;
+        const dirStatus = byId('coachDirectoryStatus');
+        if (dirStatus) {
+          dirStatus.textContent = optIn.checked
+            ? 'חשיפה למתאמנים חדשים: פעיל (מופיע במדריך הציבורי)'
+            : 'חשיפה למתאמנים חדשים: כבוי (מוסתר מהמדריך)';
+        }
+      }
       const selectedPermissionRequest = permissionRequests.find(request => request.traineeId === state.selectedTraineeId);
       const permissionStatus = byId('coachPermissionRequestStatus');
       if (permissionStatus && selectedPermissionRequest) {
@@ -5849,6 +5857,17 @@
         showAuthView('pending');
       } catch (err) {
         console.error("Registration error:", err);
+        if (err.code === 'fitpulse/account-rejected' || err.code === 'fitpulse/account-suspended' || err.message?.includes('נדחתה') || err.message?.includes('הושעה')) {
+          state.pendingGoogleUser = null;
+          logoutUser();
+          const errorBox = byId('authErrorMessage');
+          if (errorBox) {
+            errorBox.textContent = err.message || 'בקשת הגישה שלך נדחתה על ידי מנהל המערכת. לא ניתן להתחבר.';
+            errorBox.hidden = false;
+          }
+          showAuthView('login');
+          return;
+        }
         if (errBox) {
           errBox.textContent = `שגיאה בהגשת ההרשמה: ${err.message || 'נסה שוב'}`;
           errBox.hidden = false;
@@ -5962,14 +5981,26 @@
       sessionStorage.removeItem('fitpulse_auth_session');
     }
 
+    // Strict Auth Guard on startup session
     if (state.currentUser) {
-      const overlay = byId('authGateOverlay');
-      if (overlay) {
-        overlay.hidden = true;
-        overlay.style.display = 'none';
+      const startupRestriction = accountAccessMessage(state.currentUser);
+      if (startupRestriction) {
+        logoutUser();
+        const errorBox = byId('authErrorMessage');
+        if (errorBox) {
+          errorBox.textContent = startupRestriction;
+          errorBox.hidden = false;
+        }
+        showAuthView('login');
+      } else {
+        const overlay = byId('authGateOverlay');
+        if (overlay) {
+          overlay.hidden = true;
+          overlay.style.display = 'none';
+        }
+        applyRoleAuthority(state.currentUser.role);
+        updateHeaderUserChip();
       }
-      applyRoleAuthority(state.currentUser.role);
-      updateHeaderUserChip();
     } else {
       const overlay = byId('authGateOverlay');
       if (overlay) {
@@ -5982,25 +6013,33 @@
     }
     if (window.FitPulseFirebase?.isConfigured && window.FitPulseFirebase?.onAuthStateChanged) {
       window.FitPulseFirebase.onAuthStateChanged(async authUser => {
-        if (!authUser || state.currentUser?.id !== authUser.uid) return;
+        if (!authUser) return;
         try {
-          const profile = await window.FitPulseFirebase.getLoginProfile(authUser);
+          const profile = await window.FitPulseFirebase.getLoginProfile(authUser) ||
+                          await window.FitPulseFirebase.getUserProfile(authUser.uid);
           const restrictedMessage = accountAccessMessage(profile);
           if (restrictedMessage) {
+            if (window.FitPulseFirebase?.signOut) {
+              try { await window.FitPulseFirebase.signOut(); } catch (e) {}
+            }
             logoutUser();
             const errorBox = byId('authErrorMessage');
             if (errorBox) {
               errorBox.textContent = restrictedMessage;
               errorBox.hidden = false;
             }
+            showAuthView('login');
+            return;
           }
         } catch (error) {
-          console.error('[Auth] Could not verify the restored account status.', error);
-          logoutUser();
-          const errorBox = byId('authErrorMessage');
-          if (errorBox) {
-            errorBox.textContent = 'לא ניתן לאמת את סטטוס החשבון. נסו להתחבר שוב לאחר בדיקת החיבור.';
-            errorBox.hidden = false;
+          console.error('[Auth] Could not verify account status.', error);
+          if (state.currentUser?.id === authUser.uid) {
+            logoutUser();
+            const errorBox = byId('authErrorMessage');
+            if (errorBox) {
+              errorBox.textContent = 'לא ניתן לאמת את סטטוס החשבון. נסו להתחבר שוב לאחר בדיקת החיבור.';
+              errorBox.hidden = false;
+            }
           }
         }
       });
@@ -6459,7 +6498,8 @@
           });
           tdActions.append(reactivateBtn);
         }
-        if (user.status === 'rejected') {
+        const isUserRejected = user.status === 'rejected' || user.approvalStatus === 'rejected';
+        if (isUserRejected) {
           const cancelRejectionBtn = createElement('button', 'btn-action-primary', 'ביטול דחייה');
           cancelRejectionBtn.type = 'button';
           cancelRejectionBtn.style.marginInlineEnd = '6px';
@@ -6479,39 +6519,36 @@
           });
           tdActions.append(cancelRejectionBtn);
         }
-        if (!(user.role === 'trainee' && (user.status === 'rejected' || user.approvalStatus === 'rejected'))) {
-          const toggleRoleBtn = createElement('button', 'btn-action-ghost', user.role === 'trainee' ? 'שדרוג למאמן' : user.role === 'coach' ? 'שינוי למתאמן' : 'סמכות עליונה');
+
+        // Hide "Upgrade to Coach" and role toggles for rejected users
+        if (!isUserRejected && user.role !== 'manager') {
+          const toggleRoleBtn = createElement('button', 'btn-action-ghost', user.role === 'trainee' ? 'שדרוג למאמן' : 'שינוי למתאמן');
           toggleRoleBtn.style.padding = '3px 8px';
           toggleRoleBtn.style.fontSize = '0.72rem';
 
-          if (user.role === 'manager') {
+          toggleRoleBtn.addEventListener('click', async () => {
+            const nextRole = user.role === 'trainee' ? 'coach' : 'trainee';
             toggleRoleBtn.disabled = true;
-            toggleRoleBtn.style.opacity = '0.5';
-          } else {
-            toggleRoleBtn.addEventListener('click', async () => {
-              const nextRole = user.role === 'trainee' ? 'coach' : 'trainee';
-              toggleRoleBtn.disabled = true;
-              try {
-                if (window.FitPulseFirebase?.isConfigured) {
-                  await window.FitPulseFirebase.setUserRole(user.id, nextRole);
-                }
-                user.role = nextRole;
-                user.isTrainer = nextRole === 'coach';
-                renderManagerUsersTable();
-                if (state.currentUser?.id === user.id) {
-                  state.currentUser = { ...state.currentUser, role: nextRole, isTrainer: user.isTrainer };
-                  writeSession('fitpulse_auth_session', state.currentUser);
-                  applyRoleAuthority(nextRole);
-                  updateHeaderUserChip();
-                  setTab(nextRole === 'coach' ? 'tab-coach' : 'tab-dashboard');
-                }
-              } catch (error) {
-                console.error('[AppManager] Could not persist user role change.', error);
-                alert(`לא ניתן לשנות את תפקיד המשתמש: ${error.message || error}`);
-                toggleRoleBtn.disabled = false;
+            try {
+              if (window.FitPulseFirebase?.setUserRole) {
+                await window.FitPulseFirebase.setUserRole(user.id, nextRole);
               }
-            });
-          }
+              user.role = nextRole;
+              user.isTrainer = nextRole === 'coach';
+              renderManagerUsersTable();
+              if (state.currentUser?.id === user.id) {
+                state.currentUser = { ...state.currentUser, role: nextRole, isTrainer: user.isTrainer };
+                writeSession('fitpulse_auth_session', state.currentUser);
+                applyRoleAuthority(nextRole);
+                updateHeaderUserChip();
+                setTab(nextRole === 'coach' ? 'tab-coach' : 'tab-dashboard');
+              }
+            } catch (error) {
+              console.error('[AppManager] Could not persist user role change.', error);
+              alert(`לא ניתן לשנות את תפקיד המשתמש: ${error.message || error}`);
+              toggleRoleBtn.disabled = false;
+            }
+          });
           tdActions.append(toggleRoleBtn);
         }
       }
@@ -6622,9 +6659,13 @@
           checkbox.checked,
           state.currentUser?.name || state.profile.name || 'מאמן'
         );
+        if (state.currentUser) {
+          state.currentUser.isPublicVisible = checkbox.checked;
+          writeSession('fitpulse_auth_session', state.currentUser);
+        }
         if (status) status.textContent = checkbox.checked
-          ? 'הפרופיל שלך מופיע כעת במדריך הציבורי.'
-          : 'הפרופיל שלך הוסר מהמדריך הציבורי.';
+          ? 'חשיפה למתאמנים חדשים: פעיל (מופיע במדריך הציבורי)'
+          : 'חשיפה למתאמנים חדשים: כבוי (מוסתר מהמדריך)';
       } catch (error) {
         checkbox.checked = !checkbox.checked;
         if (status) status.textContent = error.message || 'עדכון המדריך נכשל.';

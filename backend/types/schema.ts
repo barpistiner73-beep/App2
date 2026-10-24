@@ -62,6 +62,7 @@ export interface UserProfile {
   isTrainer: boolean;
   status: AccountStatus;
   approvalStatus: ApprovalStatus;
+  isPublicVisible?: boolean;
   profileImageUrl?: string;
   age?: number;
   gender?: 'male' | 'female' | 'other';

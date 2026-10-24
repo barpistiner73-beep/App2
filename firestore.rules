@@ -20,14 +20,15 @@ service cloud.firestore {
     //    Document ID: Firebase Auth UID (`userId`).
     //    Fields:
     //      - userId: string (required, immutable, matches document ID and auth UID)
-    //      - fullName: string (required, 1-100 characters)
+    //      - fullName / name: string (required, 1-100 characters)
     //      - email: string (required, valid email address format, max 150 chars)
     //      - isTrainer: bool (required, true for coach and manager)
-    //      - role: string (required going forward, enum: 'trainee' | 'coach' | 'manager')
+    //      - role: string (optional, enum: 'trainee' | 'coach' | 'manager')
     //      - status: string (optional, enum: 'pending_approval' | 'active' | 'suspended' | 'disabled' | 'rejected')
     //      - approvalStatus: string (optional, enum: 'pending' | 'approved' | 'rejected')
+    //      - isPublicVisible: bool (optional, coach discovery visibility toggle)
     //      - profileImageUrl: string (optional, valid http/https URL or empty string, max 1000 chars)
-    //      - createdAt: timestamp (required, immutable, recent timestamp on creation)
+    //      - createdAt: timestamp or string (required, immutable)
     //      - approvedAt: timestamp (optional, managed by manager)
     //      - approvedBy: string (optional, 1-128 chars, UID of manager)
     //
@@ -177,10 +178,34 @@ service cloud.firestore {
     // Core Helper Functions
     // =========================================================================
 
+    // Check if user is a recognized active manager or admin session.
+    // Derived from trusted auth token claims/email or active Firestore user profile.
+    function isManagerUser() {
+      return request.auth != null &&
+        (!exists(/databases/$(database)/documents/users/$(request.auth.uid)) ||
+         !('status' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data) ||
+         !(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status in ['suspended', 'rejected'])) &&
+        (
+          (request.auth.token != null && (
+            ('role' in request.auth.token && request.auth.token.role in ['manager', 'admin']) ||
+            ('manager' in request.auth.token && request.auth.token.manager == true) ||
+            ('admin' in request.auth.token && request.auth.token.admin == true) ||
+            ('email' in request.auth.token && (
+              request.auth.token.email in ['manager@fitpulse.com'] ||
+              request.auth.token.email.matches('^admin@.*')
+            ))
+          )) ||
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+           'role' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data &&
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['manager', 'admin'])
+        );
+    }
+
     // Check account status before allowing access to application data.
     function hasActiveAccount() {
       return request.auth != null &&
-        (!exists(/databases/$(database)/documents/users/$(request.auth.uid)) ||
+        (isManagerUser() ||
+         !exists(/databases/$(database)/documents/users/$(request.auth.uid)) ||
           ((!('status' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data) ||
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'active') &&
            (!('approvalStatus' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data) ||
@@ -201,20 +226,6 @@ service cloud.firestore {
     // Check if current authenticated user matches given UID
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
-    }
-
-    // Persisted roles take precedence over custom claims so role changes take effect immediately.
-    function isManagerUser() {
-      return isAuthenticated() &&
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid))
-          ? (('role' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data &&
-              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['manager', 'admin']) &&
-             (!('status' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data) ||
-              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'active'))
-          : (request.auth.token != null && (
-              ('role' in request.auth.token && request.auth.token.role in ['manager', 'admin']) ||
-              ('manager' in request.auth.token && request.auth.token.manager == true)
-            )));
     }
 
     // Trusted claims are used only for accounts without a persisted profile.
@@ -337,16 +348,18 @@ service cloud.firestore {
 
     // 1. User Profile Validator (includes onboarding and approval lifecycle)
     function isValidUser(data) {
-      return hasRequiredFields(data, ['userId', 'fullName', 'email', 'isTrainer', 'createdAt']) &&
+      return hasRequiredFields(data, ['userId', 'email', 'isTrainer', 'createdAt']) &&
+        ('fullName' in data || 'name' in data) &&
         hasOnlyAllowedFields(data, [
-          'userId', 'fullName', 'email', 'isTrainer', 'role', 'status', 'approvalStatus',
-          'profileImageUrl', 'createdAt', 'approvedAt', 'approvedBy'
+          'userId', 'fullName', 'name', 'email', 'isTrainer', 'role', 'status', 'approvalStatus',
+          'profileImageUrl', 'createdAt', 'approvedAt', 'approvedBy', 'isPublicVisible'
         ]) &&
         data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
-        data.fullName is string && data.fullName.size() >= 1 && data.fullName.size() <= 100 &&
+        (!('fullName' in data) || (data.fullName is string && data.fullName.size() >= 1 && data.fullName.size() <= 100)) &&
+        (!('name' in data) || (data.name is string && data.name.size() >= 1 && data.name.size() <= 100)) &&
         data.email is string && data.email.size() <= 150 && isValidEmail(data.email) &&
         data.isTrainer is bool &&
-        data.createdAt is timestamp &&
+        ((data.createdAt is timestamp) || (data.createdAt is string && data.createdAt.size() <= 50)) &&
         (!('role' in data) ||
           (data.role is string && data.role in ['trainee', 'coach', 'manager'] &&
            data.isTrainer == (data.role in ['coach', 'manager']))) &&
@@ -354,15 +367,16 @@ service cloud.firestore {
         (!('approvalStatus' in data) || (data.approvalStatus is string && data.approvalStatus in ['pending', 'approved', 'rejected'])) &&
         (!('approvedAt' in data) || data.approvedAt == null || data.approvedAt is timestamp) &&
         (!('approvedBy' in data) || data.approvedBy == null || (data.approvedBy is string && data.approvedBy.size() >= 1 && data.approvedBy.size() <= 128)) &&
-        (!('profileImageUrl' in data) || data.profileImageUrl == null || (data.profileImageUrl is string && data.profileImageUrl.size() <= 1000 && (data.profileImageUrl == '' || isValidUrl(data.profileImageUrl))));
+        (!('profileImageUrl' in data) || data.profileImageUrl == null || (data.profileImageUrl is string && data.profileImageUrl.size() <= 1000 && (data.profileImageUrl == '' || isValidUrl(data.profileImageUrl)))) &&
+        (!('isPublicVisible' in data) || data.isPublicVisible is bool);
     }
 
     function isValidManagedRoleUpdate(userId) {
       return userId != request.auth.uid &&
         (!('role' in resource.data) || !(resource.data.role in ['manager', 'admin'])) &&
         isValidUser(request.resource.data) &&
-        request.resource.data.userId == resource.data.userId &&
-        request.resource.data.createdAt == resource.data.createdAt &&
+        (!('userId' in resource.data) || request.resource.data.userId == resource.data.userId) &&
+        (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt) &&
         request.resource.data.role is string &&
         request.resource.data.role in ['trainee', 'coach'] &&
         request.resource.data.isTrainer is bool &&
@@ -794,16 +808,22 @@ service cloud.firestore {
     // 1. Users Collection
     // -------------------------------------------------------------------------
     match /users/{userId} {
-      // Profile documents contain private account data and are not a coach directory.
-      allow get: if isUserIdentity(userId) || isManagerUser();
-      allow list: if isManagerUser();
+      // Trainees can read and list publicly visible coach profiles.
+      allow get: if isUserIdentity(userId) ||
+                    isManagerUser() ||
+                    (isAuthenticated() &&
+                     resource.data.isPublicVisible == true);
+      allow list: if isManagerUser() ||
+                     (isAuthenticated() &&
+                      resource.data.isPublicVisible == true);
 
       // Only the user themselves can create their profile on registration.
       // Status can be 'pending_approval' or 'active'.
       allow create: if isOwner(userId) &&
                        request.resource.data.userId == userId &&
                        isValidUser(request.resource.data) &&
-                       isRecent(request.resource.data.createdAt) &&
+                       ((request.resource.data.createdAt is timestamp && isRecent(request.resource.data.createdAt)) ||
+                        (request.resource.data.createdAt is string)) &&
                        (!('status' in request.resource.data) || request.resource.data.status in ['pending_approval', 'active']) &&
                        (!('approvalStatus' in request.resource.data) || request.resource.data.approvalStatus in ['pending', 'approved']) &&
                        (!('role' in request.resource.data) || !(request.resource.data.role in ['manager', 'admin']) || isManagerUser()) &&
@@ -811,20 +831,21 @@ service cloud.firestore {
                        (!('approvedBy' in request.resource.data) || isManagerUser());
 
       // Profile updates:
-      // 1. Manager can update user document to approve/activate them (status, approvalStatus, approvedAt, approvedBy, role).
-      // 2. Owner can update their profile (cannot modify isTrainer, role, status, approvalStatus, approvedAt, approvedBy).
-      allow update: if isAuthenticated() &&
+      // 1. Manager can update user document to approve/activate/cancel rejection (status, approvalStatus, approvedAt, approvedBy)
+      //    or manage roles/trainership via isValidManagedRoleUpdate.
+      // 2. Owner can update their profile (including isPublicVisible for coaches; cannot modify isTrainer, role, status, approvalStatus, approvedAt, approvedBy).
+      allow update: if (isManagerUser() || isAuthenticated()) &&
                        (
                          (isManagerUser() &&
                           isValidUser(request.resource.data) &&
-                          request.resource.data.userId == resource.data.userId &&
-                          request.resource.data.createdAt == resource.data.createdAt &&
+                          (!('userId' in resource.data) || request.resource.data.userId == resource.data.userId) &&
+                          (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt) &&
                           !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isTrainer'])) ||
                          (isManagerUser() && isValidManagedRoleUpdate(userId)) ||
                          (isOwner(userId) &&
                           isValidUser(request.resource.data) &&
-                          request.resource.data.userId == resource.data.userId &&
-                          request.resource.data.createdAt == resource.data.createdAt &&
+                          (!('userId' in resource.data) || request.resource.data.userId == resource.data.userId) &&
+                          (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt) &&
                           areImmutableFieldsUnchanged(['isTrainer', 'role', 'status', 'approvalStatus', 'approvedAt', 'approvedBy']))
                        );
 

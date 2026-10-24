@@ -7,10 +7,10 @@
       "id": "Ul94KMOyMcWzOuXU9PGfgqPh7CJ2_2026-10-22",
       "traineeId": "Ul94KMOyMcWzOuXU9PGfgqPh7CJ2",
       "date": "2026-10-22",
-      "status": "draft",
+      "status": "auto_closed",
       "createdAt": "2026-10-22T02:09:08.861Z",
-      "updatedAt": "2026-10-22T02:09:08.861Z",
-      "finalizedAt": null,
+      "updatedAt": "2026-10-24T22:52:26.992Z",
+      "finalizedAt": "2026-10-22T23:59:59.000Z",
       "metrics": {
         "morningWeightKg": null,
         "sleepHours": 7.5,
@@ -282,7 +282,8 @@
           ]
         }
       ],
-      "coachFeedback": null
+      "coachFeedback": null,
+      "autoClosedNote": "הדוח נסגר אוטומטית בחצות בסוף היום ונשמר במסד הנתונים."
     }
   ]
 }

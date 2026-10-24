@@ -145,6 +145,26 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 200, { success: true, user: rejected });
       }
 
+      // POST /api/users/status (Manager updates user status e.g. cancel rejection, suspend, active)
+      if (pathname === '/api/users/status' && method === 'POST') {
+        const body = await parseJsonBody(req);
+        if (!body.userId || !body.status) {
+          return sendJson(res, 400, { success: false, error: 'userId and status are required' });
+        }
+        const updated = db.setUserStatus(body.userId, body.status, body.managerId || 'usr_mgr');
+        return sendJson(res, 200, { success: true, user: updated });
+      }
+
+      // POST /api/users/role (Manager updates user role e.g. trainee <-> coach)
+      if (pathname === '/api/users/role' && method === 'POST') {
+        const body = await parseJsonBody(req);
+        if (!body.userId || !body.role) {
+          return sendJson(res, 400, { success: false, error: 'userId and role are required' });
+        }
+        const updated = db.setUserRole(body.userId, body.role, body.managerId || 'usr_mgr');
+        return sendJson(res, 200, { success: true, user: updated });
+      }
+
       // GET /api/users (Manager user directory)
       if (pathname === '/api/users' && method === 'GET') {
         const role = query.get('role') || null;

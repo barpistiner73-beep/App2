@@ -116,6 +116,51 @@ export class FitnessBackendService {
   }
 
   /**
+   * Sets the account status (active, suspended, rejected).
+   */
+  async setUserStatus(userId: string, status: AccountStatus, managerId = 'usr_mgr'): Promise<void> {
+    const userRef = this.db.collection(COLLECTIONS.users).doc(userId);
+    const updates: Partial<UserProfile> = { status };
+    if (status === 'active') {
+      updates.approvalStatus = 'approved';
+      updates.approvedAt = Timestamp.now();
+      updates.approvedBy = managerId;
+    } else if (status === 'rejected') {
+      updates.approvalStatus = 'rejected';
+    }
+    await userRef.update(updates);
+  }
+
+  /**
+   * Sets coach public directory visibility.
+   */
+  async setCoachVisibility(coachId: string, isPublicVisible: boolean): Promise<void> {
+    const userRef = this.db.collection(COLLECTIONS.users).doc(coachId);
+    await userRef.update({ isPublicVisible: Boolean(isPublicVisible) });
+  }
+
+  /**
+   * Lists active, publicly visible coach profiles.
+   */
+  async listPublicCoaches(searchQuery?: string): Promise<UserProfile[]> {
+    const snapshot = await this.db.collection(COLLECTIONS.users)
+      .where('isTrainer', '==', true)
+      .where('isPublicVisible', '==', true)
+      .get();
+    
+    const query = (searchQuery || '').trim().toLowerCase();
+    const coaches: UserProfile[] = [];
+    snapshot.forEach(doc => {
+      const data = doc.data() as UserProfile;
+      if (data.status === 'rejected' || data.status === 'suspended') return;
+      if (!query || data.fullName.toLowerCase().includes(query) || (data.email && data.email.toLowerCase().includes(query))) {
+        coaches.push(data);
+      }
+    });
+    return coaches;
+  }
+
+  /**
    * Initializes or repairs self-training for a trainer.
    * Document ID: `${trainerId}_${trainerId}`
    * Rules: trainerId == traineeId, status == 'active', all permissions == true.

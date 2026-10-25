@@ -1,4 +1,4 @@
-﻿/**
+/**
  * FitPulse Israeli Culinary & Food Database (Client Ingestion Module)
  * Total Verified Items: 89
  */
@@ -28,8 +28,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.549Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.446Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_tnuva_white_cheese_9",
@@ -54,8 +54,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_tnuva_cottage_5",
@@ -81,8 +81,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_tnuva_cottage_1",
@@ -108,8 +108,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_tnuva_cottage_9",
@@ -133,8 +133,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_tnuva_go_pro_yogurt_20g",
@@ -161,8 +161,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_tnuva_go_pro_drink_25g",
@@ -188,8 +188,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_tnuva_emek_28",
@@ -214,8 +214,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_tnuva_emek_light_9",
@@ -241,8 +241,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_tnuva_milk_3",
@@ -267,8 +267,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_tnuva_sour_cream_15",
@@ -292,8 +292,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_tnuva_tzfatit_5",
@@ -319,8 +319,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_strauss_danone_pro_20g",
@@ -346,8 +346,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_strauss_ski_5",
@@ -371,8 +371,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_strauss_milky_chocolate",
@@ -397,8 +397,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_strauss_gamadim_strawberry",
@@ -423,8 +423,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_strauss_symphonia_5",
@@ -449,8 +449,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_achla_hummus_classic",
@@ -476,8 +476,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_achla_tahini_pure",
@@ -503,8 +503,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_achla_matbucha",
@@ -529,8 +529,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_achla_eggplant_mayo",
@@ -555,8 +555,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_tara_noam_cheese_28",
@@ -582,8 +582,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_tara_noam_light_9",
@@ -609,8 +609,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_yotvata_choco_bottle",
@@ -635,8 +635,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_yotvata_choco_no_added_sugar",
@@ -661,8 +661,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_gad_labaneh_asli",
@@ -687,8 +687,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_gad_halloumi",
@@ -714,8 +714,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_gad_feta_sheep_16",
@@ -740,8 +740,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_osem_bamba_classic",
@@ -769,8 +769,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_osem_bamba_red_sweet",
@@ -796,8 +796,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_osem_bamba_nougat",
@@ -822,8 +822,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_osem_bisli_grill",
@@ -849,8 +849,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_osem_bisli_onion",
@@ -876,8 +876,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_osem_soup_mandeln",
@@ -904,8 +904,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_osem_apropos_classic",
@@ -933,8 +933,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_osem_ptitim_classic",
@@ -961,8 +961,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_elite_turkish_coffee",
@@ -988,8 +988,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_elite_instant_coffee",
@@ -1014,8 +1014,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_elite_cow_chocolate_milk",
@@ -1040,8 +1040,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_elite_pesek_zman",
@@ -1065,8 +1065,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_elite_mekupelet",
@@ -1091,8 +1091,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_elite_taami",
@@ -1116,8 +1116,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_elite_tapuchips_classic",
@@ -1143,8 +1143,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_telma_kariot_nougat",
@@ -1170,8 +1170,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_telma_cornflakes_champions",
@@ -1197,8 +1197,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_tivall_corn_schnitzel",
@@ -1224,8 +1224,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_tivall_corn_schnitzel_light",
@@ -1251,8 +1251,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_tivall_veggie_schnitzel",
@@ -1278,8 +1278,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_beithashita_pickles_salt",
@@ -1306,8 +1306,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_beithashita_olives_syrian",
@@ -1333,8 +1333,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_condiment_schug_green",
@@ -1360,8 +1360,8 @@
     "locationType": "מכולות ושווקים בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_condiment_amba_authentic",
@@ -1387,8 +1387,8 @@
     "locationType": "פלאפליות, שווארמיות וסופרים",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_tirat_zvi_turkey_honey",
@@ -1415,8 +1415,8 @@
     "locationType": "רשתות שיווק ומעדניות",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_yechiam_kabanos",
@@ -1441,8 +1441,8 @@
     "locationType": "רשתות שיווק ומעדניות",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_sugat_persian_rice",
@@ -1469,8 +1469,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_sugat_red_lentils",
@@ -1497,8 +1497,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_achva_tahini_raw_whole",
@@ -1525,8 +1525,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_achva_halva_vanilla",
@@ -1552,8 +1552,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_silan_pure_dates",
@@ -1579,8 +1579,8 @@
     "locationType": "רשתות שיווק ומכולות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_angel_pita_standard",
@@ -1606,8 +1606,8 @@
     "locationType": "מאפיות וסופרמרקטים",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_angel_pita_whole_wheat",
@@ -1634,8 +1634,8 @@
     "locationType": "מאפיות וסופרמרקטים",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_berman_challah_shabbat",
@@ -1660,8 +1660,8 @@
     "locationType": "מאפיות וסופרמרקטים",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_bourekas_cheese",
@@ -1686,8 +1686,8 @@
     "locationType": "מאפיות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_bourekas_potato",
@@ -1712,8 +1712,8 @@
     "locationType": "מאפיות בכל הארץ",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_eatery_hakosem_falafel_pita",
@@ -1740,8 +1740,8 @@
     "region": "תל אביב וגוש דן",
     "address": "שלמה המלך 1, תל אביב",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_eatery_hakosem_shawarma_pita",
@@ -1768,8 +1768,8 @@
     "region": "תל אביב וגוש דן",
     "address": "שלמה המלך 1, תל אביב",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_eatery_abu_hassan_jaffa_triple",
@@ -1796,8 +1796,8 @@
     "region": "תל אביב וגוש דן",
     "address": "הדולפין 1, יפו",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_eatery_sabich_frishman",
@@ -1824,8 +1824,8 @@
     "region": "תל אביב וגוש דן",
     "address": "פרישמן 42, תל אביב",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_eatery_sabich_oved_givatayim",
@@ -1852,8 +1852,8 @@
     "region": "תל אביב וגוש דן",
     "address": "סירקין 7, גבעתיים",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_eatery_emil_shawarma_haifa",
@@ -1879,8 +1879,8 @@
     "region": "חיפה והקריות",
     "address": "דרך אלנבי 33, חיפה",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_eatery_hazan_shawarma_haifa",
@@ -1906,8 +1906,8 @@
     "region": "חיפה והקריות",
     "address": "דרך יפו 43, חיפה",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_eatery_jasmino_pita_pargiot",
@@ -1933,8 +1933,8 @@
     "region": "תל אביב וגוש דן",
     "address": "אלנבי 97, תל אביב",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_eatery_jasmino_kebab_spicy",
@@ -1960,8 +1960,8 @@
     "region": "תל אביב וגוש דן",
     "address": "אלנבי 97, תל אביב",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_eatery_miznon_cauliflower",
@@ -1988,8 +1988,8 @@
     "region": "תל אביב וגוש דן",
     "address": "אבן גבירול 23, תל אביב",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_eatery_vitrina_butler_burger",
@@ -2014,8 +2014,8 @@
     "region": "תל אביב וגוש דן",
     "address": "לילינבלום 40, תל אביב",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_eatery_shakshuka_carmel",
@@ -2042,8 +2042,8 @@
     "region": "תל אביב וגוש דן",
     "address": "שוק הכרמל, תל אביב",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_eatery_azura_jerusalem_oxtail",
@@ -2070,8 +2070,8 @@
     "region": "ירושלים והסביבה",
     "address": "שוק מחנה יהודה, ירושלים",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_eatery_marzipan_rugelach",
@@ -2098,8 +2098,8 @@
     "region": "ירושלים והסביבה",
     "address": "אגריפס 44, ירושלים",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_eatery_aroma_israeli_breakfast",
@@ -2125,8 +2125,8 @@
     "locationType": "רשת בתי קפה ארצית",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_eatery_aroma_ice_aroma",
@@ -2151,8 +2151,8 @@
     "locationType": "רשת בתי קפה ארצית",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_eatery_golda_salted_pretzel",
@@ -2177,8 +2177,8 @@
     "locationType": "רשת גלידריות ארצית",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_eatery_fricasse_ramla",
@@ -2205,8 +2205,8 @@
     "region": "השפלה ודרום",
     "address": "שוק רמלה",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_eatery_knafeh_nazareth",
@@ -2232,8 +2232,8 @@
     "region": "גליל ועמקים",
     "address": "רחוב פאולוס השישי, נצרת",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_dish_chicken_schnitzel_homemade",
@@ -2259,8 +2259,8 @@
     "locationType": "מטבח ביתי / מסעדות פועלים",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_dish_pargiot_skewers",
@@ -2287,8 +2287,8 @@
     "locationType": "שיפודיות ומטבח ביתי",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_dish_chamin_cholent_shabbat",
@@ -2314,8 +2314,8 @@
     "locationType": "מטבח ביתי / שוק",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_dish_jachnun_yemenite",
@@ -2340,8 +2340,8 @@
     "locationType": "מזללות שבת ומטבח ביתי",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_dish_chraime_moroccan_fish",
@@ -2368,8 +2368,8 @@
     "locationType": "מטבח ביתי ומסעדות מזרחיות",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   },
   {
     "id": "il_dish_israeli_chopped_salad",
@@ -2396,92 +2396,44 @@
     "locationType": "סלט לאומי בכל ארוחה",
     "region": "ארצי",
     "verified": true,
-    "createdAt": "2026-10-19T22:07:14.550Z",
-    "updatedAt": "2026-10-19T22:07:14.550Z"
+    "createdAt": "2026-10-24T23:51:49.447Z",
+    "updatedAt": "2026-10-24T23:51:49.447Z"
   }
 ];
   
   if (typeof window !== 'undefined') {
     window.ISRAELI_FOODS_CATALOG = ISRAELI_FOODS;
-
-    // ── Preferred path: use FoodDatabaseManager (available after src/index.js loads) ──
-    if (window.FitPulse && window.FitPulse.dbManager) {
-      var toRegister = ISRAELI_FOODS.map(function(food) {
-        return {
-          id:           food.id,
-          name:         food.name,
-          nameEn:       food.nameEn,
-          brand:        food.brand,
-          category:     food.category,
-          // categoryName will be injected automatically by the manager
-          unitName:     food.unitName,
-          defaultGrams: food.defaultGrams,
-          calories:     food.calories,
-          protein:      food.protein,
-          carbs:        food.carbs,
-          fat:          food.fat,
-          fiber:        food.fiber  || 0,
-          sodium:       food.sodium || 0,
-          sugar:        food.sugar  || 0,
-          tags:         food.dietaryTags || [],
-          icon: (
-            food.category === 'dairy_protein'      ? '🥛' :
-            food.category === 'hummus_falafel'     ? '🧆' :
-            food.category === 'shawarma_meat'      ? '🥩' :
-            food.category === 'bakery_pastry'      ? '🥐' :
-            food.category === 'sweets_desserts'    ? '🍦' :
-            food.category === 'supermarket_staples'? '🛒' :
-            food.category === 'healthy_fitness'    ? '💪' :
-            food.category === 'street_food'        ? '🌯' : '🍽️'
-          ),
-          source: 'FitPulse Israeli Culinary & Food Database'
-        };
-      });
-      var count = window.FitPulse.dbManager.registerFoods(toRegister);
-      // Keep the live array in sync after bulk registration.
-      if (window.FitPulse._syncFoodArray) { window.FitPulse._syncFoodArray(); }
-      console.log('[FitPulse] Israeli Culinary Database registered ' + count + ' items via FoodDatabaseManager.');
-
-    // ── Fallback path: FoodDatabaseManager not available, push directly ──────
-    } else if (window.FIT_DATA && Array.isArray(window.FIT_DATA.foodsDatabase)) {
-      var existingIds = new Set(window.FIT_DATA.foodsDatabase.map(function(f) { return f.id; }));
-      ISRAELI_FOODS.forEach(function(food) {
+    if (window.FIT_DATA && Array.isArray(window.FIT_DATA.foodsDatabase)) {
+      const existingIds = new Set(window.FIT_DATA.foodsDatabase.map(f => f.id));
+      ISRAELI_FOODS.forEach(food => {
         if (!existingIds.has(food.id)) {
           window.FIT_DATA.foodsDatabase.push({
-            id:           food.id,
-            name:         food.name,
-            nameEn:       food.nameEn,
-            brand:        food.brand,
-            category:     food.category,
+            id: food.id,
+            name: food.name,
+            nameEn: food.nameEn,
+            brand: food.brand,
+            category: food.category === 'dairy_protein' ? 'dairy' : (food.category === 'hummus_falafel' || food.category === 'shawarma_meat' ? 'chains' : (food.category === 'sweets_desserts' ? 'fats' : food.category)),
             categoryName: food.categoryName,
-            unitName:     food.unitName,
+            unitName: food.unitName,
             defaultGrams: food.defaultGrams,
-            calories:     food.calories,
-            protein:      food.protein,
-            carbs:        food.carbs,
-            fat:          food.fat,
-            fiber:        food.fiber  || 0,
-            sodium:       food.sodium || 0,
-            sugar:        food.sugar  || 0,
-            tags:         food.dietaryTags || [],
-            icon: (
-              food.category === 'dairy_protein'      ? '🥛' :
-              food.category === 'hummus_falafel'     ? '🧆' :
-              food.category === 'shawarma_meat'      ? '🥩' :
-              food.category === 'bakery_pastry'      ? '🥐' :
-              food.category === 'sweets_desserts'    ? '🍦' :
-              food.category === 'supermarket_staples'? '🛒' :
-              food.category === 'healthy_fitness'    ? '💪' :
-              food.category === 'street_food'        ? '🌯' : '🍽️'
-            ),
+            calories: food.calories,
+            protein: food.protein,
+            carbs: food.carbs,
+            fat: food.fat,
+            fiber: food.fiber || 0,
+            sodium: food.sodium || 0,
+            sugar: food.sugar || 0,
+            tags: food.dietaryTags || [],
+            icon: food.category === 'dairy_protein' ? '🥛' : (food.category === 'hummus_falafel' ? '🧆' : (food.category === 'shawarma_meat' ? '🥩' : (food.category === 'bakery_pastry' ? '🥐' : (food.category === 'sweets_desserts' ? '🍦' : '🍽️')))),
             source: 'FitPulse Israeli Culinary & Food Database'
           });
           existingIds.add(food.id);
         }
       });
-      console.log('[FitPulse] Israeli Culinary Database merged ' + ISRAELI_FOODS.length + ' items (fallback path).');
+      console.log('[FitPulse] Israeli Culinary Database merged ' + ISRAELI_FOODS.length + ' verified items into foodsDatabase.');
     }
   }
+  
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = ISRAELI_FOODS;
   }

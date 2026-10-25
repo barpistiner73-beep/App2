@@ -4,7 +4,7 @@
   "month": "2026-10",
   "year": 2026,
   "monthNumber": 10,
-  "totalReports": 21,
+  "totalReports": 22,
   "workoutsCompleted": 13,
   "reports": [
     {
@@ -3493,6 +3493,439 @@
       "metrics": {},
       "nutrition": {},
       "workouts": []
+    },
+    {
+      "id": "client_1_2026-10-25",
+      "traineeId": "client_1",
+      "date": "2026-10-25",
+      "status": "draft",
+      "createdAt": "2026-10-25T00:29:37.621Z",
+      "updatedAt": "2026-10-25T01:40:19.841Z",
+      "finalizedAt": null,
+      "metrics": {
+        "morningWeightKg": null,
+        "sleepHours": 7.5,
+        "sleepQuality": 8,
+        "waterMl": 2500,
+        "steps": 9000,
+        "energyLevel": 4,
+        "hungerLevel": 2,
+        "stressLevel": 2,
+        "digestion": "good",
+        "traineeNotes": ""
+      },
+      "nutrition": {
+        "totalCalories": 2863.36,
+        "totalProtein": 277.08,
+        "totalCarbs": 0,
+        "totalFat": 189.16,
+        "totalFiber": 30,
+        "totalSodium": 2100,
+        "targetCalories": 2250,
+        "targetProtein": 165,
+        "meals": [
+          {
+            "id": "1792892385035-8nri68",
+            "loggedAt": "2026-10-25T01:39:45.035Z",
+            "time": "03:39",
+            "name": "פילה סלמון טרי (Atlantic Salmon, Farmed, Raw)",
+            "amount": 150,
+            "unitName": "גרם",
+            "calories": 312,
+            "protein": 30.630000000000003,
+            "carbs": 0,
+            "fat": 20.13,
+            "source": "USDA FoodData Central, FDC ID 175167. Per 100 g."
+          },
+          {
+            "id": "1792892399508-1mm8q7",
+            "loggedAt": "2026-10-25T01:39:59.507Z",
+            "time": "03:39",
+            "name": "פילה סלמון טרי (Atlantic Salmon, Farmed, Raw)",
+            "amount": 100,
+            "unitName": "גרם",
+            "calories": 208,
+            "protein": 20.42,
+            "carbs": 0,
+            "fat": 13.42,
+            "source": "USDA FoodData Central, FDC ID 175167. Per 100 g."
+          },
+          {
+            "id": "1792892412460-ob8ygm",
+            "loggedAt": "2026-10-25T01:40:12.459Z",
+            "time": "03:40",
+            "name": "טונה בהירה בשמן צמחי מסוננת (קופסה ~112 גרם)",
+            "amount": 112,
+            "unitName": "גרם",
+            "calories": 221.76000000000002,
+            "protein": 29.680000000000003,
+            "carbs": 0,
+            "fat": 11.760000000000002,
+            "source": "טונה בהירה בשמן צמחי מסוננת סטארקיסט / פילטונה"
+          },
+          {
+            "id": "1792892416916-eb8b6p",
+            "loggedAt": "2026-10-25T01:40:16.916Z",
+            "time": "03:40",
+            "name": "אסאדו בקר בבישול ארוך / צלוי (ל-100 גרם בשר נטו)",
+            "amount": 180,
+            "unitName": "גרם",
+            "calories": 561.6,
+            "protein": 43.2,
+            "carbs": 0,
+            "fat": 43.2,
+            "source": "USDA FoodData Central צלעות קצרות בקר (Short Ribs) צלויות"
+          },
+          {
+            "id": "1792892417924-e52w2r",
+            "loggedAt": "2026-10-25T01:40:17.924Z",
+            "time": "03:40",
+            "name": "פילה סלמון טרי (Atlantic Salmon, Farmed, Raw)",
+            "amount": 150,
+            "unitName": "גרם",
+            "calories": 312,
+            "protein": 30.630000000000003,
+            "carbs": 0,
+            "fat": 20.13,
+            "source": "USDA FoodData Central, FDC ID 175167. Per 100 g."
+          },
+          {
+            "id": "1792892418468-dp820r",
+            "loggedAt": "2026-10-25T01:40:18.468Z",
+            "time": "03:40",
+            "name": "פילה סלמון טרי (Atlantic Salmon, Farmed, Raw)",
+            "amount": 150,
+            "unitName": "גרם",
+            "calories": 312,
+            "protein": 30.630000000000003,
+            "carbs": 0,
+            "fat": 20.13,
+            "source": "USDA FoodData Central, FDC ID 175167. Per 100 g."
+          },
+          {
+            "id": "1792892418892-go3u90",
+            "loggedAt": "2026-10-25T01:40:18.892Z",
+            "time": "03:40",
+            "name": "פילה סלמון טרי (Atlantic Salmon, Farmed, Raw)",
+            "amount": 150,
+            "unitName": "גרם",
+            "calories": 312,
+            "protein": 30.630000000000003,
+            "carbs": 0,
+            "fat": 20.13,
+            "source": "USDA FoodData Central, FDC ID 175167. Per 100 g."
+          },
+          {
+            "id": "1792892419060-f1cvgf",
+            "loggedAt": "2026-10-25T01:40:19.060Z",
+            "time": "03:40",
+            "name": "פילה סלמון טרי (Atlantic Salmon, Farmed, Raw)",
+            "amount": 150,
+            "unitName": "גרם",
+            "calories": 312,
+            "protein": 30.630000000000003,
+            "carbs": 0,
+            "fat": 20.13,
+            "source": "USDA FoodData Central, FDC ID 175167. Per 100 g."
+          },
+          {
+            "id": "1792892419227-lcsqbd",
+            "loggedAt": "2026-10-25T01:40:19.227Z",
+            "time": "03:40",
+            "name": "פילה סלמון טרי (Atlantic Salmon, Farmed, Raw)",
+            "amount": 150,
+            "unitName": "גרם",
+            "calories": 312,
+            "protein": 30.630000000000003,
+            "carbs": 0,
+            "fat": 20.13,
+            "source": "USDA FoodData Central, FDC ID 175167. Per 100 g."
+          }
+        ]
+      },
+      "workouts": [
+        {
+          "id": "workout-1792892084636",
+          "routineId": "session_pull",
+          "name": "Pull Session",
+          "startedAt": "2026-10-25T01:32:43.163Z",
+          "completedAt": "2026-10-25T01:34:44.636Z",
+          "time": "03:34",
+          "durationMinutes": 2,
+          "completedSets": 0,
+          "totalSets": 30,
+          "totalVolume": 0,
+          "difficulty": 8,
+          "notes": "",
+          "exercises": [
+            {
+              "name": "Conventional Barbell Deadlift",
+              "exerciseId": "ex_deadlift",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 110,
+                  "reps": 6,
+                  "completed": false,
+                  "time": "03:34"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 110,
+                  "reps": 6,
+                  "completed": false,
+                  "time": "03:34"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 110,
+                  "reps": 6,
+                  "completed": false,
+                  "time": "03:34"
+                }
+              ]
+            },
+            {
+              "name": "Cable Rope Face Pull",
+              "exerciseId": "ex_face_pull",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 20,
+                  "reps": 15,
+                  "completed": false,
+                  "time": "03:34"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 20,
+                  "reps": 15,
+                  "completed": false,
+                  "time": "03:34"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 20,
+                  "reps": 15,
+                  "completed": false,
+                  "time": "03:34"
+                },
+                {
+                  "setNumber": 4,
+                  "weight": 20,
+                  "reps": 15,
+                  "completed": false,
+                  "time": "03:34"
+                }
+              ]
+            },
+            {
+              "name": "EZ-Bar Bicep Curl",
+              "exerciseId": "ex_bicep_curl",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 30,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "03:34"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 30,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "03:34"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 30,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "03:34"
+                }
+              ]
+            },
+            {
+              "name": "Lat Pulldown",
+              "exerciseId": "ex_lat_pulldown",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 55,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "03:34"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 55,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "03:34"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 55,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "03:34"
+                },
+                {
+                  "setNumber": 4,
+                  "weight": 55,
+                  "reps": 10,
+                  "completed": false,
+                  "time": "03:34"
+                }
+              ]
+            },
+            {
+              "name": "Incline Dumbbell Curl",
+              "exerciseId": "ex_db_incline_curl",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 12,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "03:34"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 12,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "03:34"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 12,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "03:34"
+                }
+              ]
+            },
+            {
+              "name": "Wide-Grip Pull-Up",
+              "exerciseId": "ex_pullups",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 0,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "03:34"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 0,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "03:34"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 0,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "03:34"
+                }
+              ]
+            },
+            {
+              "name": "Bent-Over Barbell Row",
+              "exerciseId": "ex_barbell_row",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 60,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "03:34"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 60,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "03:34"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 60,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "03:34"
+                },
+                {
+                  "setNumber": 4,
+                  "weight": 60,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "03:34"
+                }
+              ]
+            },
+            {
+              "name": "Seated Cable Row",
+              "exerciseId": "ex_seated_cable_row",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 50,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "03:34"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 50,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "03:34"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 50,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "03:34"
+                }
+              ]
+            },
+            {
+              "name": "Straight-Arm Cable Pulldown",
+              "exerciseId": "ex_pullover_cable",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 25,
+                  "reps": 15,
+                  "completed": false,
+                  "time": "03:34"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 25,
+                  "reps": 15,
+                  "completed": false,
+                  "time": "03:34"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 25,
+                  "reps": 15,
+                  "completed": false,
+                  "time": "03:34"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "coachFeedback": null
     }
   ]
 }

@@ -8,6 +8,7 @@
     weights: 'fitpulse_weight_logs',
     sharedRoutines: 'fitpulse_shared_routines',
     customRoutines: 'fitpulse_custom_routines',
+    customFoods: 'fitpulse_custom_foods',
     equivalentExercises: 'fitpulse_equivalent_exercises',
     water: 'fitpulse_daily_water',
     sleep: 'fitpulse_daily_sleep',
@@ -33,6 +34,7 @@
       STORAGE_KEYS.sleep,
       STORAGE_KEYS.dailyReports,
       STORAGE_KEYS.customRoutines,
+      STORAGE_KEYS.customFoods,
       STORAGE_KEYS.coachMode
     ];
     if (scopedKeys.includes(key)) {
@@ -106,6 +108,7 @@
     waterLogs: readStorage(STORAGE_KEYS.water, {}),
     sleepLogs: readStorage(STORAGE_KEYS.sleep, {}),
     scannedFoods: readStorage(STORAGE_KEYS.scannedFoods, []),
+    customFoods: readStorage(STORAGE_KEYS.customFoods, []),
     activeTab: 'tab-dashboard',
     coachViewMode: 'coaching',
     coachModeUserId: null,
@@ -237,6 +240,12 @@
     ? state.scannedFoods.filter(food => food && typeof food.id === 'string' && food.id.startsWith('off-') && typeof food.name === 'string' && Number.isFinite(food.calories))
     : [];
   FIT_DATA.foodsDatabase.push(...state.scannedFoods.filter(cached => !FIT_DATA.foodsDatabase.some(food => food.id === cached.id)));
+  state.customFoods = Array.isArray(state.customFoods) ? state.customFoods : [];
+  state.customFoods.forEach(food => {
+    if (food && food.id && !FIT_DATA.foodsDatabase.some(item => item.id === food.id)) {
+      FIT_DATA.foodsDatabase.unshift(food);
+    }
+  });
   const todayMeals = () => state.nutritionLogs[state.currentDate] || [];
   const todayWorkouts = () => state.workoutLogs[state.currentDate] || [];
   const byId = id => document.getElementById(id);
@@ -1132,6 +1141,36 @@
     });
   }
 
+    function calculateProportionalNutrients(food, amount) {
+    if (!food) return null;
+    const isServing = food.nutritionBasis === 'serving';
+    const numericAmount = Number(amount);
+    const validAmount = Number.isFinite(numericAmount) && numericAmount > 0 
+      ? numericAmount 
+      : (isServing ? 1 : (Number(food.defaultGrams) || 100));
+    const multiplier = isServing ? validAmount : (validAmount / 100);
+
+    const calcVal = (key, decimals = 1) => {
+      if (typeof food[key] !== 'number' || !Number.isFinite(food[key])) return null;
+      const factor = Math.pow(10, decimals);
+      return Math.round(food[key] * multiplier * factor) / factor;
+    };
+
+    return {
+      isServing,
+      amount: validAmount,
+      multiplier,
+      unitLabel: isServing ? (food.unitName || 'מנה') : 'גרם',
+      calories: Math.round((food.calories || 0) * multiplier),
+      protein: calcVal('protein', 1) ?? 0,
+      carbs: calcVal('carbs', 1) ?? 0,
+      fat: calcVal('fat', 1) ?? 0,
+      fiber: calcVal('fiber', 1),
+      sodium: calcVal('sodium', 0),
+      sugar: calcVal('sugar', 1)
+    };
+  }
+
   function renderNutrition() {
     const container = byId('mealsContainer');
     if (!container) return;
@@ -1156,7 +1195,7 @@
     const foodCatalog = [...FIT_DATA.foodsDatabase, ...state.remoteFoods]
       .filter((food, index, foods) => foods.findIndex(item => item.id === food.id) === index);
     const filteredFoods = foodCatalog.filter(food => {
-      const categoryMatches = state.foodCategory === 'all' || food.category === state.foodCategory;
+      const categoryMatches = state.foodCategory === 'all' || (state.foodCategory === 'custom' ? (food.isCustom === true || (food.tags || []).includes('מצרך אישי')) : food.category === state.foodCategory);
       const searchable = [food.name, food.categoryName, findFoodCategoryName(food.category), ...(food.tags || [])]
         .join(' ').toLocaleLowerCase();
       return categoryMatches && (!query || searchable.includes(query));
@@ -1164,16 +1203,25 @@
     const searchStatus = byId('foodSearchStatus');
     if (searchStatus) searchStatus.textContent = state.remoteFoodStatus || `${filteredFoods.length} מאכלים תואמים · ערכים ל־100 גרם; חיפוש רשת משתמש בנתוני Open Food Facts שעשויים להיות קהילתיים`;
 
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Top Interactive Nutrition Form with Real-Time Proportional Calculation
+    // ─────────────────────────────────────────────────────────────────────────────
     const form = createElement('form', 'nutrition-form');
     form.id = 'nutritionForm';
-    const foodLabel = createElement('label', '', 'בחירת מזון');
+
+    const controlsRow = createElement('div', 'nutrition-form-controls');
+
+    // 1. Food Selector
+    const foodLabel = createElement('label', 'nutrition-food-field', 'בחירת מזון');
     const foodSelect = document.createElement('select');
+    foodSelect.id = 'nutritionFoodSelect';
     foodSelect.name = 'foodId';
     foodSelect.required = true;
     filteredFoods.forEach(food => {
       const option = document.createElement('option');
       option.value = food.id;
-      option.textContent = `${food.icon || '🍽️'} ${food.name}`;
+      const isStaple = food.nutritionBasis !== 'serving';
+      option.textContent = `${food.icon || '🍽️'} ${food.name} [${isStaple ? 'מצרך ל־100ג' : 'מנה'}]`;
       foodSelect.append(option);
     });
     if (!filteredFoods.length) {
@@ -1182,29 +1230,140 @@
       option.disabled = true;
       foodSelect.append(option);
     }
-    foodLabel.append(foodSelect);
+    const foodTypeBadge = createElement('span', 'nutrition-type-badge is-staple');
+    foodLabel.append(foodSelect, foodTypeBadge);
 
-    const gramsLabel = createElement('label', '', filteredFoods[0]?.nutritionBasis === 'serving' ? 'כמות (מנות)' : 'כמות (גרם)');
+    // 2. Quantity Input (Grams / Servings)
+    const gramsLabel = createElement('label', 'nutrition-grams-field', 'כמות שנאכלה (גרם):');
     const gramsInput = document.createElement('input');
+    gramsInput.id = 'nutritionFormGrams';
     gramsInput.name = 'grams';
     gramsInput.type = 'number';
     gramsInput.min = '1';
+    gramsInput.max = '5000';
     gramsInput.step = '1';
-    gramsInput.value = String(filteredFoods[0]?.defaultGrams || 100);
     gramsInput.required = true;
     gramsLabel.append(gramsInput);
+
+    // Quick chips container
+    const chipsContainer = createElement('div', 'quick-portion-chips');
+
+    // 3. Live Nutrition Preview Box
+    const previewBox = createElement('div', 'live-nutrition-preview');
+    previewBox.id = 'liveNutritionPreview';
+
+    const previewHeader = createElement('div', 'live-preview-header');
+    const previewTitle = createElement('span', 'live-preview-title', '⚡ חישוב תזונתי בזמן אמת:');
+    const previewDetail = createElement('span', 'live-preview-detail', '');
+    previewHeader.append(previewTitle, previewDetail);
+
+    const macroGrid = createElement('div', 'live-macro-grid');
+    const statCals = createElement('div', 'live-macro-stat stat-calories');
+    statCals.innerHTML = '<span class="live-stat-icon">🔥</span><span class="live-stat-val" id="liveStatCals">0</span><span class="live-stat-lbl">קלוריות</span>';
+    const statProtein = createElement('div', 'live-macro-stat stat-protein');
+    statProtein.innerHTML = '<span class="live-stat-icon">🥩</span><span class="live-stat-val" id="liveStatProtein">0ג׳</span><span class="live-stat-lbl">חלבון</span>';
+    const statCarbs = createElement('div', 'live-macro-stat stat-carbs');
+    statCarbs.innerHTML = '<span class="live-stat-icon">🌾</span><span class="live-stat-val" id="liveStatCarbs">0ג׳</span><span class="live-stat-lbl">פחמימות</span>';
+    const statFat = createElement('div', 'live-macro-stat stat-fat');
+    statFat.innerHTML = '<span class="live-stat-icon">🥑</span><span class="live-stat-val" id="liveStatFat">0ג׳</span><span class="live-stat-lbl">שומן</span>';
+    macroGrid.append(statCals, statProtein, statCarbs, statFat);
+    previewBox.append(previewHeader, macroGrid);
+
+    // 4. Submit button
+    const submit = createElement('button', 'btn-action-primary', 'הוספת מזון ליומן +');
+    submit.type = 'submit';
+
+    controlsRow.append(foodLabel, gramsLabel, submit);
+    form.append(controlsRow, chipsContainer, previewBox);
+
+    // Live update function for the form
+    function updateFormLiveCalculation() {
+      const selectedFood = filteredFoods.find(item => item.id === foodSelect.value);
+      if (!selectedFood) {
+        previewBox.style.display = 'none';
+        return;
+      }
+      previewBox.style.display = 'grid';
+      const isStaple = selectedFood.nutritionBasis !== 'serving';
+      const enteredAmount = Number(gramsInput.value) || 0;
+      const calc = calculateProportionalNutrients(selectedFood, enteredAmount);
+
+      // Update badge
+      if (isStaple) {
+        foodTypeBadge.className = 'nutrition-type-badge is-staple';
+        foodTypeBadge.textContent = '🥗 מצרך (ערכי בסיס ל־100 גרם)';
+        gramsLabel.firstChild.textContent = 'כמות שנאכלה (גרם):';
+        gramsInput.min = '1';
+        gramsInput.max = '5000';
+        gramsInput.step = '1';
+        previewDetail.textContent = `${calc.amount} גרם (מוכפל פי ${calc.multiplier.toFixed(2)} מערכי הבסיס ל־100 גרם)`;
+        submit.textContent = `＋ הוספת ${calc.amount} גרם ליומן (${calc.calories} קל׳)`;
+      } else {
+        foodTypeBadge.className = 'nutrition-type-badge is-serving';
+        foodTypeBadge.textContent = '🍱 מנה קבועה מראש';
+        gramsLabel.firstChild.textContent = 'כמות מנות:';
+        gramsInput.min = '0.1';
+        gramsInput.max = '20';
+        gramsInput.step = '0.5';
+        previewDetail.textContent = `${calc.amount} ${calc.unitLabel}${calc.amount > 1 ? ' (פי ' + calc.multiplier.toFixed(1) + ')' : ''}`;
+        submit.textContent = `＋ הוספת ${calc.amount} ${calc.unitLabel} ליומן (${calc.calories} קל׳)`;
+      }
+
+      // Update macro values
+      const calsEl = byId('liveStatCals');
+      const proteinEl = byId('liveStatProtein');
+      const carbsEl = byId('liveStatCarbs');
+      const fatEl = byId('liveStatFat');
+      if (calsEl) calsEl.textContent = formatNumber(calc.calories);
+      if (proteinEl) proteinEl.textContent = formatNumber(calc.protein) + 'ג׳';
+      if (carbsEl) carbsEl.textContent = formatNumber(calc.carbs) + 'ג׳';
+      if (fatEl) fatEl.textContent = formatNumber(calc.fat) + 'ג׳';
+    }
+
+    // Refresh quick chips based on food type
+    function refreshQuickChips(food) {
+      chipsContainer.replaceChildren();
+      if (!food) return;
+      const isStaple = food.nutritionBasis !== 'serving';
+      const amounts = isStaple ? [50, 100, 150, 170, 200, 250] : [0.5, 1, 1.5, 2];
+      if (isStaple && food.defaultGrams && !amounts.includes(food.defaultGrams)) {
+        amounts.push(food.defaultGrams);
+        amounts.sort((a, b) => a - b);
+      }
+      amounts.forEach(amt => {
+        const chip = createElement('button', 'quick-portion-chip', isStaple ? `${amt} גרם` : `${amt} מנות`);
+        chip.type = 'button';
+        chip.addEventListener('click', () => {
+          gramsInput.value = String(amt);
+          updateFormLiveCalculation();
+          gramsInput.focus();
+        });
+        chipsContainer.append(chip);
+      });
+    }
+
+    // Initialize first food
+    if (filteredFoods.length) {
+      const firstFood = filteredFoods[0];
+      const initialGrams = firstFood.nutritionBasis === 'serving' ? 1 : (Number(firstFood.defaultGrams) || 100);
+      gramsInput.value = String(initialGrams);
+      refreshQuickChips(firstFood);
+      updateFormLiveCalculation();
+    }
+
     foodSelect.addEventListener('change', () => {
       const selectedFood = filteredFoods.find(item => item.id === foodSelect.value);
       if (!selectedFood) return;
-      gramsInput.value = String(selectedFood.defaultGrams || (selectedFood.nutritionBasis === 'serving' ? 1 : 100));
-      if (gramsLabel.firstChild) {
-        gramsLabel.firstChild.textContent = selectedFood.nutritionBasis === 'serving' ? 'כמות (מנות)' : 'כמות (גרם)';
-      }
+      const newAmount = selectedFood.nutritionBasis === 'serving' ? 1 : (Number(selectedFood.defaultGrams) || 100);
+      gramsInput.value = String(newAmount);
+      refreshQuickChips(selectedFood);
+      updateFormLiveCalculation();
     });
 
-    const submit = createElement('button', 'btn-action-primary', 'הוספת מזון ליומן +');
-    submit.type = 'submit';
-    form.append(foodLabel, gramsLabel, submit);
+    gramsInput.addEventListener('input', () => {
+      updateFormLiveCalculation();
+    });
+
     form.addEventListener('submit', event => {
       event.preventDefault();
       const food = filteredFoods.find(item => item.id === foodSelect.value);
@@ -1228,25 +1387,94 @@
     }
     filteredFoods.forEach(food => {
       const card = createElement('article', 'food-result-card');
+      const isStaple = food.nutritionBasis !== 'serving';
+      const defaultAmount = isStaple ? (Number(food.defaultGrams) || 100) : 1;
+
+      // Title & Category & Badge
       const title = createElement('div', 'food-result-title');
       title.append(createElement('span', 'food-result-icon', food.icon || '🍽️'));
       const details = createElement('div');
-      details.append(createElement('strong', '', food.name), createElement('span', 'food-result-category',
-        `${food.categoryName || findFoodCategoryName(food.category)} · ${food.nutritionBasis === 'serving' ? 'למנה' : 'ל־100 גרם'}`));
+      const strongName = createElement('strong', '', food.name);
+      strongName.style.cursor = 'pointer';
+      strongName.title = 'לחצו כדי לבחור בטופס הראשי';
+      strongName.addEventListener('click', () => {
+        foodSelect.value = food.id;
+        gramsInput.value = String(defaultAmount);
+        refreshQuickChips(food);
+        updateFormLiveCalculation();
+        form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        gramsInput.focus();
+      });
+
+      const catBadgeSpan = createElement('span', 'food-result-category',
+        `${food.categoryName || findFoodCategoryName(food.category)} · `);
+      const typeTag = createElement('span', `food-badge ${isStaple ? 'staple-badge' : 'serving-badge'}`,
+        isStaple ? 'מצרך (ערכי בסיס ל־100 גרם)' : 'מנה קבועה מראש');
+      catBadgeSpan.append(typeTag);
+
+      if (food.isCustom) {
+        const customBadge = createElement('span', 'food-badge custom-food-badge', '⭐ מצרך אישי');
+        catBadgeSpan.append(customBadge);
+
+        const deleteCustomBtn = createElement('button', 'btn-delete-custom-food', '🗑️ הסרה מהמאגר');
+        deleteCustomBtn.type = 'button';
+        deleteCustomBtn.title = 'מחיקת המצרך מרשימת המצרכים האישיים שלך';
+        deleteCustomBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          deleteCustomFood(food.id);
+        });
+        catBadgeSpan.append(deleteCustomBtn);
+      }
+      details.append(strongName, catBadgeSpan);
       title.append(details);
-      const nutrients = createElement('p', 'food-result-nutrients',
-        `${formatNumber(food.calories)} קל׳ · חלבון ${nutrientValueText(food, 'protein', ' ג׳')} · פחמימות ${nutrientValueText(food, 'carbs', ' ג׳')} · שומן ${nutrientValueText(food, 'fat', ' ג׳')}`);
+
+      // Base Nutrients Line
+      const baseNutrients = createElement('p', 'food-result-nutrients',
+        `ערך בסיס (${isStaple ? '100 גרם' : 'מנה'}): ${formatNumber(food.calories)} קל׳ · חלבון ${nutrientValueText(food, 'protein', ' ג׳')} · פחמימות ${nutrientValueText(food, 'carbs', ' ג׳')} · שומן ${nutrientValueText(food, 'fat', ' ג׳')}`);
       const source = createElement('p', 'food-result-source', food.source || 'ערך ייחוס תזונתי ל־100 גרם');
-      const actions = createElement('div', 'food-result-actions');
-      const portion = createElement('span', 'food-portion', food.nutritionBasis === 'serving'
-        ? `מנה: ${food.defaultGrams || 1} ${food.unitName || 'מנות'}`
-        : `מנה: ${food.defaultGrams || 100} גרם`);
-      const addButton = createElement('button', 'btn-action-secondary', '＋ הוספת מנה');
+
+      // Interactive Portion & Real-time Calculation Box
+      const portionBox = createElement('div', 'card-portion-box');
+      const inputRow = createElement('div', 'card-input-row');
+
+      const qtyLabel = createElement('label', 'card-qty-label');
+      qtyLabel.textContent = isStaple ? 'כמות שנאכלה:' : 'כמות מנות:';
+      const cardQtyInput = document.createElement('input');
+      cardQtyInput.type = 'number';
+      cardQtyInput.className = 'card-amount-input';
+      cardQtyInput.min = isStaple ? '1' : '0.1';
+      cardQtyInput.max = isStaple ? '5000' : '20';
+      cardQtyInput.step = isStaple ? '1' : '0.5';
+      cardQtyInput.value = String(defaultAmount);
+      const unitSpan = document.createElement('span');
+      unitSpan.textContent = isStaple ? ' גרם' : ` ${food.unitName || 'מנה'}`;
+      qtyLabel.append(cardQtyInput, unitSpan);
+
+      const addButton = createElement('button', 'btn-action-secondary card-add-btn');
       addButton.type = 'button';
-      addButton.addEventListener('click', () => addFoodToLog(food,
-        Number(food.defaultGrams) || (food.nutritionBasis === 'serving' ? 1 : 100)));
-      actions.append(portion, addButton);
-      card.append(title, nutrients, source, actions);
+
+      inputRow.append(qtyLabel, addButton);
+
+      const liveMacrosDiv = createElement('div', 'card-live-macros');
+
+      function updateCardLive() {
+        const enteredVal = Number(cardQtyInput.value) || 0;
+        const calc = calculateProportionalNutrients(food, enteredVal);
+        addButton.textContent = `＋ הוספת ${calc.amount} ${isStaple ? 'גרם' : 'מנה'}`;
+        const ratioText = isStaple ? ` (פי ${calc.multiplier.toFixed(2)})` : (calc.amount > 1 ? ` (פי ${calc.amount})` : '');
+        liveMacrosDiv.innerHTML = `סה״כ עבור <strong>${calc.amount} ${isStaple ? 'גרם' : 'מנה'}</strong>${ratioText}: <strong>${formatNumber(calc.calories)} קל׳</strong> · חלבון <strong>${formatNumber(calc.protein)}ג׳</strong> · פחמימות <strong>${formatNumber(calc.carbs)}ג׳</strong> · שומן <strong>${formatNumber(calc.fat)}ג׳</strong>`;
+      }
+
+      cardQtyInput.addEventListener('input', updateCardLive);
+      updateCardLive();
+
+      addButton.addEventListener('click', () => {
+        const enteredVal = Number(cardQtyInput.value);
+        addFoodToLog(food, enteredVal);
+      });
+
+      portionBox.append(inputRow, liveMacrosDiv);
+      card.append(title, baseNutrients, source, portionBox);
       resultGrid.append(card);
     });
     container.append(resultGrid);
@@ -1549,6 +1777,158 @@
     if (!errorEl) return;
     errorEl.hidden = !message;
     errorEl.textContent = message || '';
+  }
+
+  
+  function openManualFoodDialog(preset = {}) {
+    const dialog = byId('manualFoodEntryDialog');
+    if (!dialog) return;
+
+    const form = byId('manualFoodEntryForm');
+    if (form) form.reset();
+
+    const nameField = byId('customFoodNameField');
+    if (nameField) nameField.value = preset.name || '';
+
+    const catField = byId('customFoodCategoryField');
+    if (catField && preset.category) catField.value = preset.category;
+
+    const iconField = byId('customFoodIconField');
+    if (iconField && preset.icon) iconField.value = preset.icon;
+
+    const calsField = byId('customFoodCaloriesField');
+    if (calsField) calsField.value = preset.calories != null ? preset.calories : '';
+
+    const proteinField = byId('customFoodProteinField');
+    if (proteinField) proteinField.value = preset.protein != null ? preset.protein : '';
+
+    const carbsField = byId('customFoodCarbsField');
+    if (carbsField) carbsField.value = preset.carbs != null ? preset.carbs : '';
+
+    const fatField = byId('customFoodFatField');
+    if (fatField) fatField.value = preset.fat != null ? preset.fat : '';
+
+    const defaultGramsField = byId('customFoodDefaultGramsField');
+    if (defaultGramsField) defaultGramsField.value = preset.defaultGrams || '100';
+
+    const logNowGramsField = byId('customFoodLogNowGrams');
+    if (logNowGramsField) logNowGramsField.value = preset.defaultGrams || '100';
+
+    const errorEl = byId('manualFoodError');
+    if (errorEl) {
+      errorEl.hidden = true;
+      errorEl.textContent = '';
+    }
+
+    dialog.hidden = false;
+    setTimeout(() => {
+      nameField?.focus();
+    }, 50);
+  }
+
+  function closeManualFoodDialog() {
+    const dialog = byId('manualFoodEntryDialog');
+    if (dialog) dialog.hidden = true;
+  }
+
+  function submitManualFoodForm(event) {
+    event.preventDefault();
+    const errorEl = byId('manualFoodError');
+
+    const name = byId('customFoodNameField')?.value?.trim();
+    if (!name) {
+      if (errorEl) {
+        errorEl.hidden = false;
+        errorEl.textContent = 'אנא הזינו שם למצרך.';
+      }
+      return;
+    }
+
+    const category = byId('customFoodCategoryField')?.value || 'supermarket_staples';
+    const icon = byId('customFoodIconField')?.value || '🍽️';
+    const isServing = document.querySelector('input[name="customNutritionBasis"]:checked')?.value === 'serving';
+
+    const cals = parseFloat(byId('customFoodCaloriesField')?.value);
+    const protein = parseFloat(byId('customFoodProteinField')?.value);
+    const carbs = parseFloat(byId('customFoodCarbsField')?.value);
+    const fat = parseFloat(byId('customFoodFatField')?.value);
+
+    if (!Number.isFinite(cals) || !Number.isFinite(protein) || !Number.isFinite(carbs) || !Number.isFinite(fat)) {
+      if (errorEl) {
+        errorEl.hidden = false;
+        errorEl.textContent = 'אנא מלאו את ערכי הקלוריות, החלבון, הפחמימות והשומן.';
+      }
+      return;
+    }
+
+    const fiberVal = byId('customFoodFiberField')?.value;
+    const sodiumVal = byId('customFoodSodiumField')?.value;
+    const sugarVal = byId('customFoodSugarField')?.value;
+    const defaultGramsVal = parseFloat(byId('customFoodDefaultGramsField')?.value) || (isServing ? 1 : 100);
+    const unitName = byId('customFoodUnitNameField')?.value?.trim();
+
+    const customFood = {
+      id: `custom_food_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      name,
+      category,
+      tags: ['מצרך אישי', 'הוספה ידנית', name, ...(category ? [category] : [])],
+      calories: Math.round(cals * 10) / 10,
+      protein: Math.round(protein * 10) / 10,
+      carbs: Math.round(carbs * 10) / 10,
+      fat: Math.round(fat * 10) / 10,
+      fiber: fiberVal !== '' && Number.isFinite(Number(fiberVal)) ? Math.round(Number(fiberVal) * 10) / 10 : null,
+      sodium: sodiumVal !== '' && Number.isFinite(Number(sodiumVal)) ? Math.round(Number(sodiumVal)) : null,
+      sugar: sugarVal !== '' && Number.isFinite(Number(sugarVal)) ? Math.round(Number(sugarVal) * 10) / 10 : null,
+      unitName: unitName || (isServing ? 'מנה' : '100 גרם'),
+      defaultGrams: defaultGramsVal,
+      nutritionBasis: isServing ? 'serving' : '100g',
+      icon,
+      source: 'מצרך אישי שמור',
+      isCustom: true
+    };
+
+    // Save to user storage
+    state.customFoods = Array.isArray(state.customFoods) ? state.customFoods : [];
+    state.customFoods.unshift(customFood);
+    writeStorage(STORAGE_KEYS.customFoods, state.customFoods);
+
+    // Add to active database
+    FIT_DATA.foodsDatabase.unshift(customFood);
+
+    // If immediate log requested
+    const logNow = byId('customFoodLogNowCheck')?.checked;
+    if (logNow) {
+      const logAmount = parseFloat(byId('customFoodLogNowGrams')?.value) || defaultGramsVal;
+      addFoodToLog(customFood, logAmount);
+    }
+
+    closeManualFoodDialog();
+    renderNutrition();
+    renderDashboard();
+
+    // Select this food in the main nutrition form so user sees it right away
+    const foodSelect = byId('nutritionFoodSelect');
+    if (foodSelect) {
+      foodSelect.value = customFood.id;
+      foodSelect.dispatchEvent(new Event('change'));
+    }
+
+    alert(`המצרך "${customFood.name}" נשמר בהצלחה ברשימת המצרכים שלך! תוכל להשתמש בו בכל עת.`);
+  }
+
+  function deleteCustomFood(foodId) {
+    const food = state.customFoods.find(item => item.id === foodId);
+    const foodName = food ? food.name : 'מצרך זה';
+    if (!confirm(`האם אתה בטוח שברצונך למחוק את "${foodName}" מרשימת המצרכים האישיים שלך?`)) return;
+
+    state.customFoods = state.customFoods.filter(item => item.id !== foodId);
+    writeStorage(STORAGE_KEYS.customFoods, state.customFoods);
+
+    const dbIndex = FIT_DATA.foodsDatabase.findIndex(item => item.id === foodId);
+    if (dbIndex >= 0) FIT_DATA.foodsDatabase.splice(dbIndex, 1);
+
+    renderNutrition();
+    renderDashboard();
   }
 
   function openBarcodeFoodEditor(options = {}) {
@@ -5015,6 +5395,47 @@
     }
   }
 
+    function getTimeCrunchBannerHTML() {
+    return `
+      <div class="time-crunch-header">
+        <div class="time-crunch-title-wrap">
+          <span class="time-crunch-icon">⚡</span>
+          <strong class="time-crunch-title">פרוטוקול "קצר בזמן" – הנחיות עבודה</strong>
+        </div>
+        <span class="time-crunch-status-badge">פעיל ✓</span>
+      </div>
+
+      <div class="time-crunch-body">
+        <div class="crunch-block crunch-core-principle">
+          <div class="crunch-block-title">📌 עקרון הבסיס:</div>
+          <p>לדאוג שכל קבוצת שריר מקבלת לפחות סט איכותי 1. מכיוון שכל סט שעובר באימון מייצר יותר ויותר תשישות, וכשאין זמן אין גם זמן לנוח – כדי לפגוע בכל השרירים בצורה הכי איכותית שיש, יש צורך להשיג כמה שיותר "סטים ראשונים".</p>
+        </div>
+
+        <div class="crunch-block crunch-example-flow">
+          <div class="crunch-block-title">🔄 דוגמה ליישום (למשל ביום Push):</div>
+          <div class="crunch-flow-steps">
+            <div class="crunch-flow-header">סדר האימון: <strong>חזה</strong> ➔ <strong>כתפיים</strong> ➔ <strong>יד אחורית</strong>.</div>
+            <ul class="crunch-flow-list">
+              <li>מבצעים <strong>סט אחד של חזה</strong> (לחיצה שטוחה), אחריו מנוחה די קצרה (כי מחליפים קבוצת שריר).</li>
+              <li>ממשיכים ל<strong>סט 1 של כתפיים</strong> (לחיצת כתפיים), ואחריו <strong>סט 1 יד אחורית</strong> (פשיטת מרפקים רגילה בכבלים).</li>
+              <li>חוזרים על זה שוב ושוב עד שמגיעים ל<strong>לפחות 2 סטים מכל דבר</strong>.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="crunch-block crunch-completion-phase">
+          <div class="crunch-block-title">⏱️ שלב ההשלמה (אם נשאר זמן):</div>
+          <p>במידה ויש עוד זמן, יכולים להוסיף סטים לווריאציות נוספות (למשל: חזה עליון, ווריאציה נוספת של כתפיים כמו לחיצה, ופשיטה מעל הראש).</p>
+        </div>
+
+        <div class="crunch-block crunch-extreme-scenario">
+          <div class="crunch-block-title">🚨 תרחיש קיצון (אם אין בכלל זמן):</div>
+          <p>לדאוג שלכל התרגילים באימון יהיה לפחות סט אחד גם לווריאציות, או לחלופין לבחור רק את התרגילים (כמו בהתחלה) שעובדים על כל החלקים שאמורים לעבוד במלואם – עד מקסימום הסטים שהזמן מאפשר.</p>
+        </div>
+      </div>
+    `;
+  }
+
   function toggleTimeCrunchMode() {
     state.isTimeCrunchActive = !state.isTimeCrunchActive;
     const button = byId('timeCrunchToggleBtn');
@@ -5023,7 +5444,12 @@
     if (button) button.textContent = state.isTimeCrunchActive
       ? 'מצב קצר בזמן: פעיל ✓'
       : 'מצב קצר בזמן: כבוי';
-    if (banner) banner.style.display = state.isTimeCrunchActive ? 'block' : 'none';
+    if (banner) {
+      banner.style.display = state.isTimeCrunchActive ? 'flex' : 'none';
+      if (state.isTimeCrunchActive) {
+        banner.innerHTML = getTimeCrunchBannerHTML();
+      }
+    }
     if (state.activeSession) {
       state.activeSession.timeCrunch = state.isTimeCrunchActive;
       state.activeSession.sequence = createSetSequence(state.activeSession.plan, state.isTimeCrunchActive);
@@ -5034,9 +5460,6 @@
         state.activeSession.restSeconds = state.activeSession.normalRestSeconds;
       }
       if (byId('sessionRestSeconds')) byId('sessionRestSeconds').value = String(state.activeSession.restSeconds);
-      if (byId('timeCrunchBanner')) byId('timeCrunchBanner').textContent = state.isTimeCrunchActive
-        ? 'מצב קצר בזמן פעיל: סבב בין קבוצות שרירים, מנוחה קצרה של עד 20 שניות בין סטים, ולפחות שני סטים מתוכננים לכל קבוצת שריר (או סט אחד לכל תרגיל כשאין אפשרות אחרת).'
-        : 'מצב קצר בזמן כבוי: הסטים מוצגים לפי סדר התרגילים בתוכנית.';
       renderActiveExercises();
     }
   }
@@ -5316,6 +5739,14 @@
         state.sleepLogs = readStorage(STORAGE_KEYS.sleep, {});
         state.dailyReports = readStorage(STORAGE_KEYS.dailyReports, {});
         state.customRoutines = readStorage(STORAGE_KEYS.customRoutines, []);
+    state.customFoods = readStorage(STORAGE_KEYS.customFoods, []);
+    if (Array.isArray(state.customFoods)) {
+      state.customFoods.forEach(food => {
+        if (food && food.id && !FIT_DATA.foodsDatabase.some(item => item.id === food.id)) {
+          FIT_DATA.foodsDatabase.unshift(food);
+        }
+      });
+    }
       } else if (user.role === 'coach') {
         state.profile.role = 'trainer_admin';
         state.coachHistoricalReports = [];
@@ -6619,6 +7050,24 @@
       stopBarcodeScanner();
       resolveScannedCode(byId('barcodeManualInput')?.value || '');
     });
+    byId('openManualFoodEntryBtn')?.addEventListener('click', () => openManualFoodDialog());
+    byId('closeManualFoodEntryBtn')?.addEventListener('click', closeManualFoodDialog);
+    byId('cancelManualFoodBtn')?.addEventListener('click', closeManualFoodDialog);
+    byId('manualFoodEntryForm')?.addEventListener('submit', submitManualFoodForm);
+    byId('customFoodLogNowCheck')?.addEventListener('change', (e) => {
+      const logFields = byId('manualLogNowFields');
+      if (logFields) logFields.style.display = e.target.checked ? 'flex' : 'none';
+    });
+    document.querySelectorAll('input[name="customNutritionBasis"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        const isServing = e.target.value === 'serving';
+        const calsText = byId('manualBasisCalsText');
+        const unitText = byId('customFoodLogNowUnit');
+        if (calsText) calsText.textContent = isServing ? '(למנה)' : '(ל־100ג)';
+        if (unitText) unitText.textContent = isServing ? 'מנות' : 'גרם';
+      });
+    });
+
     byId('openManualFoodBtn')?.addEventListener('click', () => {
       stopBarcodeScanner();
       openBarcodeFoodEditor({
@@ -6629,6 +7078,99 @@
     });
     byId('barcodeFoodEditorForm')?.addEventListener('submit', submitBarcodeFoodEditor);
     byId('closeBarcodeFoodEditorBtn')?.addEventListener('click', closeBarcodeFoodEditor);
+
+    // Quick Hub buttons for Nutrition (Meal Ideas & Dining Out)
+    document.querySelectorAll('#nutritionQuickHub .quick-hub-btn[data-filter]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const filter = btn.dataset.filter;
+        document.querySelectorAll('#nutritionQuickHub .quick-hub-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        if (filter === 'custom_foods') {
+          state.foodCategory = 'custom';
+          state.foodQuery = '';
+          searchRemoteFoods('');
+        } else if (filter === 'meal_breakfast') {
+          state.foodCategory = 'meal_ideas';
+          state.foodQuery = 'בוקר';
+        } else if (filter === 'meal_lunch') {
+          state.foodCategory = 'meal_ideas';
+          state.foodQuery = 'צהריים';
+        } else if (filter === 'meal_dinner') {
+          state.foodCategory = 'meal_ideas';
+          state.foodQuery = 'ערב';
+        } else if (filter === 'meal_snack') {
+          state.foodCategory = 'meal_ideas';
+          state.foodQuery = 'נשנוש';
+        } else if (filter === 'aroma') {
+          state.foodCategory = 'chains';
+          state.foodQuery = 'ארומה';
+        } else if (filter === 'giraffe') {
+          state.foodCategory = 'chains';
+          state.foodQuery = 'ג\'ירף';
+        } else if (filter === 'bbb') {
+          state.foodCategory = 'chains';
+          state.foodQuery = 'BBB';
+        } else if (filter === 'mcd') {
+          state.foodCategory = 'chains';
+          state.foodQuery = 'מקדונלדס';
+        } else if (filter === 'rebar') {
+          state.foodCategory = 'chains';
+          state.foodQuery = 'rebar';
+        } else if (filter === 'japanika') {
+          state.foodCategory = 'chains';
+          state.foodQuery = 'ג\'פניקה';
+        } else if (filter === 'landwer') {
+          state.foodCategory = 'chains';
+          state.foodQuery = 'לנדוור';
+        } else if (filter === 'roladin') {
+          state.foodCategory = 'all';
+          state.foodQuery = 'רולדין';
+        } else if (filter === 'home_shabbat') {
+          state.foodCategory = 'meal_ideas';
+          state.foodQuery = 'שבת';
+        } else if (filter === 'fit_power') {
+          state.foodCategory = 'meal_ideas';
+          state.foodQuery = 'חיטוב';
+        }
+
+        const input = byId('foodSearchInput');
+        if (input) input.value = state.foodQuery;
+        searchRemoteFoods(state.foodQuery);
+      });
+    });
+
+    // Dining Out Guide Dialog open/close
+    byId('openDiningGuideBtn')?.addEventListener('click', () => {
+      const dialog = byId('diningOutGuideDialog');
+      if (dialog) dialog.hidden = false;
+    });
+
+    byId('closeDiningGuideBtn')?.addEventListener('click', () => {
+      const dialog = byId('diningOutGuideDialog');
+      if (dialog) dialog.hidden = true;
+    });
+
+    byId('diningOutGuideDialog')?.addEventListener('click', event => {
+      if (event.target === byId('diningOutGuideDialog')) {
+        byId('diningOutGuideDialog').hidden = true;
+      }
+    });
+
+    // "הצגת מנות במאגר" buttons inside the Dining Guide modal
+    document.querySelectorAll('.btn-filter-chain[data-chain]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const chainName = btn.dataset.chain;
+        const dialog = byId('diningOutGuideDialog');
+        if (dialog) dialog.hidden = true;
+        state.foodCategory = 'chains';
+        state.foodQuery = chainName;
+        const input = byId('foodSearchInput');
+        if (input) input.value = chainName;
+        searchRemoteFoods(chainName);
+        input?.focus();
+      });
+    });
     byId('traineeCoachLinkForm')?.addEventListener('submit', async event => {
       event.preventDefault();
       try {
@@ -6787,6 +7329,10 @@
         }
         if (byId('coachReportDetailModal') && !byId('coachReportDetailModal').hidden) {
           byId('coachReportDetailModal').hidden = true;
+          return;
+        }
+        if (byId('diningOutGuideDialog') && !byId('diningOutGuideDialog').hidden) {
+          byId('diningOutGuideDialog').hidden = true;
           return;
         }
         if (byId('coachRegisterTraineeModal') && !byId('coachRegisterTraineeModal').hidden) {

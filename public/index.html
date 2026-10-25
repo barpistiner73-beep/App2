@@ -256,6 +256,15 @@
         <p id="workoutTemplateStatus" class="food-search-status" aria-live="polite"></p>
       </div>
 
+            <!-- Workout Rest Advisory Card -->
+      <div class="workout-rest-advisory-card">
+        <div class="advisory-title">
+          <span class="advisory-icon">⏱️</span>
+          <strong>הנחיית זמני מנוחה באימון:</strong>
+        </div>
+        <p class="advisory-text">מומלץ לנוח עד מצב התאוששות מוחלטת, שזה אומר בממוצע בין דקה ומתחת ל־6 דקות כדי לא לאבד את החימום של השריר.</p>
+      </div>
+
       <section class="recent-workouts-section" id="recentWorkoutsSection" aria-labelledby="recentWorkoutsTitle" hidden>
         <h3 id="recentWorkoutsTitle">האימונים האחרונים שלך</h3>
         <div class="recent-workout-grid" id="recentWorkoutGrid"></div>
@@ -300,10 +309,38 @@
     <!-- TAB 3: NUTRITION -->
     <section class="tab-pane" id="tab-nutrition">
       <h2>יומן תזונה ומאגר מאכלים מורחב</h2>
+
+      <!-- Interactive Meal Ideas & Dining Out Bar -->
+      <div class="nutrition-quick-hub" id="nutritionQuickHub">
+        <div class="quick-hub-title">
+          <span class="quick-hub-icon">💡</span>
+          <span>בחירה מהירה ומדריך תזונה:</span>
+        </div>
+        <div class="quick-hub-buttons">
+          <button type="button" class="quick-hub-btn custom-hub-btn" data-filter="custom_foods">⭐ המצרכים שלי</button>
+          <button type="button" class="quick-hub-btn" data-filter="meal_breakfast">🌅 ארוחות בוקר</button>
+          <button type="button" class="quick-hub-btn" data-filter="meal_lunch">☀️ ארוחות צהריים</button>
+          <button type="button" class="quick-hub-btn" data-filter="meal_dinner">🌙 ארוחות ערב</button>
+          <button type="button" class="quick-hub-btn" data-filter="meal_snack">⚡ נשנושים ואימון</button>
+          <button type="button" class="quick-hub-btn" data-filter="home_shabbat">🍲 אוכל ביתי ושבת</button>
+          <button type="button" class="quick-hub-btn" data-filter="fit_power">💪 חיטוב וכוח</button>
+          <button type="button" class="quick-hub-btn chain-btn" data-filter="aroma">☕ ארומה</button>
+          <button type="button" class="quick-hub-btn chain-btn" data-filter="giraffe">🍜 ג'ירף</button>
+          <button type="button" class="quick-hub-btn chain-btn" data-filter="japanika">🍣 ג'פניקה</button>
+          <button type="button" class="quick-hub-btn chain-btn" data-filter="landwer">🍳 לנדוור</button>
+          <button type="button" class="quick-hub-btn chain-btn" data-filter="roladin">🥐 רולדין</button>
+          <button type="button" class="quick-hub-btn chain-btn" data-filter="bbb">🍔 BBB</button>
+          <button type="button" class="quick-hub-btn chain-btn" data-filter="mcd">🍟 מקדונלד'ס</button>
+          <button type="button" class="quick-hub-btn chain-btn" data-filter="rebar">🥤 ריבר</button>
+          <button type="button" class="quick-hub-btn guide-btn" id="openDiningGuideBtn">📖 מדריך מסעדות וחיטוב</button>
+        </div>
+      </div>
+
       <div class="nutrition-search-sticky">
         <div class="nutrition-search-row">
           <label class="food-search-field"><span aria-hidden="true">⌕</span><input id="foodSearchInput" type="search" placeholder="חיפוש מאכל, קטגוריה או רכיב..." autocomplete="off" aria-label="חיפוש מאכלים"></label>
           <button class="btn-action-secondary voice-record-btn" id="voiceNutritionBtn" type="button" title="הקלטת מזון קולית (Speech-to-Text)">🎙️ הקלטה קולית</button>
+          <button class="btn-action-primary new-custom-food-btn" id="openManualFoodEntryBtn" type="button" title="הוספת מצרך חדש ידנית">＋ מצרך חדש</button>
           <button class="btn-action-secondary barcode-open-btn" id="openBarcodeScannerBtn" type="button">📷 סרוק ברקוד</button>
         </div>
         <div id="voiceNutritionStatus" class="voice-nutrition-status" hidden>
@@ -771,9 +808,15 @@
       <div>
         <h2 id="activeWorkoutTitle">Push Session</h2>
         <span class="workout-time" id="workoutElapsed">00:00</span>
-        <label class="session-rest-setting">מנוחה בין סטים (שניות)
-          <input id="sessionRestSeconds" type="number" min="0" max="900" step="15" value="90">
-        </label>
+        <div class="session-rest-control-wrap">
+          <label class="session-rest-setting">מנוחה בין סטים (שניות)
+            <input id="sessionRestSeconds" type="number" min="0" max="900" step="15" value="90">
+          </label>
+          <div class="session-rest-recovery-note">
+            <span class="note-icon">💡</span>
+            <span><strong>המלצת מנוחה:</strong> מומלץ לנוח עד מצב התאוששות מוחלטת (בממוצע בין דקה ומתחת ל־6 דקות, כדי לא לאבד את החימום של השריר).</span>
+          </div>
+        </div>
         <!-- Time-Crunch Mode Toggle Button -->
         <button id="timeCrunchToggleBtn" class="time-crunch-btn">
           מצב קצר בזמן: כבוי
@@ -797,14 +840,192 @@
         <button id="restHudSub15Btn" class="rest-hud-btn" type="button" title="הורד 15 שניות">-15 שנ׳</button>
         <button id="restHudSkipBtn" class="rest-hud-btn rest-hud-skip" type="button" title="דלג על המנוחה">דלג ✓</button>
       </div>
+      <div class="rest-hud-recovery-tip">
+        💡 מומלץ לנוח עד התאוששות מוחלטת (בממוצע בין דקה ומתחת ל־6 דקות) כדי לא לאבד את החימום של השריר.
+      </div>
     </div>
 
-    <!-- Time Crunch Instructions Banner -->
+        <!-- Time Crunch Instructions Banner -->
     <div id="timeCrunchBanner" class="time-crunch-banner" style="display: none;">
-      <strong>הנחיות "קצר בזמן" (Rotation Protocol):</strong> בצע סט 1 לכל קבוצת שריר בסבב מתחלף (חזה -> כתפיים -> יד אחורית) לקבלת מקסימום סטים ראשונים איכותיים במינימום מנוחה!
+      <div class="time-crunch-header">
+        <div class="time-crunch-title-wrap">
+          <span class="time-crunch-icon">⚡</span>
+          <strong class="time-crunch-title">פרוטוקול "קצר בזמן" – הנחיות עבודה</strong>
+        </div>
+        <span class="time-crunch-status-badge">פעיל ✓</span>
+      </div>
+
+      <div class="time-crunch-body">
+        <div class="crunch-block crunch-core-principle">
+          <div class="crunch-block-title">📌 עקרון הבסיס:</div>
+          <p>לדאוג שכל קבוצת שריר מקבלת לפחות סט איכותי 1. מכיוון שכל סט שעובר באימון מייצר יותר ויותר תשישות, וכשאין זמן אין גם זמן לנוח – כדי לפגוע בכל השרירים בצורה הכי איכותית שיש, יש צורך להשיג כמה שיותר "סטים ראשונים".</p>
+        </div>
+
+        <div class="crunch-block crunch-example-flow">
+          <div class="crunch-block-title">🔄 דוגמה ליישום (למשל ביום Push):</div>
+          <div class="crunch-flow-steps">
+            <div class="crunch-flow-header">סדר האימון: <strong>חזה</strong> ➔ <strong>כתפיים</strong> ➔ <strong>יד אחורית</strong>.</div>
+            <ul class="crunch-flow-list">
+              <li>מבצעים <strong>סט אחד של חזה</strong> (לחיצה שטוחה), אחריו מנוחה די קצרה (כי מחליפים קבוצת שריר).</li>
+              <li>ממשיכים ל<strong>סט 1 של כתפיים</strong> (לחיצת כתפיים), ואחריו <strong>סט 1 יד אחורית</strong> (פשיטת מרפקים רגילה בכבלים).</li>
+              <li>חוזרים על זה שוב ושוב עד שמגיעים ל<strong>לפחות 2 סטים מכל דבר</strong>.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="crunch-block crunch-completion-phase">
+          <div class="crunch-block-title">⏱️ שלב ההשלמה (אם נשאר זמן):</div>
+          <p>במידה ויש עוד זמן, יכולים להוסיף סטים לווריאציות נוספות (למשל: חזה עליון, ווריאציה נוספת של כתפיים כמו לחיצה, ופשיטה מעל הראש).</p>
+        </div>
+
+        <div class="crunch-block crunch-extreme-scenario">
+          <div class="crunch-block-title">🚨 תרחיש קיצון (אם אין בכלל זמן):</div>
+          <p>לדאוג שלכל התרגילים באימון יהיה לפחות סט אחד גם לווריאציות, או לחלופין לבחור רק את התרגילים (כמו בהתחלה) שעובדים על כל החלקים שאמורים לעבוד במלואם – עד מקסימום הסטים שהזמן מאפשר.</p>
+        </div>
+      </div>
     </div>
 
     <div class="active-workout-content" id="activeExercisesList"></div>
+  </div>
+
+    <!-- MANUAL / CUSTOM FOOD ENTRY DIALOG -->
+  <div class="dialog-backdrop" id="manualFoodEntryDialog" hidden>
+    <section class="dialog-card manual-food-dialog" role="dialog" aria-modal="true" aria-labelledby="manualFoodTitle">
+      <div class="dialog-header">
+        <div>
+          <span class="eyebrow">מאגר מצרכים אישי</span>
+          <h2 id="manualFoodTitle">הוספת מצרך חדש ידנית</h2>
+        </div>
+        <button class="icon-button" id="closeManualFoodEntryBtn" type="button">סגירה</button>
+      </div>
+      <p class="scanner-hint">המצרך יישמר ברשימת המצרכים שלך לשימוש חוזר בכל עת, מבלי שתצטרך למלא מחדש את הערכים!</p>
+
+      <form id="manualFoodEntryForm" class="manual-food-form">
+        <!-- Name -->
+        <label>שם המצרך או המוצר <span class="required-star">*</span>
+          <input id="customFoodNameField" type="text" required maxlength="120" placeholder="למשל: יוגורט עיזים 10%, לחם כוסמין בוטיק, שייק ביתי">
+        </label>
+
+        <!-- Category & Icon row -->
+        <div class="manual-food-row-2">
+          <label>קטגוריה
+            <select id="customFoodCategoryField">
+              <option value="protein">חלבונים ובשר</option>
+              <option value="dairy">מוצרי חלב וביצים</option>
+              <option value="dairy_protein">מוצרי פרוטאין</option>
+              <option value="grains">פחמימות ודגנים</option>
+              <option value="fats">שומנים ואגוזים</option>
+              <option value="bakery_pastry">מאפיות ולחמים</option>
+              <option value="fruit">פירות</option>
+              <option value="vegetables">ירקות</option>
+              <option value="supermarket_staples" selected>מזווה ישראלי / מצרך כללי</option>
+              <option value="healthy_fitness">ספורט ובריאות</option>
+              <option value="sweets_desserts">קינוחים ומתוקים</option>
+            </select>
+          </label>
+
+          <label>אייקון (אימוג'י)
+            <select id="customFoodIconField">
+              <option value="🍽️">🍽️ כללי</option>
+              <option value="🥩">🥩 בשר / סטייק</option>
+              <option value="🍗">🍗 עוף / הודו</option>
+              <option value="🐟">🐟 דגים / טונה</option>
+              <option value="🧀">🧀 גבינות</option>
+              <option value="🥛">🥛 חלב / יוגורט</option>
+              <option value="🥚">🥚 ביצים</option>
+              <option value="🍞">🍞 לחמים / מאפים</option>
+              <option value="🫓">🫓 פיתות</option>
+              <option value="🌾">🌾 דגנים / קוואקר</option>
+              <option value="🍚">🍚 אורז</option>
+              <option value="🍝">🍝 פסטה</option>
+              <option value="🥑">🥑 אבוקדו</option>
+              <option value="🥜">🥜 אגוזים / חמאת בוטנים</option>
+              <option value="🥣">🥣 טחינה / ממרח</option>
+              <option value="🧆">🧆 חומוס / פלאפל</option>
+              <option value="🥗">🥗 סלטים</option>
+              <option value="🍎">🍎 פירות</option>
+              <option value="🥦">🥦 ירקות</option>
+              <option value="🥤">🥤 שייק חלבון / משקה</option>
+              <option value="🍫">🍫 מתוקים / שוקולד</option>
+            </select>
+          </label>
+        </div>
+
+        <!-- Basis: 100g vs Serving -->
+        <div class="manual-food-basis-group">
+          <span class="basis-title">בסיס הערכים התזונתיים:</span>
+          <div class="basis-options">
+            <label class="basis-option-label">
+              <input type="radio" name="customNutritionBasis" value="100g" checked>
+              <span>ל־100 גרם (מצרך סטנדרטי - יאפשר חישוב יחסי לפי משקל)</span>
+            </label>
+            <label class="basis-option-label">
+              <input type="radio" name="customNutritionBasis" value="serving">
+              <span>למנה שלמה קבועה (יחידה / גביע / שקית)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Macro grid -->
+        <div class="barcode-macro-grid manual-macro-grid">
+          <label>קלוריות <span id="manualBasisCalsText">(ל־100ג)</span> <span class="required-star">*</span>
+            <input id="customFoodCaloriesField" type="number" min="0" max="2500" step="0.1" required placeholder="0">
+          </label>
+          <label>חלבון (גרם) <span class="required-star">*</span>
+            <input id="customFoodProteinField" type="number" min="0" max="100" step="0.1" required placeholder="0">
+          </label>
+          <label>פחמימות (גרם) <span class="required-star">*</span>
+            <input id="customFoodCarbsField" type="number" min="0" max="100" step="0.1" required placeholder="0">
+          </label>
+          <label>שומן כולל (גרם) <span class="required-star">*</span>
+            <input id="customFoodFatField" type="number" min="0" max="100" step="0.1" required placeholder="0">
+          </label>
+        </div>
+
+        <!-- Optional nutrients & portions -->
+        <fieldset class="manual-optional-fieldset">
+          <legend>פרטי מנה וערכים נוספים (אופציונלי)</legend>
+          <div class="barcode-macro-grid manual-optional-grid">
+            <label>סיבים (גרם)
+              <input id="customFoodFiberField" type="number" min="0" max="100" step="0.1" placeholder="אופציונלי">
+            </label>
+            <label>נתרן (מ״ג)
+              <input id="customFoodSodiumField" type="number" min="0" max="10000" step="1" placeholder="אופציונלי">
+            </label>
+            <label>סוכרים (גרם)
+              <input id="customFoodSugarField" type="number" min="0" max="100" step="0.1" placeholder="אופציונלי">
+            </label>
+            <label>משקל מנה מומלצת (גרם)
+              <input id="customFoodDefaultGramsField" type="number" min="1" max="5000" step="1" placeholder="100" value="100">
+            </label>
+          </div>
+          <label style="margin-top: 8px;">תיאור יחידת מנה (אופציונלי)
+            <input id="customFoodUnitNameField" type="text" maxlength="60" placeholder="למשל: פרוסה (30 גרם), גביע (150 גרם), כף גדושה (25 גרם)">
+          </label>
+        </fieldset>
+
+        <!-- Immediate log option -->
+        <div class="manual-log-now-box">
+          <label class="manual-log-now-toggle">
+            <input id="customFoodLogNowCheck" type="checkbox" checked>
+            <span><strong>הוסף מצרך זה מיד ליומן הארוחות של היום</strong></span>
+          </label>
+          <div id="manualLogNowFields" class="manual-log-now-fields">
+            <label>כמות שנאכלה עכשיו:
+              <input id="customFoodLogNowGrams" type="number" min="1" max="5000" step="1" value="100">
+              <span id="customFoodLogNowUnit">גרם</span>
+            </label>
+          </div>
+        </div>
+
+        <p id="manualFoodError" class="scanner-error" hidden></p>
+
+        <div class="dialog-actions">
+          <button class="btn-action-secondary" id="cancelManualFoodBtn" type="button">ביטול</button>
+          <button class="btn-action-primary" id="saveManualFoodBtn" type="submit">💾 שמור מצרך במאגר שלי</button>
+        </div>
+      </form>
+    </section>
   </div>
 
   <div class="dialog-backdrop" id="barcodeScannerDialog" hidden>
@@ -1244,12 +1465,299 @@
     </div>
   </div>
 
+  
+  <!-- ISRAELI RESTAURANTS & DINING OUT NUTRITION GUIDE MODAL -->
+  <div class="dialog-backdrop" id="diningOutGuideDialog" hidden>
+    <section class="dialog-card dining-guide-dialog" role="dialog" aria-modal="true" aria-labelledby="diningGuideTitle">
+      <div class="dialog-header">
+        <div>
+          <span class="eyebrow">מדריך אכילה בחוץ ורשתות בישראל</span>
+          <h2 id="diningGuideTitle">מסעדות, בתי קפה ותזונה נבונה</h2>
+        </div>
+        <button class="icon-button icon-button-ghost" id="closeDiningGuideBtn" type="button" aria-label="סגירה">✕</button>
+      </div>
+
+      <div class="dialog-scroll dining-guide-scroll">
+        <div class="dining-guide-intro">
+          מדריך מעשי המבוסס על נתוני התזונה והקלוריות הרשמיים שמפרסמות הרשתות המובילות בישראל. שימוש בבחירות מומלצות אלו מאפשר לשמור על יעדי חלבון, גרעון קלורי ואיזון תזונתי גם כשיוצאים לאכול בחוץ.
+        </div>
+
+        <div class="restaurant-guide-grid">
+          <!-- AROMA -->
+          <article class="restaurant-guide-card">
+            <div class="restaurant-card-header">
+              <div class="restaurant-card-title">
+                <span class="restaurant-logo">☕</span>
+                <div>
+                  <h3>ארומה אספרסו בר</h3>
+                  <small style="color:var(--text-muted)">Aroma Espresso Bar</small>
+                </div>
+              </div>
+              <span class="restaurant-badge-verified">מחשבון רשמי</span>
+            </div>
+            <div class="restaurant-tip-box pick">
+              <strong>⭐ בחירת זהב למתאמנים:</strong>
+              סלט עוף (ללא לחם) מספק <strong>46 גרם חלבון</strong> ב-<strong>282 קלוריות</strong> בלבד! בכריכים: מומלץ לבחור בחצי כריך בלחם מחמצת מלא (כ-30-34ג חלבון). אייס ארומה דיאט מכיל 35 קלוריות בלבד.
+            </div>
+            <div class="restaurant-tip-box caution">
+              <strong>⚠️ מלכודת קלוריות:</strong>
+              רטבי סלט מלאים + לחם לבן בצד מקפיצים סלט בריא מ-282 קלוריות ליותר מ-850 קלוריות. אייס ארומה רגיל מכיל כ-338 קלוריות וכ-48 גרם סוכר.
+            </div>
+            <table class="restaurant-dishes-table">
+              <thead>
+                <tr><th>מנה בתפריט</th><th>חלבון</th><th>קלוריות</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>סלט עוף (ללא לחם)</td><td class="macro-p">46.0ג</td><td class="macro-cal">282 קל׳</td></tr>
+                <tr><td>כריך עוף מחמצת מלא (חצי)</td><td class="macro-p">30.8ג</td><td class="macro-cal">339 קל׳</td></tr>
+                <tr><td>כריך טונה מחמצת מלא (חצי)</td><td class="macro-p">16.8ג</td><td class="macro-cal">230 קל׳</td></tr>
+                <tr><td>מרק עדשים (קערה 400ג)</td><td class="macro-p">16.0ג</td><td class="macro-cal">252 קל׳</td></tr>
+                <tr><td>אייס ארומה דיאט (קטן)</td><td class="macro-p">1.6ג</td><td class="macro-cal">35 קל׳</td></tr>
+              </tbody>
+            </table>
+            <div class="restaurant-card-footer">
+              <button type="button" class="btn-filter-chain" data-chain="ארומה">הצגת מנות ארומה במאגר ◀</button>
+            </div>
+          </article>
+
+          <!-- GIRAFFE -->
+          <article class="restaurant-guide-card">
+            <div class="restaurant-card-header">
+              <div class="restaurant-card-title">
+                <span class="restaurant-logo">🍜</span>
+                <div>
+                  <h3>ג'ירף אסייתי</h3>
+                  <small style="color:var(--text-muted)">Giraffe Asian Fusion</small>
+                </div>
+              </div>
+              <span class="restaurant-badge-verified">ניתוח רכיבים</span>
+            </div>
+            <div class="restaurant-tip-box pick">
+              <strong>⭐ בחירת זהב למתאמנים:</strong>
+              סושי סלמון/אבוקדו קלאסי (כ-340 קלוריות לרול של 8 יח'), מרק ראמן עוף וירקות (משביע, כ-520 קלוריות ו-38ג חלבון), או שיפודי סאטה עוף (36ג חלבון).
+            </div>
+            <div class="restaurant-tip-box caution">
+              <strong>⚠️ מלכודת קלוריות:</strong>
+              המנה המאלזית והפיליפינית החריפה כוללות אטריות שמנות, חלב קוקוס עתיר שומן ובוטנים מטוגנים, ומגיעות ל-880–950 קלוריות למנה בודדת.
+            </div>
+            <table class="restaurant-dishes-table">
+              <thead>
+                <tr><th>מנה בתפריט</th><th>חלבון</th><th>קלוריות</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>סושי סלמון אבוקדו (8 יח')</td><td class="macro-p">15.0ג</td><td class="macro-cal">340 קל׳</td></tr>
+                <tr><td>שיפודי עוף סאטה בוטנים (3)</td><td class="macro-p">36.0ג</td><td class="macro-cal">420 קל׳</td></tr>
+                <tr><td>מרק ראמן עוף וירקות</td><td class="macro-p">38.0ג</td><td class="macro-cal">520 קל׳</td></tr>
+                <tr><td>פאד תאי עוף קלאסי</td><td class="macro-p">44.0ג</td><td class="macro-cal">780 קל׳</td></tr>
+                <tr><td>המנה המאלזית עוף</td><td class="macro-p">42.0ג</td><td class="macro-cal">950 קל׳</td></tr>
+              </tbody>
+            </table>
+            <div class="restaurant-card-footer">
+              <button type="button" class="btn-filter-chain" data-chain="ג'ירף">הצגת מנות ג'ירף במאגר ◀</button>
+            </div>
+          </article>
+
+          <!-- BBB BURGER BAR -->
+          <article class="restaurant-guide-card">
+            <div class="restaurant-card-header">
+              <div class="restaurant-card-title">
+                <span class="restaurant-logo">🍔</span>
+                <div>
+                  <h3>BBB בורגר בר</h3>
+                  <small style="color:var(--text-muted)">BBB Burger Bar</small>
+                </div>
+              </div>
+              <span class="restaurant-badge-verified">מותאם חיטוב</span>
+            </div>
+            <div class="restaurant-tip-box pick">
+              <strong>⭐ בחירת זהב למתאמנים:</strong>
+              הזמנת קציצה בצלחת על סלט שוק (480 קלוריות ו-41ג חלבון ללא פחמימות), או שדרוג ללחמניית Eatsane דלת פחמימות (14ג חלבון, 3ג פחמימה נטו ו-120 קלוריות בלבד).
+            </div>
+            <div class="restaurant-tip-box caution">
+              <strong>⚠️ מלכודת קלוריות:</strong>
+              תוספת צ'יפס או טבעות בצל מוסיפה 380–420 קלוריות. מומלץ להמיר את הצ'יפס בסלט ירוק או פלחי ירקות טריים.
+            </div>
+            <table class="restaurant-dishes-table">
+              <thead>
+                <tr><th>מנה בתפריט</th><th>חלבון</th><th>קלוריות</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>בורגר בלחמניית Eatsane</td><td class="macro-p">48.0ג</td><td class="macro-cal">460 קל׳</td></tr>
+                <tr><td>קציצה 220ג בצלחת (דל פחמימה)</td><td class="macro-p">41.0ג</td><td class="macro-cal">480 קל׳</td></tr>
+                <tr><td>סלט שוק חזה עוף</td><td class="macro-p">42.0ג</td><td class="macro-cal">380 קל׳</td></tr>
+                <tr><td>בורגר קלאסי 160ג בלחמנייה</td><td class="macro-p">34.0ג</td><td class="macro-cal">590 קל׳</td></tr>
+                <tr><td>בורגר 220ג בלחמנייה</td><td class="macro-p">44.0ג</td><td class="macro-cal">740 קל׳</td></tr>
+              </tbody>
+            </table>
+            <div class="restaurant-card-footer">
+              <button type="button" class="btn-filter-chain" data-chain="BBB">הצגת מנות BBB במאגר ◀</button>
+            </div>
+          </article>
+
+          <!-- MCDONALD'S ISRAEL -->
+          <article class="restaurant-guide-card">
+            <div class="restaurant-card-header">
+              <div class="restaurant-card-title">
+                <span class="restaurant-logo">🍟</span>
+                <div>
+                  <h3>מקדונלד'ס ישראל</h3>
+                  <small style="color:var(--text-muted)">McDonald's Israel</small>
+                </div>
+              </div>
+              <span class="restaurant-badge-verified">מחשבון רשמי</span>
+            </div>
+            <div class="restaurant-tip-box pick">
+              <strong>⭐ בחירת זהב למתאמנים:</strong>
+              מקרויאל על גחלים (505 קלוריות ו-28ג חלבון מבשר בקר 100%), מקרויאל כפול למי שצריך 49ג חלבון, 9 נאגטס כנשנוש עשיר בחלבון (385 קלוריות ו-22ג חלבון), או סלט עוף צלוי.
+            </div>
+            <div class="restaurant-tip-box caution">
+              <strong>⚠️ מלכודת קלוריות:</strong>
+              הגדלת ארוחה עם צ'יפס גדול ושתייה ממותקת מקפיצה את הארוחה ב-500–600 קלוריות נוספות. העדיפו מים / קולה זירו וצ'יפס רגיל או סלט.
+            </div>
+            <table class="restaurant-dishes-table">
+              <thead>
+                <tr><th>מנה בתפריט</th><th>חלבון</th><th>קלוריות</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>סלט עוף צלוי בגריל</td><td class="macro-p">28.0ג</td><td class="macro-cal">240 קל׳</td></tr>
+                <tr><td>נאגטס 9 יחידות</td><td class="macro-p">22.0ג</td><td class="macro-cal">385 קל׳</td></tr>
+                <tr><td>מקרויאל על גחלים</td><td class="macro-p">28.0ג</td><td class="macro-cal">505 קל׳</td></tr>
+                <tr><td>מקרויאל כפול על גחלים</td><td class="macro-p">49.0ג</td><td class="macro-cal">730 קל׳</td></tr>
+                <tr><td>צ'יפס רגיל בינוני</td><td class="macro-p">3.2ג</td><td class="macro-cal">295 קל׳</td></tr>
+              </tbody>
+            </table>
+            <div class="restaurant-card-footer">
+              <button type="button" class="btn-filter-chain" data-chain="מקדונלדס">הצגת מנות מקדונלד'ס ◀</button>
+            </div>
+          </article>
+        
+          <!-- JAPANIKA -->
+          <article class="restaurant-guide-card">
+            <div class="restaurant-card-header">
+              <div class="restaurant-card-title">
+                <span class="restaurant-logo">🍣</span>
+                <div>
+                  <h3>ג'פניקה</h3>
+                  <small style="color:var(--text-muted)">Japanika Sushi Bar</small>
+                </div>
+              </div>
+              <span class="restaurant-badge-verified">אסייתי מוביל</span>
+            </div>
+            <div class="restaurant-tip-box pick">
+              <strong>⭐ בחירת זהב למתאמנים:</strong>
+              סלט סשימי טונה וסלמון (<strong>36 גרם חלבון</strong> ו-290 קלוריות), גיוזה עוף מאודה (4 יח' = 210 קלוריות ו-14ג חלבון), או מרק מיסו כמנת פתיחה קלה של 75 קלוריות.
+            </div>
+            <div class="restaurant-tip-box caution">
+              <strong>⚠️ מלכודת קלוריות:</strong>
+              רולים חמים מטוגנים בטמפורה ופנקו (כמו ג'פנקו קראנץ' או ספייסי מיונז) עולים ל-440–550 קלוריות לרול. עדיף לבחור ברולים רגילים עם דג נא וירקות.
+            </div>
+            <table class="restaurant-dishes-table">
+              <thead>
+                <tr><th>מנה בתפריט</th><th>חלבון</th><th>קלוריות</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>סלט סשימי דגים (דל פחמימה)</td><td class="macro-p">36.0ג</td><td class="macro-cal">290 קל׳</td></tr>
+                <tr><td>גיוזה עוף מאודה (4 יח')</td><td class="macro-p">14.0ג</td><td class="macro-cal">210 קל׳</td></tr>
+                <tr><td>יקיטורי פרגיות בטריאקי (2)</td><td class="macro-p">28.0ג</td><td class="macro-cal">310 קל׳</td></tr>
+                <tr><td>פאד תאי עוף ג'פניקה</td><td class="macro-p">42.0ג</td><td class="macro-cal">740 קל׳</td></tr>
+                <tr><td>רול ג'פנקו קראנץ' מטוגן</td><td class="macro-p">14.0ג</td><td class="macro-cal">440 קל׳</td></tr>
+              </tbody>
+            </table>
+            <div class="restaurant-card-footer">
+              <button type="button" class="btn-filter-chain" data-chain="ג'פניקה">הצגת מנות ג'פניקה ◀</button>
+            </div>
+          </article>
+
+          <!-- LANDWER -->
+          <article class="restaurant-guide-card">
+            <div class="restaurant-card-header">
+              <div class="restaurant-card-title">
+                <span class="restaurant-logo">🍳</span>
+                <div>
+                  <h3>קפה לנדוור</h3>
+                  <small style="color:var(--text-muted)">Cafe Landwer</small>
+                </div>
+              </div>
+              <span class="restaurant-badge-verified">בתי קפה</span>
+            </div>
+            <div class="restaurant-tip-box pick">
+              <strong>⭐ בחירת זהב למתאמנים:</strong>
+              שקשוקה ים תיכונית עם חצילים וגבינת פטה 5% (28ג חלבון), סלט פטוש גלילי עם תוספת עוף או פטה, או ארוחת בוקר איכרים עם לחם קל.
+            </div>
+            <div class="restaurant-tip-box caution">
+              <strong>⚠️ מלכודת קלוריות:</strong>
+              צלחת הרוזלך המפורסמת מכילה כ-1,250 קלוריות ו-95 גרם סוכר! אם מזמינים, מומלץ לחלוק עם 4 חברים (יחידה אחת = כ-125 קלוריות).
+            </div>
+            <table class="restaurant-dishes-table">
+              <thead>
+                <tr><th>מנה בתפריט</th><th>חלבון</th><th>קלוריות</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>שקשוקה חצילים ופטה בטאבון</td><td class="macro-p">28.0ג</td><td class="macro-cal">640 קל׳</td></tr>
+                <tr><td>סלט פטוש גלילי עם פטה</td><td class="macro-p">18.0ג</td><td class="macro-cal">480 קל׳</td></tr>
+                <tr><td>כריך אנטרקוט בפרנה</td><td class="macro-p">42.0ג</td><td class="macro-cal">790 קל׳</td></tr>
+                <tr><td>שניצל ענק ופירה לנדוור</td><td class="macro-p">48.0ג</td><td class="macro-cal">860 קל׳</td></tr>
+                <tr><td>רוזלך נוטלה (יחידה 1)</td><td class="macro-p">2.2ג</td><td class="macro-cal">125 קל׳</td></tr>
+              </tbody>
+            </table>
+            <div class="restaurant-card-footer">
+              <button type="button" class="btn-filter-chain" data-chain="לנדוור">הצגת מנות לנדוור ◀</button>
+            </div>
+          </article>
+
+          <!-- ROLADIN -->
+          <article class="restaurant-guide-card">
+            <div class="restaurant-card-header">
+              <div class="restaurant-card-title">
+                <span class="restaurant-logo">🥐</span>
+                <div>
+                  <h3>רולדין</h3>
+                  <small style="color:var(--text-muted)">Roladin Bakery & Cafe</small>
+                </div>
+              </div>
+              <span class="restaurant-badge-verified">מאפיות וקפה</span>
+            </div>
+            <div class="restaurant-tip-box pick">
+              <strong>⭐ בחירת זהב למתאמנים:</strong>
+              כריך סלמון מעושן בבייגל עם גבינת שמנת 5% מספק <strong>28 גרם חלבון</strong> ב-460 קלוריות. לקפה: קפוצ'ינו על בסיס שיבולת שועל ללא סוכר מוסף.
+            </div>
+            <div class="restaurant-tip-box caution">
+              <strong>⚠️ מלכודת קלוריות:</strong>
+              מאפי חמאה (קרואסון שקדים = 440 קלוריות) וסופגניות גורמה (490 קלוריות) עשירים בסוכר ושומן רווי. מומלץ לשמור כפינוק מדוד.
+            </div>
+            <table class="restaurant-dishes-table">
+              <thead>
+                <tr><th>מנה בתפריט</th><th>חלבון</th><th>קלוריות</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>כריך סלמון מעושן בבייגל</td><td class="macro-p">28.0ג</td><td class="macro-cal">460 קל׳</td></tr>
+                <tr><td>כריך גאודה ופסטו בבגט</td><td class="macro-p">24.0ג</td><td class="macro-cal">580 קל׳</td></tr>
+                <tr><td>קיש בטטה וגבינת עיזים</td><td class="macro-p">15.0ג</td><td class="macro-cal">490 קל׳</td></tr>
+                <tr><td>קרואסון חמאה קלאסי</td><td class="macro-p">6.0ג</td><td class="macro-cal">340 קל׳</td></tr>
+                <tr><td>סופגנייה קלאסית ריבה</td><td class="macro-p">5.5ג</td><td class="macro-cal">330 קל׳</td></tr>
+              </tbody>
+            </table>
+            <div class="restaurant-card-footer">
+              <button type="button" class="btn-filter-chain" data-chain="רולדין">הצגת מנות רולדין ◀</button>
+            </div>
+          </article>
+
+        </div>
+      </div>
+    </section>
+  </div>
+
   <!-- Firebase Cloud Database (Firestore) -->
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
   <script src="src/domainSchema.js"></script>
   <script src="firebase-config.js"></script>
+  <!-- Food module - must load before data.js which calls _patchFitData -->
+  <script src="src/foodCategories.js"></script>
+  <script src="src/foodDatabaseManager.js"></script>
+  <script src="src/foodsDatabase.js"></script>
+  <script src="src/index.js"></script>
   <script src="data.js"></script>
   <script src="data/israeli_culinary_database/israeli_food_data.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js" defer></script>

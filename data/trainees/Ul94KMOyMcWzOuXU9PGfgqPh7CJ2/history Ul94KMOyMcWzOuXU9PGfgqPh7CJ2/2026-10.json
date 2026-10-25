@@ -1,7 +1,7 @@
 {
   "traineeId": "Ul94KMOyMcWzOuXU9PGfgqPh7CJ2",
   "month": "2026-10",
-  "totalReports": 1,
+  "totalReports": 2,
   "reports": [
     {
       "id": "Ul94KMOyMcWzOuXU9PGfgqPh7CJ2_2026-10-22",
@@ -284,6 +284,54 @@
       ],
       "coachFeedback": null,
       "autoClosedNote": "הדוח נסגר אוטומטית בחצות בסוף היום ונשמר במסד הנתונים."
+    },
+    {
+      "id": "Ul94KMOyMcWzOuXU9PGfgqPh7CJ2_2026-10-25",
+      "traineeId": "Ul94KMOyMcWzOuXU9PGfgqPh7CJ2",
+      "date": "2026-10-25",
+      "status": "draft",
+      "createdAt": "2026-10-25T00:08:19.751Z",
+      "updatedAt": "2026-10-25T00:08:35.660Z",
+      "finalizedAt": null,
+      "metrics": {
+        "morningWeightKg": null,
+        "sleepHours": 7.5,
+        "sleepQuality": 8,
+        "waterMl": 2500,
+        "steps": 9000,
+        "energyLevel": 4,
+        "hungerLevel": 2,
+        "stressLevel": 2,
+        "digestion": "good",
+        "traineeNotes": ""
+      },
+      "nutrition": {
+        "totalCalories": 312,
+        "totalProtein": 30.630000000000003,
+        "totalCarbs": 0,
+        "totalFat": 20.13,
+        "totalFiber": 30,
+        "totalSodium": 2100,
+        "targetCalories": 2200,
+        "targetProtein": 160,
+        "meals": [
+          {
+            "id": "1792886915059-dc5rxf",
+            "loggedAt": "2026-10-25T00:08:35.058Z",
+            "time": "02:08",
+            "name": "פילה סלמון טרי (Atlantic Salmon, Farmed, Raw)",
+            "amount": 150,
+            "unitName": "גרם",
+            "calories": 312,
+            "protein": 30.630000000000003,
+            "carbs": 0,
+            "fat": 20.13,
+            "source": "USDA FoodData Central, FDC ID 175167. Per 100 g."
+          }
+        ]
+      },
+      "workouts": [],
+      "coachFeedback": null
     }
   ]
 }

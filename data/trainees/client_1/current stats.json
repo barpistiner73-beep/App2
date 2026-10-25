@@ -21,9 +21,9 @@
   },
   "activityMetrics": {
     "totalReportsLogged": 51,
-    "totalWorkoutsCompleted": 32,
-    "latestCheckInDate": "2026-10-22",
-    "latestCheckInStatus": "finalized"
+    "totalWorkoutsCompleted": 33,
+    "latestCheckInDate": "2026-10-25",
+    "latestCheckInStatus": "draft"
   },
-  "updatedAt": "2026-10-22T01:12:35.724Z"
+  "updatedAt": "2026-10-25T01:40:19.893Z"
 }

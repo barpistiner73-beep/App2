@@ -16,22 +16,24 @@
   /** @type {FoodCategory[]} */
   var foodCategories = [
     { id: 'all',                 name: 'הכל' },
-    { id: 'chains',              name: 'רשתות מזון מהיר' },
+    { id: 'custom',              name: '⭐ המצרכים שלי' },
+    { id: 'meal_ideas',          name: '💡 רעיונות לארוחות' },
+    { id: 'chains',              name: '🍔 מסעדות ורשתות' },
     { id: 'protein',             name: 'חלבונים ובשר' },
     { id: 'dairy',               name: 'מוצרי חלב וביצים' },
+    { id: 'dairy_protein',       name: 'מוצרי פרוטאין' },
     { id: 'grains',              name: 'פחמימות ודגנים' },
     { id: 'fats',                name: 'שומנים ואגוזים' },
     { id: 'fruit',               name: 'פירות' },
     { id: 'vegetables',          name: 'ירקות' },
-    { id: 'scanned',             name: 'נסרקו' },
-    { id: 'dairy_protein',       name: 'מוצרי חלב ופרוטאין' },
     { id: 'hummus_falafel',      name: 'חומוסיות ופלאפל' },
     { id: 'shawarma_meat',       name: 'שווארמה ובשרים' },
     { id: 'bakery_pastry',       name: 'מאפיות ולחמים' },
     { id: 'supermarket_staples', name: 'מזווה ישראלי' },
     { id: 'healthy_fitness',     name: 'ספורט ובריאות' },
-    { id: 'sweets_desserts',     name: 'קינוחים ומתוקים' },
     { id: 'street_food',         name: 'אוכל רחוב ישראלי' },
+    { id: 'sweets_desserts',     name: 'קינוחים ומתוקים' },
+    { id: 'scanned',             name: 'נסרקו' },
   ];
 
   // Expose on the shared FitPulse namespace (browser) or module.exports (Node).

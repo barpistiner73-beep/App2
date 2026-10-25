@@ -679,8 +679,14 @@ FIT_DATA.exercises.forEach(exercise => {
 // Apply the modular food system patch now that FIT_DATA is fully defined.
 // src/index.js exposes window.FitPulse._patchFitData; calling it here wires
 // up the live foodCategories and foodsDatabase getter/setter on FIT_DATA.
-if (typeof window !== 'undefined' && window.FitPulse && window.FitPulse._patchFitData) {
-  window.FitPulse._patchFitData(FIT_DATA);
+if (typeof window !== 'undefined') {
+  window.FIT_DATA = FIT_DATA;
+  if (window.FitPulse && window.FitPulse._patchFitData) {
+    window.FitPulse._patchFitData(FIT_DATA);
+  }
+} else if (typeof global !== 'undefined' && global.FitPulse && global.FitPulse._patchFitData) {
+  global.FIT_DATA = FIT_DATA;
+  global.FitPulse._patchFitData(FIT_DATA);
 } else {
   // Fallback: src/ scripts were not loaded -- food data will be unavailable.
   console.warn(

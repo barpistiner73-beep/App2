@@ -77,22 +77,7 @@
     },
     {
       "id": "JWhQFuuEWDbD5w5rwPwnQ8vuiKA2",
-      "name": "JWhQFuuEWDbD5w5rwPwnQ8vuiKA2",
-      "avatar": "",
-      "age": 25,
-      "gender": "other",
-      "weight": 70,
-      "height": 175,
-      "targetCalories": 2400,
-      "targetProtein": 160,
-      "targetWaterMl": 3000,
-      "targetSleepHours": 8,
-      "assignedRoutine": "",
-      "notes": ""
-    },
-    {
-      "id": "Ul94KMOyMcWzOuXU9PGfgqPh7CJ2",
-      "name": "Ul94KMOyMcWzOuXU9PGfgqPh7CJ2"
+      "name": "JWhQFuuEWDbD5w5rwPwnQ8vuiKA2"
     }
   ],
   "dailyReports": {
@@ -6959,18 +6944,6 @@
       "workouts": [],
       "coachFeedback": null,
       "autoClosedNote": "הדוח נסגר אוטומטית בחצות בסוף היום ונשמר במסד הנתונים."
-    },
-    "client_1_2026-10-22": {
-      "traineeId": "client_1",
-      "date": "2026-10-22",
-      "status": "finalized",
-      "finalizedAt": "2026-10-22T01:12:35.654Z",
-      "id": "client_1_2026-10-22",
-      "createdAt": "2026-10-22T01:12:35.654Z",
-      "updatedAt": "2026-10-22T01:12:35.654Z",
-      "metrics": {},
-      "nutrition": {},
-      "workouts": []
     },
     "client_2_2026-09-01": {
       "id": "client_2_2026-09-01",
@@ -24856,14 +24829,14 @@
       ],
       "coachFeedback": null
     },
-    "Ul94KMOyMcWzOuXU9PGfgqPh7CJ2_2026-10-22": {
-      "id": "Ul94KMOyMcWzOuXU9PGfgqPh7CJ2_2026-10-22",
+    "Ul94KMOyMcWzOuXU9PGfgqPh7CJ2_2026-10-25": {
+      "id": "Ul94KMOyMcWzOuXU9PGfgqPh7CJ2_2026-10-25",
       "traineeId": "Ul94KMOyMcWzOuXU9PGfgqPh7CJ2",
-      "date": "2026-10-22",
-      "status": "auto_closed",
-      "createdAt": "2026-10-22T02:09:08.861Z",
-      "updatedAt": "2026-10-24T22:52:26.992Z",
-      "finalizedAt": "2026-10-22T23:59:59.000Z",
+      "date": "2026-10-25",
+      "status": "draft",
+      "createdAt": "2026-10-25T00:08:19.751Z",
+      "updatedAt": "2026-10-25T00:08:35.660Z",
+      "finalizedAt": null,
       "metrics": {
         "morningWeightKg": null,
         "sleepHours": 7.5,
@@ -24877,266 +24850,465 @@
         "traineeNotes": ""
       },
       "nutrition": {
-        "totalCalories": 0,
-        "totalProtein": 0,
+        "totalCalories": 312,
+        "totalProtein": 30.630000000000003,
         "totalCarbs": 0,
-        "totalFat": 0,
+        "totalFat": 20.13,
         "totalFiber": 30,
         "totalSodium": 2100,
         "targetCalories": 2200,
         "targetProtein": 160,
-        "meals": []
+        "meals": [
+          {
+            "id": "1792886915059-dc5rxf",
+            "loggedAt": "2026-10-25T00:08:35.058Z",
+            "time": "02:08",
+            "name": "פילה סלמון טרי (Atlantic Salmon, Farmed, Raw)",
+            "amount": 150,
+            "unitName": "גרם",
+            "calories": 312,
+            "protein": 30.630000000000003,
+            "carbs": 0,
+            "fat": 20.13,
+            "source": "USDA FoodData Central, FDC ID 175167. Per 100 g."
+          }
+        ]
+      },
+      "workouts": [],
+      "coachFeedback": null
+    },
+    "client_1_2026-10-25": {
+      "id": "client_1_2026-10-25",
+      "traineeId": "client_1",
+      "date": "2026-10-25",
+      "status": "draft",
+      "createdAt": "2026-10-25T00:29:37.621Z",
+      "updatedAt": "2026-10-25T01:40:19.841Z",
+      "finalizedAt": null,
+      "metrics": {
+        "morningWeightKg": null,
+        "sleepHours": 7.5,
+        "sleepQuality": 8,
+        "waterMl": 2500,
+        "steps": 9000,
+        "energyLevel": 4,
+        "hungerLevel": 2,
+        "stressLevel": 2,
+        "digestion": "good",
+        "traineeNotes": ""
+      },
+      "nutrition": {
+        "totalCalories": 2863.36,
+        "totalProtein": 277.08,
+        "totalCarbs": 0,
+        "totalFat": 189.16,
+        "totalFiber": 30,
+        "totalSodium": 2100,
+        "targetCalories": 2250,
+        "targetProtein": 165,
+        "meals": [
+          {
+            "id": "1792892385035-8nri68",
+            "loggedAt": "2026-10-25T01:39:45.035Z",
+            "time": "03:39",
+            "name": "פילה סלמון טרי (Atlantic Salmon, Farmed, Raw)",
+            "amount": 150,
+            "unitName": "גרם",
+            "calories": 312,
+            "protein": 30.630000000000003,
+            "carbs": 0,
+            "fat": 20.13,
+            "source": "USDA FoodData Central, FDC ID 175167. Per 100 g."
+          },
+          {
+            "id": "1792892399508-1mm8q7",
+            "loggedAt": "2026-10-25T01:39:59.507Z",
+            "time": "03:39",
+            "name": "פילה סלמון טרי (Atlantic Salmon, Farmed, Raw)",
+            "amount": 100,
+            "unitName": "גרם",
+            "calories": 208,
+            "protein": 20.42,
+            "carbs": 0,
+            "fat": 13.42,
+            "source": "USDA FoodData Central, FDC ID 175167. Per 100 g."
+          },
+          {
+            "id": "1792892412460-ob8ygm",
+            "loggedAt": "2026-10-25T01:40:12.459Z",
+            "time": "03:40",
+            "name": "טונה בהירה בשמן צמחי מסוננת (קופסה ~112 גרם)",
+            "amount": 112,
+            "unitName": "גרם",
+            "calories": 221.76000000000002,
+            "protein": 29.680000000000003,
+            "carbs": 0,
+            "fat": 11.760000000000002,
+            "source": "טונה בהירה בשמן צמחי מסוננת סטארקיסט / פילטונה"
+          },
+          {
+            "id": "1792892416916-eb8b6p",
+            "loggedAt": "2026-10-25T01:40:16.916Z",
+            "time": "03:40",
+            "name": "אסאדו בקר בבישול ארוך / צלוי (ל-100 גרם בשר נטו)",
+            "amount": 180,
+            "unitName": "גרם",
+            "calories": 561.6,
+            "protein": 43.2,
+            "carbs": 0,
+            "fat": 43.2,
+            "source": "USDA FoodData Central צלעות קצרות בקר (Short Ribs) צלויות"
+          },
+          {
+            "id": "1792892417924-e52w2r",
+            "loggedAt": "2026-10-25T01:40:17.924Z",
+            "time": "03:40",
+            "name": "פילה סלמון טרי (Atlantic Salmon, Farmed, Raw)",
+            "amount": 150,
+            "unitName": "גרם",
+            "calories": 312,
+            "protein": 30.630000000000003,
+            "carbs": 0,
+            "fat": 20.13,
+            "source": "USDA FoodData Central, FDC ID 175167. Per 100 g."
+          },
+          {
+            "id": "1792892418468-dp820r",
+            "loggedAt": "2026-10-25T01:40:18.468Z",
+            "time": "03:40",
+            "name": "פילה סלמון טרי (Atlantic Salmon, Farmed, Raw)",
+            "amount": 150,
+            "unitName": "גרם",
+            "calories": 312,
+            "protein": 30.630000000000003,
+            "carbs": 0,
+            "fat": 20.13,
+            "source": "USDA FoodData Central, FDC ID 175167. Per 100 g."
+          },
+          {
+            "id": "1792892418892-go3u90",
+            "loggedAt": "2026-10-25T01:40:18.892Z",
+            "time": "03:40",
+            "name": "פילה סלמון טרי (Atlantic Salmon, Farmed, Raw)",
+            "amount": 150,
+            "unitName": "גרם",
+            "calories": 312,
+            "protein": 30.630000000000003,
+            "carbs": 0,
+            "fat": 20.13,
+            "source": "USDA FoodData Central, FDC ID 175167. Per 100 g."
+          },
+          {
+            "id": "1792892419060-f1cvgf",
+            "loggedAt": "2026-10-25T01:40:19.060Z",
+            "time": "03:40",
+            "name": "פילה סלמון טרי (Atlantic Salmon, Farmed, Raw)",
+            "amount": 150,
+            "unitName": "גרם",
+            "calories": 312,
+            "protein": 30.630000000000003,
+            "carbs": 0,
+            "fat": 20.13,
+            "source": "USDA FoodData Central, FDC ID 175167. Per 100 g."
+          },
+          {
+            "id": "1792892419227-lcsqbd",
+            "loggedAt": "2026-10-25T01:40:19.227Z",
+            "time": "03:40",
+            "name": "פילה סלמון טרי (Atlantic Salmon, Farmed, Raw)",
+            "amount": 150,
+            "unitName": "גרם",
+            "calories": 312,
+            "protein": 30.630000000000003,
+            "carbs": 0,
+            "fat": 20.13,
+            "source": "USDA FoodData Central, FDC ID 175167. Per 100 g."
+          }
+        ]
       },
       "workouts": [
         {
-          "id": "workout-1792634947471",
-          "routineId": "session_push",
-          "name": "Push Session",
-          "startedAt": "2026-10-22T02:09:04.095Z",
-          "completedAt": "2026-10-22T02:09:07.470Z",
-          "time": "05:09",
-          "durationMinutes": 1,
+          "id": "workout-1792892084636",
+          "routineId": "session_pull",
+          "name": "Pull Session",
+          "startedAt": "2026-10-25T01:32:43.163Z",
+          "completedAt": "2026-10-25T01:34:44.636Z",
+          "time": "03:34",
+          "durationMinutes": 2,
           "completedSets": 0,
-          "totalSets": 26,
+          "totalSets": 30,
           "totalVolume": 0,
           "difficulty": 8,
           "notes": "",
           "exercises": [
             {
-              "name": "Barbell Bench Press",
-              "exerciseId": "ex_bench_press",
+              "name": "Conventional Barbell Deadlift",
+              "exerciseId": "ex_deadlift",
               "sets": [
                 {
                   "setNumber": 1,
-                  "weight": 70,
-                  "reps": 8,
+                  "weight": 110,
+                  "reps": 6,
                   "completed": false,
-                  "time": "05:09"
+                  "time": "03:34"
                 },
                 {
                   "setNumber": 2,
-                  "weight": 70,
-                  "reps": 8,
+                  "weight": 110,
+                  "reps": 6,
                   "completed": false,
-                  "time": "05:09"
+                  "time": "03:34"
                 },
                 {
                   "setNumber": 3,
-                  "weight": 70,
-                  "reps": 8,
+                  "weight": 110,
+                  "reps": 6,
                   "completed": false,
-                  "time": "05:09"
+                  "time": "03:34"
+                }
+              ]
+            },
+            {
+              "name": "Cable Rope Face Pull",
+              "exerciseId": "ex_face_pull",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 20,
+                  "reps": 15,
+                  "completed": false,
+                  "time": "03:34"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 20,
+                  "reps": 15,
+                  "completed": false,
+                  "time": "03:34"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 20,
+                  "reps": 15,
+                  "completed": false,
+                  "time": "03:34"
                 },
                 {
                   "setNumber": 4,
-                  "weight": 70,
-                  "reps": 8,
+                  "weight": 20,
+                  "reps": 15,
                   "completed": false,
-                  "time": "05:09"
+                  "time": "03:34"
                 }
               ]
             },
             {
-              "name": "Incline Dumbbell Press",
-              "exerciseId": "ex_incline_db_press",
+              "name": "EZ-Bar Bicep Curl",
+              "exerciseId": "ex_bicep_curl",
               "sets": [
                 {
                   "setNumber": 1,
-                  "weight": 24,
+                  "weight": 30,
                   "reps": 10,
                   "completed": false,
-                  "time": "05:09"
+                  "time": "03:34"
                 },
                 {
                   "setNumber": 2,
-                  "weight": 24,
+                  "weight": 30,
                   "reps": 10,
                   "completed": false,
-                  "time": "05:09"
+                  "time": "03:34"
                 },
                 {
                   "setNumber": 3,
-                  "weight": 24,
+                  "weight": 30,
                   "reps": 10,
                   "completed": false,
-                  "time": "05:09"
+                  "time": "03:34"
                 }
               ]
             },
             {
-              "name": "Machine Chest Press",
-              "exerciseId": "ex_machine_chest_press",
+              "name": "Lat Pulldown",
+              "exerciseId": "ex_lat_pulldown",
               "sets": [
                 {
                   "setNumber": 1,
                   "weight": 55,
                   "reps": 10,
                   "completed": false,
-                  "time": "05:09"
+                  "time": "03:34"
                 },
                 {
                   "setNumber": 2,
                   "weight": 55,
                   "reps": 10,
                   "completed": false,
-                  "time": "05:09"
+                  "time": "03:34"
                 },
                 {
                   "setNumber": 3,
                   "weight": 55,
                   "reps": 10,
                   "completed": false,
-                  "time": "05:09"
-                }
-              ]
-            },
-            {
-              "name": "Pec Deck Fly",
-              "exerciseId": "ex_pec_deck",
-              "sets": [
-                {
-                  "setNumber": 1,
-                  "weight": 45,
-                  "reps": 12,
-                  "completed": false,
-                  "time": "05:09"
-                },
-                {
-                  "setNumber": 2,
-                  "weight": 45,
-                  "reps": 12,
-                  "completed": false,
-                  "time": "05:09"
-                },
-                {
-                  "setNumber": 3,
-                  "weight": 45,
-                  "reps": 12,
-                  "completed": false,
-                  "time": "05:09"
-                }
-              ]
-            },
-            {
-              "name": "Overhead Barbell Press (OHP)",
-              "exerciseId": "ex_ohp",
-              "sets": [
-                {
-                  "setNumber": 1,
-                  "weight": 45,
-                  "reps": 8,
-                  "completed": false,
-                  "time": "05:09"
-                },
-                {
-                  "setNumber": 2,
-                  "weight": 45,
-                  "reps": 8,
-                  "completed": false,
-                  "time": "05:09"
-                },
-                {
-                  "setNumber": 3,
-                  "weight": 45,
-                  "reps": 8,
-                  "completed": false,
-                  "time": "05:09"
-                }
-              ]
-            },
-            {
-              "name": "Cable Lateral Raise",
-              "exerciseId": "ex_cable_lateral_raise",
-              "sets": [
-                {
-                  "setNumber": 1,
-                  "weight": 7.5,
-                  "reps": 12,
-                  "completed": false,
-                  "time": "05:09"
-                },
-                {
-                  "setNumber": 2,
-                  "weight": 7.5,
-                  "reps": 12,
-                  "completed": false,
-                  "time": "05:09"
-                },
-                {
-                  "setNumber": 3,
-                  "weight": 7.5,
-                  "reps": 12,
-                  "completed": false,
-                  "time": "05:09"
+                  "time": "03:34"
                 },
                 {
                   "setNumber": 4,
-                  "weight": 7.5,
-                  "reps": 12,
+                  "weight": 55,
+                  "reps": 10,
                   "completed": false,
-                  "time": "05:09"
+                  "time": "03:34"
                 }
               ]
             },
             {
-              "name": "Cable Rope Tricep Pushdown",
-              "exerciseId": "ex_tricep_pushdown",
+              "name": "Incline Dumbbell Curl",
+              "exerciseId": "ex_db_incline_curl",
               "sets": [
                 {
                   "setNumber": 1,
-                  "weight": 25,
+                  "weight": 12,
                   "reps": 12,
                   "completed": false,
-                  "time": "05:09"
+                  "time": "03:34"
                 },
                 {
                   "setNumber": 2,
-                  "weight": 25,
+                  "weight": 12,
                   "reps": 12,
                   "completed": false,
-                  "time": "05:09"
+                  "time": "03:34"
                 },
                 {
                   "setNumber": 3,
-                  "weight": 25,
+                  "weight": 12,
                   "reps": 12,
                   "completed": false,
-                  "time": "05:09"
+                  "time": "03:34"
                 }
               ]
             },
             {
-              "name": "Cable Overhead Triceps Extension",
-              "exerciseId": "ex_overhead_cable_triceps",
+              "name": "Wide-Grip Pull-Up",
+              "exerciseId": "ex_pullups",
               "sets": [
                 {
                   "setNumber": 1,
-                  "weight": 20,
-                  "reps": 12,
+                  "weight": 0,
+                  "reps": 8,
                   "completed": false,
-                  "time": "05:09"
+                  "time": "03:34"
                 },
                 {
                   "setNumber": 2,
-                  "weight": 20,
-                  "reps": 12,
+                  "weight": 0,
+                  "reps": 8,
                   "completed": false,
-                  "time": "05:09"
+                  "time": "03:34"
                 },
                 {
                   "setNumber": 3,
-                  "weight": 20,
+                  "weight": 0,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "03:34"
+                }
+              ]
+            },
+            {
+              "name": "Bent-Over Barbell Row",
+              "exerciseId": "ex_barbell_row",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 60,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "03:34"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 60,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "03:34"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 60,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "03:34"
+                },
+                {
+                  "setNumber": 4,
+                  "weight": 60,
+                  "reps": 8,
+                  "completed": false,
+                  "time": "03:34"
+                }
+              ]
+            },
+            {
+              "name": "Seated Cable Row",
+              "exerciseId": "ex_seated_cable_row",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 50,
                   "reps": 12,
                   "completed": false,
-                  "time": "05:09"
+                  "time": "03:34"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 50,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "03:34"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 50,
+                  "reps": 12,
+                  "completed": false,
+                  "time": "03:34"
+                }
+              ]
+            },
+            {
+              "name": "Straight-Arm Cable Pulldown",
+              "exerciseId": "ex_pullover_cable",
+              "sets": [
+                {
+                  "setNumber": 1,
+                  "weight": 25,
+                  "reps": 15,
+                  "completed": false,
+                  "time": "03:34"
+                },
+                {
+                  "setNumber": 2,
+                  "weight": 25,
+                  "reps": 15,
+                  "completed": false,
+                  "time": "03:34"
+                },
+                {
+                  "setNumber": 3,
+                  "weight": 25,
+                  "reps": 15,
+                  "completed": false,
+                  "time": "03:34"
                 }
               ]
             }
           ]
         }
       ],
-      "coachFeedback": null,
-      "autoClosedNote": "הדוח נסגר אוטומטית בחצות בסוף היום ונשמר במסד הנתונים."
+      "coachFeedback": null
     }
   },
   "users": [
@@ -25176,9 +25348,7 @@
       "routine": "Push-Pull-Legs 4D",
       "status": "active",
       "approvalStatus": "approved",
-      "createdAt": "2026-09-01T00:00:00.000Z",
-      "approvedAt": "2026-10-24T22:52:27.027Z",
-      "approvedBy": "usr_mgr"
+      "createdAt": "2026-09-01T00:00:00.000Z"
     },
     {
       "id": "usr_c2",
@@ -25251,8 +25421,8 @@
       "email": "some.private.adress@gmail.com",
       "isTrainer": false,
       "role": "trainee",
-      "status": "active",
-      "approvalStatus": "approved",
+      "status": "rejected",
+      "approvalStatus": "rejected",
       "avatar": "https://lh3.googleusercontent.com/a/ACg8ocKmmjGjPYSPdl21gmgz2GVa2I7WU-uC_-8KgqoMpi8-CrHHYA=s96-c",
       "profileImageUrl": "https://lh3.googleusercontent.com/a/ACg8ocKmmjGjPYSPdl21gmgz2GVa2I7WU-uC_-8KgqoMpi8-CrHHYA=s96-c",
       "specialty": "אימון כושר ותזונת ספורט",
@@ -25265,9 +25435,7 @@
           "_methodName": "FieldValue.serverTimestamp"
         }
       },
-      "rejectedReason": "לא אושר על ידי מנהל מערכת",
-      "approvedAt": "2026-10-24T23:09:27.573Z",
-      "approvedBy": "usr_mgr"
+      "rejectedReason": "לא אושר על ידי מנהל מערכת"
     },
     {
       "id": "hzQZZunYMSgiwYzUTouErbk2DZn1",
@@ -25293,113 +25461,9 @@
       },
       "approvedAt": "2026-10-21T22:47:49.604Z",
       "approvedBy": "hzQZZunYMSgiwYzUTouErbk2DZn1"
-    },
-    {
-      "id": "2IqoYDMLhNc8kUS6Hk6OR1SBN4J3",
-      "userId": "2IqoYDMLhNc8kUS6Hk6OR1SBN4J3",
-      "name": "אילון הלוי",
-      "fullName": "אילון הלוי",
-      "email": "eilon.halevy12@gmail.com",
-      "isTrainer": false,
-      "role": "trainee",
-      "status": "active",
-      "approvalStatus": "approved",
-      "avatar": "https://lh3.googleusercontent.com/a/ACg8ocKIiWS8ewt4rt2Xab_n0VnTKPFZNbypbVBtKdcD92rjFXyfqg=s96-c",
-      "profileImageUrl": "https://lh3.googleusercontent.com/a/ACg8ocKIiWS8ewt4rt2Xab_n0VnTKPFZNbypbVBtKdcD92rjFXyfqg=s96-c",
-      "specialty": "אימון כושר ותזונת ספורט",
-      "selfTraining": true,
-      "targetCalories": 2200,
-      "targetProtein": 160,
-      "targetWater": 3000,
-      "createdAt": {
-        "_delegate": {
-          "_methodName": "FieldValue.serverTimestamp"
-        }
-      },
-      "rejectedReason": "לא אושר על ידי מנהל מערכת",
-      "approvedAt": "2026-10-24T23:09:19.227Z",
-      "approvedBy": "usr_mgr"
     }
   ],
   "auditLogs": [
-    {
-      "id": "log_1792883367593_sbo6a",
-      "type": "USER_STATUS_CHANGED",
-      "description": "עודכן סטטוס משתמש N2HkpQ5OffZvxp5JhXDjkXlitQn1 ל-active",
-      "meta": {
-        "userId": "N2HkpQ5OffZvxp5JhXDjkXlitQn1",
-        "status": "active"
-      },
-      "timestamp": "2026-10-24T23:09:27.593Z"
-    },
-    {
-      "id": "log_1792883359239_dyhei",
-      "type": "USER_STATUS_CHANGED",
-      "description": "עודכן סטטוס משתמש 2IqoYDMLhNc8kUS6Hk6OR1SBN4J3 ל-active",
-      "meta": {
-        "userId": "2IqoYDMLhNc8kUS6Hk6OR1SBN4J3",
-        "status": "active"
-      },
-      "timestamp": "2026-10-24T23:09:19.239Z"
-    },
-    {
-      "id": "log_1792882347068_yx03k",
-      "type": "USER_ROLE_CHANGED",
-      "description": "שונה תפקיד משתמש usr_c1 ל-trainee",
-      "meta": {
-        "userId": "usr_c1",
-        "role": "trainee"
-      },
-      "timestamp": "2026-10-24T22:52:27.068Z"
-    },
-    {
-      "id": "log_1792882347052_1h572",
-      "type": "USER_ROLE_CHANGED",
-      "description": "שונה תפקיד משתמש usr_c1 ל-coach",
-      "meta": {
-        "userId": "usr_c1",
-        "role": "coach"
-      },
-      "timestamp": "2026-10-24T22:52:27.052Z"
-    },
-    {
-      "id": "log_1792882347034_5vo91",
-      "type": "USER_STATUS_CHANGED",
-      "description": "עודכן סטטוס משתמש usr_c1 ל-active",
-      "meta": {
-        "userId": "usr_c1",
-        "status": "active"
-      },
-      "timestamp": "2026-10-24T22:52:27.034Z"
-    },
-    {
-      "id": "log_1792882347019_srlub",
-      "type": "USER_STATUS_CHANGED",
-      "description": "עודכן סטטוס משתמש usr_c1 ל-rejected",
-      "meta": {
-        "userId": "usr_c1",
-        "status": "rejected"
-      },
-      "timestamp": "2026-10-24T22:52:27.019Z"
-    },
-    {
-      "id": "log_1792637221871_lncvv",
-      "type": "USER_REJECTED",
-      "description": "נדחתה בקשת הרשמה (2IqoYDMLhNc8kUS6Hk6OR1SBN4J3) ע\"י מנהל מערכת: לא אושר על ידי מנהל מערכת",
-      "meta": {},
-      "timestamp": "2026-10-22T02:47:01.871Z"
-    },
-    {
-      "id": "log_1792635474116_g5ujx",
-      "type": "USER_REGISTRATION_SUBMITTED",
-      "description": "הוגשה בקשת הרשמה (מתאמן): אילון הלוי (eilon.halevy12@gmail.com) - ממתין לאישור מנהל",
-      "meta": {
-        "userId": "2IqoYDMLhNc8kUS6Hk6OR1SBN4J3",
-        "role": "trainee",
-        "email": "eilon.halevy12@gmail.com"
-      },
-      "timestamp": "2026-10-22T02:17:54.116Z"
-    },
     {
       "id": "log_1792622869616_llhru",
       "type": "USER_APPROVED",

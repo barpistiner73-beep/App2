@@ -1,3 +1,8 @@
+/**
+ * FitPulse Core Backend API & Web Server
+ * Clean REST API with unified Authentication & Data Management.
+ */
+
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -26,8 +31,8 @@ function sendJson(res, statusCode, data) {
     'Content-Type': 'application/json; charset=utf-8',
     'Cache-Control': 'no-cache, no-store, must-revalidate',
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type'
+    'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization'
   });
   res.end(JSON.stringify(data));
 }
@@ -37,7 +42,7 @@ function parseJsonBody(req) {
     let body = '';
     req.on('data', chunk => {
       body += chunk;
-      if (body.length > 5 * 1024 * 1024) { // 5MB limit
+      if (body.length > 5 * 1024 * 1024) {
         reject(new Error('Request body too large'));
       }
     });
@@ -53,12 +58,12 @@ function parseJsonBody(req) {
   });
 }
 
-// Background task: Auto-close past open daily reports every 10 minutes
+// Background auto-close task every 10 minutes
 setInterval(() => {
   try {
     db.autoClosePastReports();
   } catch (err) {
-    console.error('[Server] Auto-close background error:', err.message);
+    console.error('[Server] Auto-close background notice:', err.message);
   }
 }, 10 * 60 * 1000);
 
@@ -68,12 +73,12 @@ const server = http.createServer(async (req, res) => {
   const pathname = parsedUrl.pathname;
   const method = req.method;
 
-  // Handle CORS preflight
+  // Handle CORS
   if (method === 'OPTIONS') {
     res.writeHead(204, {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type'
+      'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
     });
     res.end();
     return;
@@ -82,179 +87,218 @@ const server = http.createServer(async (req, res) => {
   // --- API Routes ---
   if (pathname.startsWith('/api/')) {
     try {
-      // GET /api/trainees
-      if (pathname === '/api/trainees' && method === 'GET') {
-        const trainees = db.getTrainees();
-        return sendJson(res, 200, { success: true, trainees });
-      }
-
-      // POST /api/trainees/create (Coach registers a new trainee)
-      if (pathname === '/api/trainees/create' && method === 'POST') {
+      // 1. POST /api/auth/login (Unified Email/Username Login)
+      if (pathname === '/api/auth/login' && method === 'POST') {
         const body = await parseJsonBody(req);
-        if (!body.name) {
-          return sendJson(res, 400, { success: false, error: 'Trainee name is required' });
+        const identifier = body.email || body.identifier || body.userId;
+        const result = db.authenticate(identifier, body.password);
+        if (result.error) {
+          const status = result.code === 'account-rejected' || result.code === 'account-suspended' ? 403 : (result.isPending ? 403 : 401);
+          return sendJson(res, status, { success: false, ...result });
         }
-        const created = db.createTrainee(body);
-        return sendJson(res, 201, { success: true, trainee: created });
+        return sendJson(res, 200, { success: true, user: result.user });
       }
 
-      // --- User & Pending Approval API Routes ---
-      // GET /api/users/pending (Fetch all pending trainer & trainee approvals)
+      // 2. POST /api/auth/google (Google Authentication & Registration Workflow)
+      if (pathname === '/api/auth/google' && method === 'POST') {
+        const body = await parseJsonBody(req);
+        const result = db.registerOrLoginGoogleUser(body);
+        if (result.error) {
+          const status = result.code === 'account-rejected' || result.code === 'account-suspended' ? 403 : 400;
+          return sendJson(res, status, { success: false, ...result });
+        }
+        return sendJson(res, 200, { success: true, ...result });
+      }
+
+      // 3. GET /api/users (Admin: List Users)
+      if (pathname === '/api/users' && method === 'GET') {
+        const role = query.get('role') || 'all';
+        const status = query.get('status') || 'all';
+        const users = db.getUsers({ role, status });
+        return sendJson(res, 200, { success: true, count: users.length, users });
+      }
+
+      // 4. GET /api/users/pending (Admin: Pending Registrations)
       if (pathname === '/api/users/pending' && method === 'GET') {
         const pendingUsers = db.getPendingApprovals();
-        return sendJson(res, 200, { success: true, count: pendingUsers.length, pendingUsers });
+        return sendJson(res, 200, { success: true, count: pendingUsers.length, pendingUsers, users: pendingUsers });
       }
 
-      // GET /api/users/status?userId=...&email=... (User checking approval status)
-      if (pathname === '/api/users/status' && method === 'GET') {
-        const identifier = query.get('userId') || query.get('email');
-        if (!identifier) {
-          return sendJson(res, 400, { success: false, error: 'Missing userId or email' });
-        }
-        const user = db.getUserByIdOrEmail(identifier);
-        return sendJson(res, 200, { success: true, user });
-      }
-
-      // POST /api/users/register (Submit registration for manager approval)
-      if (pathname === '/api/users/register' && method === 'POST') {
-        const body = await parseJsonBody(req);
-        if (!body.email && !body.userId && !body.id) {
-          return sendJson(res, 400, { success: false, error: 'User identifier or email required' });
-        }
-        const user = db.registerUser(body);
-        return sendJson(res, 201, { success: true, user });
-      }
-
-      // POST /api/users/approve (Manager approves trainer or trainee)
+      // 5. POST /api/users/approve (Admin: Approve User)
       if (pathname === '/api/users/approve' && method === 'POST') {
         const body = await parseJsonBody(req);
-        if (!body.userId) {
-          return sendJson(res, 400, { success: false, error: 'userId is required' });
-        }
-        const approved = db.approveUser(body.userId, body.managerId || 'usr_mgr');
+        if (!body.userId) return sendJson(res, 400, { success: false, error: 'userId is required' });
+        const approved = db.approveUser(body.userId, body.managerId || 'system');
         return sendJson(res, 200, { success: true, user: approved });
       }
 
-      // POST /api/users/reject (Manager rejects user)
+      // 6. POST /api/users/reject (Admin: Reject User)
       if (pathname === '/api/users/reject' && method === 'POST') {
         const body = await parseJsonBody(req);
-        if (!body.userId) {
-          return sendJson(res, 400, { success: false, error: 'userId is required' });
-        }
+        if (!body.userId) return sendJson(res, 400, { success: false, error: 'userId is required' });
         const rejected = db.rejectUser(body.userId, body.reason);
         return sendJson(res, 200, { success: true, user: rejected });
       }
 
-      // POST /api/users/status (Manager updates user status e.g. cancel rejection, suspend, active)
+      // 7. POST /api/users/status (Admin: Update Status - Suspend / Unsuspend)
       if (pathname === '/api/users/status' && method === 'POST') {
         const body = await parseJsonBody(req);
         if (!body.userId || !body.status) {
           return sendJson(res, 400, { success: false, error: 'userId and status are required' });
         }
-        const updated = db.setUserStatus(body.userId, body.status, body.managerId || 'usr_mgr');
-        return sendJson(res, 200, { success: true, user: updated });
+        const validStatuses = ['active', 'pending_approval', 'suspended', 'rejected'];
+        if (!validStatuses.includes(body.status)) {
+          return sendJson(res, 400, { success: false, error: 'Invalid status value' });
+        }
+        try {
+          const updated = db.setUserStatus(body.userId, body.status, body.managerId || 'system');
+          return sendJson(res, 200, { success: true, user: updated });
+        } catch (err) {
+          return sendJson(res, 400, { success: false, error: err.message });
+        }
       }
 
-      // POST /api/users/role (Manager updates user role e.g. trainee <-> coach)
+      // 8. POST /api/users/role (Admin: Change Role coach <-> trainee)
       if (pathname === '/api/users/role' && method === 'POST') {
         const body = await parseJsonBody(req);
         if (!body.userId || !body.role) {
           return sendJson(res, 400, { success: false, error: 'userId and role are required' });
         }
-        const updated = db.setUserRole(body.userId, body.role, body.managerId || 'usr_mgr');
+        const updated = db.setUserRole(body.userId, body.role, body.managerId || 'system');
         return sendJson(res, 200, { success: true, user: updated });
       }
 
-      // GET /api/users (Manager user directory)
-      if (pathname === '/api/users' && method === 'GET') {
-        const role = query.get('role') || null;
-        const status = query.get('status') || null;
-        const users = db.getUsers({ role, status });
-        return sendJson(res, 200, { success: true, users });
+      // 9. DELETE /api/users/:userId (Admin: Permanently Purge User)
+      if (pathname.startsWith('/api/users/') && method === 'DELETE') {
+        const targetUserId = pathname.slice('/api/users/'.length);
+        if (!targetUserId) {
+          return sendJson(res, 400, { success: false, error: 'userId is required' });
+        }
+        try {
+          const deleted = db.deleteUser(targetUserId);
+          return sendJson(res, 200, { success: true, user: deleted });
+        } catch (err) {
+          return sendJson(res, 400, { success: false, error: err.message });
+        }
       }
 
-      // GET /api/system/status (App Manager system & Firebase monitor)
-      if (pathname === '/api/system/status' && method === 'GET') {
-        const trainees = db.getTrainees();
-        const reportsCount = Object.keys(db.data.dailyReports || {}).length;
-        const auditLogs = db.getAuditLogs(30);
-        return sendJson(res, 200, {
-          success: true,
-          system: {
-            status: 'online',
-            environment: 'production',
-            uptimeSeconds: Math.round(process.uptime()),
-            nodeVersion: process.version,
-            serverPort: PORT
-          },
-          firebase: {
-            projectId: 'fitnessnutritionapp-ab381',
-            region: 'me-west1 (Tel Aviv)',
-            firestoreStatus: 'connected',
-            authStatus: 'active',
-            authProviders: ['emailPassword', 'googleSignIn'],
-            hostingUrl: 'https://fitnessnutritionapp-ab381.web.app'
-          },
-          database: {
-            traineesCount: trainees.length,
-            totalReportsLogged: reportsCount,
-            storageType: 'per-trainee-folders',
-            storagePath: 'data/trainees/'
-          },
-          auditLogs
-        });
+      // 10. GET /api/users/status?userId=...
+      if (pathname === '/api/users/status' && method === 'GET') {
+        const identifier = query.get('userId') || query.get('email');
+        if (!identifier) return sendJson(res, 400, { success: false, error: 'Missing userId or email' });
+        const user = db.getUserByIdOrEmail(identifier);
+        return sendJson(res, 200, { success: true, user });
       }
 
-      // POST /api/system/log (Client logs an activity)
-      if (pathname === '/api/system/log' && method === 'POST') {
+      // 10b. POST /api/users/register (Direct user registration/sync from client)
+      if (pathname === '/api/users/register' && method === 'POST') {
         const body = await parseJsonBody(req);
-        const log = db.logActivity(body.type || 'INFO', body.description || '', body.meta || {});
-        return sendJson(res, 200, { success: true, log });
+        if (!body.email && !body.id && !body.userId) {
+          return sendJson(res, 400, { success: false, error: 'User data required' });
+        }
+        const registered = db.registerUser(body);
+        return sendJson(res, 200, { success: true, user: registered });
       }
 
-      // GET /api/reports?traineeId=...&days=14&startDate=...&endDate=...
-      if (pathname === '/api/reports' && method === 'GET') {
-        const traineeId = query.get('traineeId') || 'client_1';
-        const days = query.get('days') ? parseInt(query.get('days'), 10) : 14;
-        const startDate = query.get('startDate') || null;
-        const endDate = query.get('endDate') || null;
+      // --- Coach Discovery & Trainership APIs ---
 
-        const reports = db.getReports(traineeId, { days, startDate, endDate });
+      // GET /api/coaches (Public Coach Directory - strictly active coaches with isPublicVisible == true, no manager)
+      if (pathname === '/api/coaches' && method === 'GET') {
+        const coaches = db.getCoachPublicDirectory();
+        return sendJson(res, 200, { success: true, count: coaches.length, coaches });
+      }
+
+      // POST /api/coach/visibility (Coach toggles public visibility)
+      if (pathname === '/api/coach/visibility' && method === 'POST') {
+        const body = await parseJsonBody(req);
+        if (!body.userId) return sendJson(res, 400, { success: false, error: 'userId is required' });
+        try {
+          const updated = db.setCoachVisibility(body.userId, body.isPublicVisible);
+          return sendJson(res, 200, { success: true, user: updated, isPublicVisible: updated.isPublicVisible });
+        } catch (err) {
+          return sendJson(res, 400, { success: false, error: err.message });
+        }
+      }
+
+      // POST /api/coach/request (Trainee sends connection request to Coach)
+      if (pathname === '/api/coach/request' && method === 'POST') {
+        const body = await parseJsonBody(req);
+        if (!body.traineeId || !body.coachId) {
+          return sendJson(res, 400, { success: false, error: 'traineeId and coachId are required' });
+        }
+        try {
+          const request = db.requestCoachConnection(body.traineeId, body.coachId, body.traineeName);
+          return sendJson(res, 200, { success: true, request });
+        } catch (err) {
+          return sendJson(res, 400, { success: false, error: err.message });
+        }
+      }
+
+      // POST /api/coach/respond (Coach responds to trainee connection request)
+      if (pathname === '/api/coach/respond' && method === 'POST') {
+        const body = await parseJsonBody(req);
+        if (!body.requestId) return sendJson(res, 400, { success: false, error: 'requestId is required' });
+        try {
+          const result = db.respondCoachConnection(body.requestId, body.accept, body.coachName);
+          return sendJson(res, 200, { success: true, request: result });
+        } catch (err) {
+          return sendJson(res, 400, { success: false, error: err.message });
+        }
+      }
+
+      // POST /api/coach/cancel-request (Trainee cancels pending request)
+      if (pathname === '/api/coach/cancel-request' && method === 'POST') {
+        const body = await parseJsonBody(req);
+        if (!body.traineeId) return sendJson(res, 400, { success: false, error: 'traineeId is required' });
+        const cancelled = db.cancelCoachConnectionRequest(body.traineeId);
+        return sendJson(res, 200, { success: true, cancelled });
+      }
+
+      // POST /api/coach/terminate (Trainee or Coach ends relationship)
+      if (pathname === '/api/coach/terminate' && method === 'POST') {
+        const body = await parseJsonBody(req);
+        if (!body.traineeId) return sendJson(res, 400, { success: false, error: 'traineeId is required' });
+        const result = db.terminateTrainership(body.traineeId, body.coachId, body.initiatedBy || 'user');
+        return sendJson(res, 200, { success: true, ...result });
+      }
+
+      // GET /api/coach/status?traineeId=... (Trainee's coach connection status)
+      if (pathname === '/api/coach/status' && method === 'GET') {
+        const traineeId = query.get('traineeId');
+        if (!traineeId) return sendJson(res, 400, { success: false, error: 'traineeId is required' });
+        const status = db.getTrainershipStatus(traineeId);
+        return sendJson(res, 200, { success: true, ...status });
+      }
+
+      // GET /api/coach/trainees?coachId=... (Coach's active trainees and pending requests)
+      if (pathname === '/api/coach/trainees' && method === 'GET') {
+        const coachId = query.get('coachId');
+        if (!coachId) return sendJson(res, 400, { success: false, error: 'coachId is required' });
+        const data = db.getCoachTrainees(coachId);
+        return sendJson(res, 200, { success: true, ...data });
+      }
+
+      // 11. Trainees & Roster
+      if (pathname === '/api/trainees' && method === 'GET') {
+        const trainees = db.getTrainees();
+        return sendJson(res, 200, { success: true, count: trainees.length, trainees });
+      }
+
+      if (pathname === '/api/trainees/create' && method === 'POST') {
+        const body = await parseJsonBody(req);
+        if (!body.name) return sendJson(res, 400, { success: false, error: 'Trainee name is required' });
+        const created = db.createTrainee(body);
+        return sendJson(res, 201, { success: true, trainee: created });
+      }
+
+      // 12. Reports
+      if (pathname === '/api/reports' && method === 'GET') {
+        const traineeId = query.get('traineeId') || 'usr_trainee_real';
+        const days = query.get('days') ? parseInt(query.get('days'), 10) : 14;
+        const reports = db.getReports(traineeId, { days });
         return sendJson(res, 200, { success: true, traineeId, count: reports.length, reports });
       }
 
-      // GET /api/reports/monthly?traineeId=...&month=YYYY-MM
-      if (pathname === '/api/reports/monthly' && method === 'GET') {
-        const traineeId = query.get('traineeId') || 'client_1';
-        const month = query.get('month') || new Date().toISOString().substring(0, 7);
-        const monthData = db.getMonthlyReports(traineeId, month);
-        return sendJson(res, 200, { success: true, ...monthData });
-      }
-
-      // GET /api/trainees/:traineeId/stats
-      const statsMatch = pathname.match(/^\/api\/trainees\/([a-zA-Z0-9_\-]+)\/stats$/);
-      if (statsMatch && method === 'GET') {
-        const traineeId = statsMatch[1];
-        const stats = db.getTraineeStats(traineeId);
-        if (!stats) {
-          return sendJson(res, 404, { success: false, error: 'Stats not found for trainee' });
-        }
-        return sendJson(res, 200, { success: true, stats });
-      }
-
-      // GET /api/reports/:traineeId/:date
-      const reportMatch = pathname.match(/^\/api\/reports\/([a-zA-Z0-9_\-]+)\/([0-9]{4}-[0-9]{2}-[0-9]{2})$/);
-      if (reportMatch && method === 'GET') {
-        const traineeId = reportMatch[1];
-        const date = reportMatch[2];
-        const report = db.getReport(traineeId, date);
-        if (!report) {
-          return sendJson(res, 404, { success: false, error: 'Report not found' });
-        }
-        return sendJson(res, 200, { success: true, report });
-      }
-
-      // POST /api/reports/save (Auto-save / draft update)
       if (pathname === '/api/reports/save' && method === 'POST') {
         const body = await parseJsonBody(req);
         if (!body.traineeId || !body.date) {
@@ -264,7 +308,6 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 200, { success: true, report: saved });
       }
 
-      // POST /api/reports/finalize (Manual end-of-day submit)
       if (pathname === '/api/reports/finalize' && method === 'POST') {
         const body = await parseJsonBody(req);
         if (!body.traineeId || !body.date) {
@@ -274,7 +317,6 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 200, { success: true, report: finalized });
       }
 
-      // POST /api/reports/feedback (Coach feedback)
       if (pathname === '/api/reports/feedback' && method === 'POST') {
         const body = await parseJsonBody(req);
         if (!body.traineeId || !body.date) {
@@ -284,14 +326,7 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 200, { success: true, report: updated });
       }
 
-      // POST /api/auto-close
-      if (pathname === '/api/auto-close' && method === 'POST') {
-        db.autoClosePastReports();
-        return sendJson(res, 200, { success: true, message: 'Past reports auto-closed successfully' });
-      }
-
-      // --- Israeli Culinary & Food Database Endpoints ---
-      // GET /api/foods?query=...&category=...
+      // 13. Foods Catalog
       if (pathname === '/api/foods' && method === 'GET') {
         const searchQuery = (query.get('query') || '').trim().toLowerCase();
         const category = query.get('category') || 'all';
@@ -301,9 +336,7 @@ const server = http.createServer(async (req, res) => {
           if (fs.existsSync(catalogPath)) {
             foodsList = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
           }
-        } catch (e) {
-          console.error('[Server Foods API] Error loading catalog:', e.message);
-        }
+        } catch (e) {}
 
         const filtered = foodsList.filter(food => {
           const catMatches = category === 'all' || food.category === category;
@@ -316,54 +349,27 @@ const server = http.createServer(async (req, res) => {
           return searchable.includes(searchQuery);
         });
 
-        return sendJson(res, 200, { success: true, count: filtered.length, totalCatalog: foodsList.length, foods: filtered });
+        return sendJson(res, 200, { success: true, count: filtered.length, foods: filtered });
       }
 
-      // POST /api/foods (Add new food item)
-      if (pathname === '/api/foods' && method === 'POST') {
-        const body = await parseJsonBody(req);
-        if (!body.name || body.calories === undefined) {
-          return sendJson(res, 400, { success: false, error: 'Food name and calories are required' });
-        }
-        const catalogPath = path.join(__dirname, 'data', 'israeli_culinary_database', 'foods_catalog.json');
-        let foodsList = [];
-        try {
-          if (fs.existsSync(catalogPath)) {
-            foodsList = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
-          }
-        } catch (e) {}
-
-        const newFood = {
-          id: body.id || `il_custom_${Date.now()}`,
-          name: body.name,
-          nameEn: body.nameEn || '',
-          brand: body.brand || '',
-          category: body.category || 'supermarket_staples',
-          categoryName: body.categoryName || '',
-          unitName: body.unitName || '100 גרם',
-          defaultGrams: Number(body.defaultGrams || 100),
-          calories: Number(body.calories || 0),
-          protein: Number(body.protein || 0),
-          carbs: Number(body.carbs || 0),
-          fat: Number(body.fat || 0),
-          fiber: Number(body.fiber || 0),
-          sodium: Number(body.sodium || 0),
-          sugar: Number(body.sugar || 0),
-          dietaryTags: Array.isArray(body.dietaryTags) ? body.dietaryTags : (body.tags || []),
-          locationType: body.locationType || '',
-          region: body.region || '',
-          address: body.address || '',
-          verified: Boolean(body.verified),
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-
-        const existingIdx = foodsList.findIndex(f => f.id === newFood.id);
-        if (existingIdx >= 0) foodsList[existingIdx] = newFood;
-        else foodsList.unshift(newFood);
-
-        fs.writeFileSync(catalogPath, JSON.stringify(foodsList, null, 2), 'utf8');
-        return sendJson(res, 201, { success: true, food: newFood });
+      // 14. System Status
+      if (pathname === '/api/system/status' && method === 'GET') {
+        return sendJson(res, 200, {
+          success: true,
+          system: {
+            status: 'online',
+            environment: 'production',
+            uptimeSeconds: Math.round(process.uptime()),
+            nodeVersion: process.version,
+            serverPort: PORT
+          },
+          database: {
+            usersCount: db.data.users.length,
+            traineesCount: db.data.trainees.length,
+            reportsCount: Object.keys(db.data.dailyReports || {}).length
+          },
+          auditLogs: db.getAuditLogs(20)
+        });
       }
 
       return sendJson(res, 404, { success: false, error: 'API endpoint not found' });
@@ -403,6 +409,10 @@ const server = http.createServer(async (req, res) => {
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`FitPulse server with Daily Reports API running at http://localhost:${PORT}`);
-});
+if (require.main === module) {
+  server.listen(PORT, () => {
+    console.log(`FitPulse Unified Server running at http://localhost:${PORT}`);
+  });
+}
+
+module.exports = server;

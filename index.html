@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8">
@@ -102,21 +102,68 @@
           </div>
         </div>
         <p id="traineeCoachLinkStatus" class="coach-link-status">טוען חיבור למאמן…</p>
-        <div id="traineeCoachActiveBox" class="coach-link-active" hidden></div>
-        <form id="traineeCoachLinkForm" class="coach-link-form" hidden>
-          <label>חיפוש מאמנים
-            <input id="traineeCoachSearchInput" type="search" autocomplete="off" placeholder="חיפוש לפי שם">
-          </label>
-          <label>בחירת מאמן
-            <select id="traineeCoachSelect">
-              <option value="">טוען מאמנים…</option>
-            </select>
-          </label>
-          <button class="btn-action-primary" id="traineeCoachLinkBtn" type="submit">שליחת בקשת חיבור</button>
-        </form>
+
+        <!-- STATE 1: Trainee has NO coach -> Button "קבע מאמן אישי" -->
+        <div id="traineeNoCoachBox" hidden>
+          <button class="btn-action-primary" id="btnOpenAssignCoach" type="button" style="margin-top: 6px;">
+            <span>🤝 קבע מאמן אישי</span>
+          </button>
+          
+          <!-- Expandable coach selector -->
+          <form id="traineeCoachLinkForm" class="coach-link-form" hidden style="margin-top: 14px;">
+            <div style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
+              <div style="flex: 1; min-width: 220px;">
+                <label for="traineeCoachSelect" style="display: block; margin-bottom: 4px; font-weight: 600;">בחירת מאמן מהמדריך הציבורי:</label>
+                <select id="traineeCoachSelect" class="form-control" style="width: 100%; padding: 8px 12px; border-radius: 8px;">
+                  <option value="">טוען מאמנים זמינים…</option>
+                </select>
+              </div>
+              <button class="btn-action-primary" id="traineeCoachLinkBtn" type="submit" style="height: 42px;">
+                <span>שלח בקשה</span>
+              </button>
+              <button class="btn-action-ghost" id="btnCancelAssignCoach" type="button" style="height: 42px;">
+                <span>ביטול</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- STATE 2: Pending Request awaiting coach approval -->
+        <div id="traineePendingCoachBox" class="pending-coach-banner" hidden style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 10px; padding: 14px; margin-top: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div>
+              <div style="font-weight: 700; color: #fbbf24; display: flex; align-items: center; gap: 6px;">
+                <span>⏳</span>
+                <span>בקשת חיבור ממתינה לאישור המאמן</span>
+              </div>
+              <p id="traineePendingCoachDesc" style="margin: 4px 0 0; font-size: 0.9rem; color: var(--text-dim, #94a3b8);">
+                נשלחה בקשה וממתינה לתשובת המאמן.
+              </p>
+            </div>
+            <button type="button" class="btn-action-ghost" id="btnCancelPendingCoachRequest" style="color: var(--danger, #ef4444); font-size: 0.85rem;">
+              <span>ביטול בקשה</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- STATE 3: Active Coach Connected -->
+        <div id="traineeCoachActiveBox" class="coach-link-active" hidden style="display: flex; justify-content: space-between; align-items: center; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 10px; padding: 14px; margin-top: 8px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div id="activeCoachAvatar" class="header-user-avatar" style="width: 44px; height: 44px; font-size: 1.2rem; background: linear-gradient(135deg, #10b981, #059669);">👑</div>
+            <div>
+              <div style="font-size: 1.05rem; font-weight: 700;" id="activeCoachName">מאמן אישי</div>
+              <div style="font-size: 0.82rem; color: var(--text-dim, #94a3b8);" id="activeCoachEmail">coach@fitpulse.com</div>
+              <span class="header-user-role-badge role-coach" style="margin-top: 4px; display: inline-block;">מאמן פעיל</span>
+            </div>
+          </div>
+          <button type="button" class="btn-action-ghost" id="btnTerminateCoachRelationship" style="color: var(--danger, #ef4444); border: 1px solid rgba(239, 68, 68, 0.4); padding: 8px 14px; border-radius: 8px; font-weight: 600;">
+            <span>❌ סיום הקשר</span>
+          </button>
+        </div>
+
         <div id="traineeConnectionRequests" class="coach-pending-list"></div>
-        <div id="traineePermissionRequests" class="coach-pending-list"></div>
-        <div id="traineePermissionScopes" class="coach-pending-list"></div>
+        <div id="traineePermissionRequests" class="coach-pending-list" hidden></div>
+        <div id="traineePermissionScopes" class="coach-pending-list" hidden></div>
       </section>
       <section class="glass-card coach-link-card" id="traineePendingTasksCard">
         <div class="card-header-flex"><div><span class="eyebrow">משימות מהמאמן</span><h2>משימות פתוחות</h2></div></div>
@@ -1044,47 +1091,29 @@
           </button>
         </form>
 
-        <!-- Fast Accounts Bar: Real Accounts & Demo Accounts -->
+        <!-- Fast Accounts Bar: 3 Special Protected Accounts -->
         <div class="auth-demo-section">
-          <span class="auth-demo-title">כניסה מהירה בלחיצה לחשבונות אמת בענן (Firebase Live):</span>
-          <div class="auth-demo-pills" style="margin-bottom: 12px;">
-            <button type="button" class="auth-demo-pill" data-real-account="true" data-demo-role="coach" data-demo-email="coach.real@fitpulse.com" data-demo-pass="TrainerPass123!" data-demo-name="Coach Alex Cohen" style="border: 1px solid rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.08);">
+          <span class="auth-demo-title">כניסה מהירה בלחיצה לחשבונות מיוחדים לבדיקות:</span>
+          <div class="auth-demo-pills">
+            <button type="button" class="auth-demo-pill" data-real-account="true" data-demo-role="manager" data-demo-email="manager@fitpulse.com" data-demo-name="מנהל מערכת" style="border: 1px solid rgba(59, 130, 246, 0.4); background: rgba(59, 130, 246, 0.08);">
+              <span class="demo-avatar manager">🛡️</span>
+              <div class="demo-info">
+                <strong>מנהל מערכת</strong>
+                <small>manager@fitpulse.com</small>
+              </div>
+            </button>
+            <button type="button" class="auth-demo-pill" data-real-account="true" data-demo-role="coach" data-demo-email="coach.real@fitpulse.com" data-demo-pass="TrainerPass123!" data-demo-name="מאמן (חשבון אמת)" style="border: 1px solid rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.08);">
               <span class="demo-avatar coach">👑</span>
               <div class="demo-info">
                 <strong>מאמן (חשבון אמת)</strong>
                 <small>coach.real@fitpulse.com</small>
               </div>
             </button>
-            <button type="button" class="auth-demo-pill" data-real-account="true" data-demo-role="trainee" data-demo-email="trainee.real@fitpulse.com" data-demo-pass="TraineePass123!" data-demo-name="Jordan Trainee" style="border: 1px solid rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.08);">
+            <button type="button" class="auth-demo-pill" data-real-account="true" data-demo-role="trainee" data-demo-email="trainee.real@fitpulse.com" data-demo-pass="TraineePass123!" data-demo-name="מתאמן (חשבון אמת)" style="border: 1px solid rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.08);">
               <span class="demo-avatar trainee">🏋️</span>
               <div class="demo-info">
                 <strong>מתאמן (חשבון אמת)</strong>
                 <small>trainee.real@fitpulse.com</small>
-              </div>
-            </button>
-          </div>
-
-          <span class="auth-demo-title" style="font-size: 0.76rem; color: var(--text-dim);">חשבונות הדגמה לוקאליים מהירים:</span>
-          <div class="auth-demo-pills">
-            <button type="button" class="auth-demo-pill" data-demo-role="trainee" data-demo-email="daniel@fitpulse.com" data-demo-name="דניאל כהן">
-              <span class="demo-avatar">דכ</span>
-              <div class="demo-info">
-                <strong>מתאמן דמו</strong>
-                <small>דניאל כהן</small>
-              </div>
-            </button>
-            <button type="button" class="auth-demo-pill" data-demo-role="coach" data-demo-email="coach@fitpulse.com" data-demo-name="מאמן ראשי">
-              <span class="demo-avatar coach">👑</span>
-              <div class="demo-info">
-                <strong>מאמן דמו</strong>
-                <small>ניהול מתאמנים</small>
-              </div>
-            </button>
-            <button type="button" class="auth-demo-pill" data-demo-role="manager" data-demo-email="manager@fitpulse.com" data-demo-name="מנהל מערכת">
-              <span class="demo-avatar manager">🛡️</span>
-              <div class="demo-info">
-                <strong>מנהל מערכת</strong>
-                <small>סמכות ענן</small>
               </div>
             </button>
           </div>

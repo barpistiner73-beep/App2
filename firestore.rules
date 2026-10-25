@@ -808,18 +808,26 @@ service cloud.firestore {
     // 1. Users Collection
     // -------------------------------------------------------------------------
     match /users/{userId} {
-      // Trainees can read and list publicly visible coach profiles.
+      // Owner can always read their own document (any status — so pending/suspended users
+      // can see why they are blocked). Active trainees can read publicly visible coach profiles.
       allow get: if isUserIdentity(userId) ||
                     isManagerUser() ||
                     (isAuthenticated() &&
                      resource.data.isPublicVisible == true);
+      // List is restricted to manager or active authenticated users reading public coach profiles.
+      // Extra predicates ensure only real coach profiles match, preventing accidental list grants.
       allow list: if isManagerUser() ||
                      (isAuthenticated() &&
-                      resource.data.isPublicVisible == true);
+                      resource.data.isPublicVisible == true &&
+                      (resource.data.isTrainer == true || resource.data.role == 'coach') &&
+                      (!('status' in resource.data) || resource.data.status == 'active'));
 
-      // Only the user themselves can create their profile on registration.
-      // Status can be 'pending_approval' or 'active'.
-      allow create: if isOwner(userId) &&
+      // Only the user themselves can create their initial profile on registration.
+      // Using isUserIdentity (not isOwner) so a newly-registered Google user whose document
+      // does not yet exist can write the pending profile document — isOwner requires
+      // isAuthenticated() which is fine for new users, but isUserIdentity is more explicit.
+      // Status can be 'pending_approval' or 'active' (admin-provisioned accounts).
+      allow create: if isUserIdentity(userId) &&
                        request.resource.data.userId == userId &&
                        isValidUser(request.resource.data) &&
                        ((request.resource.data.createdAt is timestamp && isRecent(request.resource.data.createdAt)) ||
@@ -834,6 +842,8 @@ service cloud.firestore {
       // 1. Manager can update user document to approve/activate/cancel rejection (status, approvalStatus, approvedAt, approvedBy)
       //    or manage roles/trainership via isValidManagedRoleUpdate.
       // 2. Owner can update their profile (including isPublicVisible for coaches; cannot modify isTrainer, role, status, approvalStatus, approvedAt, approvedBy).
+      // 3. Narrow owner path: an authenticated coach can toggle only isPublicVisible (bypasses full
+      //    isValidUser check which may fail if existing Firestore doc is missing optional fields).
       allow update: if (isManagerUser() || isAuthenticated()) &&
                        (
                          (isManagerUser() &&
@@ -846,11 +856,16 @@ service cloud.firestore {
                           isValidUser(request.resource.data) &&
                           (!('userId' in resource.data) || request.resource.data.userId == resource.data.userId) &&
                           (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt) &&
-                          areImmutableFieldsUnchanged(['isTrainer', 'role', 'status', 'approvalStatus', 'approvedAt', 'approvedBy']))
+                          areImmutableFieldsUnchanged(['isTrainer', 'role', 'status', 'approvalStatus', 'approvedAt', 'approvedBy'])) ||
+                         // Narrow path: owner toggles only isPublicVisible (safe for incomplete legacy docs)
+                         (isUserIdentity(userId) &&
+                          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isPublicVisible']) &&
+                          request.resource.data.isPublicVisible is bool)
                        );
 
-      // Raw client-side document deletion disallowed.
-      allow delete: if false;
+      // Manager can permanently delete a rejected user account.
+      // Regular clients cannot delete documents — only managers acting on rejected accounts.
+      allow delete: if isManagerUser() && resource.data.status == 'rejected';
 
       // -----------------------------------------------------------------------
       // 3. Daily Logs Sub-collection
@@ -1408,8 +1423,11 @@ service cloud.firestore {
       // Read: if authenticated and isTrainer
       allow read: if isAuthenticated() && isTrainerUser();
 
-      // Create: if authenticated and type is string
-      allow create: if isAuthenticated() &&
+      // Create: any Firebase-authenticated user may append audit events.
+      // Using request.auth != null instead of isAuthenticated() so that users with
+      // pending_approval status (whose hasActiveAccount() returns false) can still
+      // write audit log entries during the registration flow.
+      allow create: if request.auth != null &&
                        request.resource.data.type is string &&
                        request.resource.data.type.size() >= 1 &&
                        request.resource.data.type.size() <= 100 &&

@@ -1,0 +1,18 @@
+{
+  "id": "usr_trainee_real",
+  "name": "מתאמן (חשבון אמת)",
+  "email": "trainee.real@fitpulse.com",
+  "avatar": "מת",
+  "age": 25,
+  "gender": "male",
+  "weight": 75,
+  "height": 178,
+  "targetCalories": 2200,
+  "targetProtein": 160,
+  "targetCarbs": 220,
+  "targetFat": 65,
+  "targetWaterMl": 3000,
+  "targetSleepHours": 8,
+  "assignedRoutine": "Push-Pull-Legs 4D",
+  "notes": "חשבון מתאמן (חשבון אמת) מיוחד לבדיקות ופיתוח"
+}

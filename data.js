@@ -557,8 +557,8 @@ const FIT_DATA = {
   // נתוני מתאמנים בלעדיים למאמן
   coachTrainees: [
     {
-      id: 'client_1',
-      name: 'דניאל כהן',
+      id: 'usr_trainee_real',
+      name: 'מתאמן (חשבון אמת)',
       avatar: '👨‍🦱',
       age: 28,
       weight: 82.0,
@@ -592,7 +592,7 @@ const FIT_DATA = {
   defaultProfile: {
     name: 'מתאמן',
     role: 'trainee',
-    demoTraineeId: 'client_1',
+    demoTraineeId: 'usr_trainee_real',
     gender: 'male',
     age: 26,
     weight: 78.5,

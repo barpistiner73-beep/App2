@@ -1,6 +1,6 @@
 /**
- * FitPulse - Database & Reporting Engine
- * Manages trainees, historical daily reports, precise timestamping, and auto-closing.
+ * FitPulse Core Database Engine
+ * Clean, unified JSON database with transactional atomic writes.
  */
 
 const fs = require('fs');
@@ -8,978 +8,314 @@ const path = require('path');
 
 const DB_FILE = path.join(__dirname, 'data', 'fitpulse_db.json');
 
-function formatDateKey(d) {
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-function formatTimeString(d) {
-  return d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', hour12: false });
-}
+const SPECIAL_USERS = [
+  {
+    id: 'usr_mgr',
+    userId: 'usr_mgr',
+    name: 'מנהל מערכת',
+    fullName: 'מנהל מערכת',
+    email: 'manager@fitpulse.com',
+    role: 'manager',
+    isTrainer: true,
+    status: 'active',
+    approvalStatus: 'approved',
+    isSpecial: true,
+    createdAt: '2026-01-01T00:00:00.000Z'
+  },
+  {
+    id: 'usr_coach_real',
+    userId: 'usr_coach_real',
+    name: 'מאמן (חשבון אמת)',
+    fullName: 'מאמן (חשבון אמת)',
+    email: 'coach.real@fitpulse.com',
+    role: 'coach',
+    isTrainer: true,
+    isPublicVisible: true,
+    status: 'active',
+    approvalStatus: 'approved',
+    isSpecial: true,
+    createdAt: '2026-01-01T00:00:00.000Z'
+  },
+  {
+    id: 'usr_trainee_real',
+    userId: 'usr_trainee_real',
+    name: 'מתאמן (חשבון אמת)',
+    fullName: 'מתאמן (חשבון אמת)',
+    email: 'trainee.real@fitpulse.com',
+    role: 'trainee',
+    isTrainer: false,
+    traineeId: 'usr_trainee_real',
+    routine: 'Push-Pull-Legs 4D',
+    status: 'active',
+    approvalStatus: 'approved',
+    isSpecial: true,
+    createdAt: '2026-01-01T00:00:00.000Z'
+  }
+];
 
 class FitPulseDatabase {
-  constructor() {
+  constructor(dbFilePath = DB_FILE) {
+    this.dbFile = dbFilePath;
     this.data = {
-      trainees: [],
-      dailyReports: {}, // Keyed by `${traineeId}_${date}`
       users: [],
+      trainees: [],
+      dailyReports: {},
+      trainerships: [],
+      connectionRequests: [],
       auditLogs: []
     };
     this.init();
   }
 
-  loadFromTraineeFolders() {
-    const traineesDir = path.join(__dirname, 'data', 'trainees');
-    if (!fs.existsSync(traineesDir)) return false;
-
-    const traineeDirs = fs.readdirSync(traineesDir, { withFileTypes: true })
-      .filter(d => d.isDirectory())
-      .map(d => d.name);
-
-    if (!traineeDirs.length) return false;
-
-    const loadedTrainees = [];
-    const loadedReports = {};
-
-    traineeDirs.forEach(tId => {
-      const traineeFolder = path.join(traineesDir, tId);
-      const statsFile = path.join(traineeFolder, 'current_stats.json');
-      
-      let tObj = { id: tId, name: tId };
-      if (fs.existsSync(statsFile)) {
-        try {
-          const stats = JSON.parse(fs.readFileSync(statsFile, 'utf8'));
-          tObj = {
-            id: stats.traineeId || tId,
-            name: stats.name || tId,
-            avatar: stats.avatar || '',
-            age: stats.profile?.age || 25,
-            gender: stats.profile?.gender || 'other',
-            weight: stats.profile?.currentWeightKg || 70,
-            height: stats.profile?.heightCm || 175,
-            targetCalories: stats.targets?.dailyCalories || 2400,
-            targetProtein: stats.targets?.dailyProteinGrams || 160,
-            targetWaterMl: stats.targets?.dailyWaterMl || 3000,
-            targetSleepHours: stats.targets?.dailySleepHours || 8,
-            assignedRoutine: stats.activeRoutine?.name || '',
-            notes: stats.activeRoutine?.focus || ''
-          };
-        } catch (e) {}
-      }
-      loadedTrainees.push(tObj);
-
-      // Find history folder (e.g. "history client_1")
-      const historySubfolders = fs.readdirSync(traineeFolder, { withFileTypes: true })
-        .filter(d => d.isDirectory() && d.name.startsWith('history'))
-        .map(d => d.name);
-
-      historySubfolders.forEach(hName => {
-        const historyPath = path.join(traineeFolder, hName);
-        const monthFiles = fs.readdirSync(historyPath).filter(f => f.endsWith('.json'));
-
-        monthFiles.forEach(mFile => {
-          try {
-            const mData = JSON.parse(fs.readFileSync(path.join(historyPath, mFile), 'utf8'));
-            const reports = Array.isArray(mData.reports) ? mData.reports : (Array.isArray(mData) ? mData : []);
-            reports.forEach(r => {
-              const key = `${r.traineeId || tId}_${r.date}`;
-              loadedReports[key] = r;
-            });
-          } catch (e) {}
-        });
-      });
-    });
-
-    if (loadedTrainees.length && Object.keys(loadedReports).length) {
-      this.data.trainees = loadedTrainees;
-      this.data.dailyReports = loadedReports;
-      console.log(`[Database] Loaded ${loadedTrainees.length} trainees and ${Object.keys(loadedReports).length} reports from per-trainee folder structure.`);
-      return true;
-    }
-    return false;
+  isSpecialUser(userOrId) {
+    if (!userOrId) return false;
+    const val = typeof userOrId === 'string'
+      ? userOrId.toLowerCase().trim()
+      : (((userOrId.email || userOrId.id || userOrId.userId || '') + '')).toLowerCase().trim();
+    const specialEmails = ['manager@fitpulse.com', 'coach.real@fitpulse.com', 'trainee.real@fitpulse.com'];
+    const specialIds = ['usr_mgr', 'usr_coach_real', 'usr_trainee_real', 'coach_real', 'trainee_real'];
+    return specialEmails.includes(val) || specialIds.includes(val);
   }
 
   init() {
-    const loadedFromFolders = this.loadFromTraineeFolders();
-    if (!loadedFromFolders) {
-      if (fs.existsSync(DB_FILE)) {
-        try {
-          const raw = fs.readFileSync(DB_FILE, 'utf8');
-          this.data = JSON.parse(raw);
-          console.log(`[Database] Loaded ${Object.keys(this.data.dailyReports || {}).length} daily reports from disk.`);
-        } catch (err) {
-          console.error('[Database] Error reading DB file, reinitializing with seed:', err.message);
-          this.seedInitialData();
-        }
-      } else {
-        console.log('[Database] No existing DB found. Seeding initial data with 14-day history...');
-        this.seedInitialData();
+    try {
+      if (fs.existsSync(this.dbFile)) {
+        const raw = fs.readFileSync(this.dbFile, 'utf8');
+        const parsed = JSON.parse(raw);
+        this.data = {
+          users: Array.isArray(parsed.users) ? parsed.users : [],
+          trainees: Array.isArray(parsed.trainees) ? parsed.trainees : [],
+          dailyReports: parsed.dailyReports && typeof parsed.dailyReports === 'object' ? parsed.dailyReports : {},
+          trainerships: Array.isArray(parsed.trainerships) ? parsed.trainerships : [],
+          connectionRequests: Array.isArray(parsed.connectionRequests) ? parsed.connectionRequests : [],
+          auditLogs: Array.isArray(parsed.auditLogs) ? parsed.auditLogs : []
+        };
       }
-    } else {
-      // If loaded from folders, still read DB_FILE for users and auditLogs
-      if (fs.existsSync(DB_FILE)) {
-        try {
-          const raw = fs.readFileSync(DB_FILE, 'utf8');
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed.users) && parsed.users.length) {
-            this.data.users = parsed.users;
-          }
-          if (Array.isArray(parsed.auditLogs) && parsed.auditLogs.length) {
-            this.data.auditLogs = parsed.auditLogs;
-          }
-        } catch (e) {}
-      }
+    } catch (err) {
+      console.warn('[Database] Read warning:', err.message);
     }
 
-    if (!Array.isArray(this.data.users) || !this.data.users.length) {
-      this.seedSystemUsers();
-    }
-
-    // Run auto-close on startup
-    this.autoClosePastReports();
+    // Ensure the 3 special users are always present and active
+    this.ensureSpecialUsers();
   }
 
-  seedSystemUsers() {
-    this.data.users = [
-      { id: 'usr_mgr', userId: 'usr_mgr', name: 'מנהל מערכת ראשי', fullName: 'מנהל מערכת ראשי', email: 'manager@fitpulse.com', role: 'manager', isTrainer: true, status: 'active', approvalStatus: 'approved', createdAt: '2026-09-01T00:00:00.000Z' },
-      { id: 'usr_coach', userId: 'usr_coach', name: 'מאמן ראשי', fullName: 'מאמן ראשי', email: 'coach@fitpulse.com', role: 'coach', isTrainer: true, status: 'active', approvalStatus: 'approved', createdAt: '2026-09-01T00:00:00.000Z' },
-      { id: 'usr_c1', userId: 'usr_c1', name: 'דניאל כהן', fullName: 'דניאל כהן', email: 'daniel@fitpulse.com', role: 'trainee', isTrainer: false, traineeId: 'client_1', routine: 'Push-Pull-Legs 4D', status: 'active', approvalStatus: 'approved', createdAt: '2026-09-01T00:00:00.000Z' },
-      { id: 'usr_c2', userId: 'usr_c2', name: 'שירה לוי', fullName: 'שירה לוי', email: 'shira@fitpulse.com', role: 'trainee', isTrainer: false, traineeId: 'client_2', routine: 'Upper / Lower 4D', status: 'active', approvalStatus: 'approved', createdAt: '2026-09-05T00:00:00.000Z' },
-      { id: 'usr_c3', userId: 'usr_c3', name: 'רון אברהם', fullName: 'רון אברהם', email: 'ron@fitpulse.com', role: 'trainee', isTrainer: false, traineeId: 'client_3', routine: 'Full Body 3D', status: 'active', approvalStatus: 'approved', createdAt: '2026-09-10T00:00:00.000Z' },
-      { id: 'usr_c4', userId: 'usr_c4', name: 'יעל שטרן', fullName: 'יעל שטרן', email: 'yael@fitpulse.com', role: 'trainee', isTrainer: false, traineeId: 'client_4', routine: 'Glutes & Legs Focus', status: 'active', approvalStatus: 'approved', createdAt: '2026-09-12T00:00:00.000Z' }
-    ];
+  ensureSpecialUsers() {
+    if (!Array.isArray(this.data.users)) this.data.users = [];
+
+    SPECIAL_USERS.forEach(special => {
+      const idx = this.data.users.findIndex(u =>
+        u.id === special.id ||
+        (u.email && u.email.toLowerCase() === special.email.toLowerCase())
+      );
+      if (idx >= 0) {
+        // Enforce active status and special protection
+        this.data.users[idx] = {
+          ...this.data.users[idx],
+          name: special.name,
+          fullName: special.fullName,
+          role: special.role,
+          isTrainer: special.isTrainer,
+          status: 'active',
+          approvalStatus: 'approved',
+          isSpecial: true
+        };
+      } else {
+        this.data.users.push({ ...special });
+      }
+    });
+
+    // Ensure default trainee profile for the special trainee
+    if (!Array.isArray(this.data.trainees)) this.data.trainees = [];
+    const tIdx = this.data.trainees.findIndex(t => t.id === 'usr_trainee_real');
+    const traineeRecord = {
+      id: 'usr_trainee_real',
+      traineeId: 'usr_trainee_real',
+      uid: 'usr_trainee_real',
+      name: 'מתאמן (חשבון אמת)',
+      fullName: 'מתאמן (חשבון אמת)',
+      email: 'trainee.real@fitpulse.com',
+      role: 'trainee',
+      avatar: 'מת',
+      age: 25,
+      gender: 'male',
+      weight: 75,
+      height: 178,
+      targetCalories: 2200,
+      targetProtein: 160,
+      targetWaterMl: 3000,
+      targetSleepHours: 8,
+      assignedRoutine: 'Push-Pull-Legs 4D',
+      activeRoutine: 'Push-Pull-Legs 4D',
+      notes: 'חשבון מתאמן (חשבון אמת) מיוחד לבדיקות ופיתוח'
+    };
+    if (tIdx >= 0) {
+      this.data.trainees[tIdx] = { ...this.data.trainees[tIdx], ...traineeRecord };
+    } else {
+      this.data.trainees.push(traineeRecord);
+    }
+
     this.save();
   }
 
   save() {
     try {
-      const tmpFile = `${DB_FILE}.tmp`;
+      const file = this.dbFile || DB_FILE;
+      const dir = path.dirname(file);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      const tmpFile = `${file}.tmp`;
       fs.writeFileSync(tmpFile, JSON.stringify(this.data, null, 2), 'utf8');
-      fs.renameSync(tmpFile, DB_FILE);
+      fs.renameSync(tmpFile, file);
       return true;
     } catch (err) {
-      console.error('[Database] Failed to write database to disk:', err.message);
+      console.error('[Database] Failed to write to disk:', err.message);
       return false;
     }
   }
 
-  /**
-   * Automatically closes/finalizes reports from past days that were left in 'draft'.
-   */
-  autoClosePastReports() {
-    const today = formatDateKey(new Date());
-    let closedCount = 0;
+  // --- Authentication Engine ---
 
-    for (const key of Object.keys(this.data.dailyReports)) {
-      const report = this.data.dailyReports[key];
-      if (report && report.date < today && report.status === 'draft') {
-        report.status = 'auto_closed';
-        report.finalizedAt = `${report.date}T23:59:59.000Z`;
-        report.updatedAt = new Date().toISOString();
-        report.autoClosedNote = 'הדוח נסגר אוטומטית בחצות בסוף היום ונשמר במסד הנתונים.';
-        closedCount++;
-        this.saveReportToMonthlyFile(report);
-      }
+  authenticate(identifier, password) {
+    if (!identifier) return { error: 'נא להזין אימייל או שם משתמש' };
+    const cleanId = String(identifier).trim().toLowerCase();
+
+    // Check users
+    const user = this.data.users.find(u =>
+      (u.email && u.email.toLowerCase() === cleanId) ||
+      (u.id && u.id.toLowerCase() === cleanId) ||
+      (u.name && u.name.toLowerCase() === cleanId)
+    );
+
+    if (!user) {
+      return { success: false, error: 'פרטי ההתחברות אינם נכונים. המשתמש אינו קיים במערכת.' };
     }
 
-    if (closedCount > 0) {
-      console.log(`[Database] Auto-closed ${closedCount} open daily reports from previous days.`);
-      this.save();
+    // Access Status Guard: Block Denied Users
+    if (user.status === 'rejected' || user.approvalStatus === 'rejected') {
+      return {
+        success: false,
+        error: 'בקשת הגישה שלך נדחתה על ידי מנהל המערכת. לא ניתן להתחבר.',
+        code: 'account-rejected',
+        status: 'rejected',
+        user: { id: user.id, email: user.email, status: 'rejected' }
+      };
     }
+
+    if (user.status === 'suspended' || user.status === 'disabled') {
+      return {
+        success: false,
+        error: 'חשבונך הושעה על ידי מנהל המערכת. לא ניתן להתחבר.',
+        code: 'account-suspended',
+        status: 'suspended',
+        user: { id: user.id, email: user.email, status: 'suspended' }
+      };
+    }
+
+    if (user.status === 'pending_approval' || user.approvalStatus === 'pending') {
+      return {
+        success: false,
+        error: 'חשבונך ממתין לאישור מנהל המערכת.',
+        code: 'account-pending',
+        isPending: true,
+        status: 'pending_approval',
+        user: {
+          id: user.id,
+          name: user.name || user.fullName,
+          email: user.email,
+          role: user.role,
+          status: 'pending_approval',
+          approvalStatus: 'pending'
+        }
+      };
+    }
+
+    this.logActivity('USER_LOGIN', `התחברות משתמש: ${user.name} (${user.email || user.id})`, { userId: user.id });
+    return { success: true, user };
   }
 
-  seedInitialData() {
-    this.data.trainees = [
-      {
-        id: 'client_1',
-        name: 'דניאל כהן',
-        avatar: 'דכ',
-        age: 28,
-        gender: 'male',
-        weight: 82.0,
-        height: 181,
-        targetCalories: 2400,
-        targetProtein: 175,
-        targetCarbs: 240,
-        targetFat: 70,
-        targetWaterMl: 3000,
-        targetSleepHours: 8.0,
-        assignedRoutine: 'Push-Pull-Legs 4D',
-        notes: 'מתאמן לקראת חיטוב ועלייה במסת שריר נקייה'
-      },
-      {
-        id: 'client_2',
-        name: 'שירה לוי',
-        avatar: 'של',
-        age: 25,
-        gender: 'female',
-        weight: 61.5,
-        height: 167,
-        targetCalories: 1850,
-        targetProtein: 130,
-        targetCarbs: 190,
-        targetFat: 55,
-        targetWaterMl: 2500,
-        targetSleepHours: 8.0,
-        assignedRoutine: 'Upper / Lower 4D',
-        notes: 'דגש על פלג גוף תחתון ושיפור כוח בסיסי'
-      },
-      {
-        id: 'client_3',
-        name: 'רון אברהם',
-        avatar: 'רא',
-        age: 32,
-        gender: 'male',
-        weight: 89.2,
-        height: 179,
-        targetCalories: 2600,
-        targetProtein: 190,
-        targetCarbs: 270,
-        targetFat: 75,
-        targetWaterMl: 3200,
-        targetSleepHours: 7.5,
-        assignedRoutine: 'Full Body 3D',
-        notes: 'יעדי ירידה באחוזי שומן ושימור מסת שריר'
-      },
-      {
-        id: 'client_4',
-        name: 'יעל שטרן',
-        avatar: 'יש',
-        age: 29,
-        gender: 'female',
-        weight: 58.0,
-        height: 164,
-        targetCalories: 1900,
-        targetProtein: 135,
-        targetCarbs: 200,
-        targetFat: 55,
-        targetWaterMl: 2600,
-        targetSleepHours: 8.5,
-        assignedRoutine: 'Glutes & Legs Focus',
-        notes: 'אימונים מתקדמים והעלאת צריכת חלבון'
-      }
-    ];
-
-    this.data.dailyReports = {};
-
-    // Generate 14 days of historical reports for trainees
-    const now = new Date();
-    for (let dayOffset = 14; dayOffset >= 0; dayOffset--) {
-      const reportDateObj = new Date(now.getTime() - dayOffset * 24 * 60 * 60 * 1000);
-      const dateStr = formatDateKey(reportDateObj);
-      const isToday = dayOffset === 0;
-
-      // Seed client_1 (Daniel Cohen)
-      this.createSeededReportForClient1(dateStr, reportDateObj, isToday, dayOffset);
-
-      // Seed client_2 (Shira Levi)
-      this.createSeededReportForClient2(dateStr, reportDateObj, isToday, dayOffset);
+  registerOrLoginGoogleUser(googleUser) {
+    if (!googleUser || (!googleUser.email && !googleUser.uid)) {
+      return { error: 'פרטי משתמש Google חסרים' };
     }
 
-    this.save();
-  }
+    const email = (googleUser.email || '').trim().toLowerCase();
+    const uid = googleUser.uid || `g_${Date.now()}`;
+    const displayName = (googleUser.displayName || email.split('@')[0] || 'משתמש Google').trim();
 
-  createSeededReportForClient1(dateStr, dateObj, isToday, dayOffset) {
-    const reportKey = `client_1_${dateStr}`;
-    const weightTrend = 82.8 - (14 - dayOffset) * 0.06;
-    const isWorkoutDay = dayOffset % 4 !== 3; // 3 days on, 1 day off
-    const workoutTypes = ['Push Session (דחיפה)', 'Pull Session (משיכה)', 'Legs & Core (רגליים וליבה)'];
-    const workoutName = workoutTypes[dayOffset % 3];
+    // Look for existing user
+    let user = this.data.users.find(u =>
+      (u.email && u.email.toLowerCase() === email) ||
+      (u.id && u.id === uid) ||
+      (u.userId && u.userId === uid)
+    );
 
-    const meals = [
-      {
-        id: `meal_${dateStr}_1`,
-        loggedAt: `${dateStr}T08:15:22.000Z`,
-        time: '08:15',
-        name: 'שיבולת שועל עם חלבון ופירות יער',
-        amount: 80,
-        unitName: 'גרם',
-        calories: 430,
-        protein: 36,
-        carbs: 58,
-        fat: 7,
-        source: 'FoodData Central'
-      },
-      {
-        id: `meal_${dateStr}_2`,
-        loggedAt: `${dateStr}T13:20:45.000Z`,
-        time: '13:20',
-        name: 'חזה עוף צלוי עם אורז בסמטי ושעועית ירוקה',
-        amount: 220,
-        unitName: 'גרם',
-        calories: 680,
-        protein: 64,
-        carbs: 72,
-        fat: 12,
-        source: 'FoodData Central'
-      },
-      {
-        id: `meal_${dateStr}_3`,
-        loggedAt: `${dateStr}T16:45:10.000Z`,
-        time: '16:45',
-        name: 'יוגורט פרו 20 גרם חלבון + בננה ושקדים',
-        amount: 200,
-        unitName: 'גרם',
-        calories: 340,
-        protein: 26,
-        carbs: 42,
-        fat: 9,
-        source: 'FoodData Central'
+    if (user) {
+      // Access Guard: Block Denied Users
+      if (user.status === 'rejected' || user.approvalStatus === 'rejected') {
+        return {
+          error: 'בקשת הגישה שלך נדחתה על ידי מנהל המערכת. לא ניתן להתחבר.',
+          code: 'account-rejected',
+          user: { id: user.id, email: user.email, status: 'rejected' }
+        };
       }
-    ];
-
-    if (!isToday || new Date().getHours() >= 20) {
-      meals.push({
-        id: `meal_${dateStr}_4`,
-        loggedAt: `${dateStr}T20:30:15.000Z`,
-        time: '20:30',
-        name: 'סלמון בתנור, בטטה אפויה וסלט ירוק',
-        amount: 200,
-        unitName: 'גרם',
-        calories: 720,
-        protein: 48,
-        carbs: 54,
-        fat: 28,
-        source: 'FoodData Central'
-      });
-    }
-
-    const totalCals = meals.reduce((s, m) => s + m.calories, 0);
-    const totalProt = meals.reduce((s, m) => s + m.protein, 0);
-    const totalCarb = meals.reduce((s, m) => s + m.carbs, 0);
-    const totalFat = meals.reduce((s, m) => s + m.fat, 0);
-
-    const workouts = [];
-    if (isWorkoutDay && (!isToday || new Date().getHours() >= 19)) {
-      workouts.push({
-        id: `wo_${dateStr}_1`,
-        routineId: 'session_push',
-        name: workoutName,
-        startedAt: `${dateStr}T18:15:00.000Z`,
-        completedAt: `${dateStr}T19:10:00.000Z`,
-        time: '18:15',
-        durationMinutes: 55,
-        completedSets: 18,
-        totalSets: 18,
-        totalVolume: 6420,
-        difficulty: 8,
-        notes: dayOffset % 2 === 0 ? 'אנרגיה מעולה באימון, עליה במשקל בבנץ׳ פרס' : 'אימון אינטנסיבי וממוקד',
-        exercises: [
-          {
-            name: 'Barbell Bench Press',
-            exerciseId: 'ex_bench_press',
-            sets: [
-              { setNumber: 1, weight: 80, reps: 8, completed: true, time: '18:22' },
-              { setNumber: 2, weight: 82.5, reps: 8, completed: true, time: '18:25' },
-              { setNumber: 3, weight: 85, reps: 7, completed: true, time: '18:29' },
-              { setNumber: 4, weight: 85, reps: 6, completed: true, time: '18:33' }
-            ]
-          },
-          {
-            name: 'Incline Dumbbell Press',
-            exerciseId: 'ex_incline_db_press',
-            sets: [
-              { setNumber: 1, weight: 30, reps: 10, completed: true, time: '18:40' },
-              { setNumber: 2, weight: 32, reps: 9, completed: true, time: '18:44' },
-              { setNumber: 3, weight: 32, reps: 8, completed: true, time: '18:48' }
-            ]
-          },
-          {
-            name: 'Cable Lateral Raise',
-            exerciseId: 'ex_cable_lateral_raise',
-            sets: [
-              { setNumber: 1, weight: 12.5, reps: 15, completed: true, time: '18:55' },
-              { setNumber: 2, weight: 12.5, reps: 14, completed: true, time: '18:58' },
-              { setNumber: 3, weight: 15, reps: 12, completed: true, time: '19:02' }
-            ]
+      if (user.status === 'suspended' || user.status === 'disabled') {
+        return {
+          error: 'חשבונך הושעה על ידי מנהל המערכת. לא ניתן להתחבר.',
+          code: 'account-suspended',
+          user: { id: user.id, email: user.email, status: 'suspended' }
+        };
+      }
+      if (user.status === 'pending_approval' || user.approvalStatus === 'pending') {
+        return {
+          success: true,
+          isPending: true,
+          user: {
+            id: user.id,
+            name: user.name || user.fullName,
+            email: user.email,
+            role: user.role,
+            status: 'pending_approval',
+            approvalStatus: 'pending'
           }
-        ]
-      });
-    }
-
-    const status = isToday ? 'draft' : (dayOffset % 7 === 5 ? 'auto_closed' : 'finalized');
-
-    this.data.dailyReports[reportKey] = {
-      id: reportKey,
-      traineeId: 'client_1',
-      date: dateStr,
-      status,
-      createdAt: `${dateStr}T08:00:00.000Z`,
-      updatedAt: `${dateStr}T21:30:00.000Z`,
-      finalizedAt: status === 'draft' ? null : `${dateStr}T21:45:00.000Z`,
-      metrics: {
-        morningWeightKg: Number(weightTrend.toFixed(2)),
-        sleepHours: 7.5 + (dayOffset % 3) * 0.4,
-        sleepQuality: 8 + (dayOffset % 3),
-        waterMl: 2900 + (dayOffset % 4) * 200,
-        steps: 9200 + (dayOffset % 5) * 800,
-        energyLevel: 4 + (dayOffset % 2),
-        hungerLevel: 2,
-        stressLevel: 2,
-        digestion: 'good',
-        traineeNotes: dayOffset === 1
-          ? 'הרגיש מעולה היום, הקפדתי על שתיית מים מלאה ושעות שינה.'
-          : (dayOffset === 3 ? 'משקל בוקר בירידה עקבית, הרגשת קלילות באימון.' : 'הכל לפי התוכנית ללא חריגות.')
-      },
-      nutrition: {
-        totalCalories: totalCals,
-        totalProtein: totalProt,
-        totalCarbs: totalCarb,
-        totalFat: totalFat,
-        totalFiber: 32,
-        totalSodium: 2100,
-        targetCalories: 2400,
-        targetProtein: 175,
-        meals
-      },
-      workouts,
-      coachFeedback: dayOffset > 2 ? {
-        reviewed: true,
-        reviewedAt: `${dateStr}T22:15:00.000Z`,
-        notes: 'עבודה מצוינת! התקדמות מעולה במשקלי העבודה ובשמירה על מאזן הקלוריות והחלבון.',
-        coachRating: 5
-      } : null
-    };
-  }
-
-  createSeededReportForClient2(dateStr, dateObj, isToday, dayOffset) {
-    const reportKey = `client_2_${dateStr}`;
-    const weightTrend = 62.0 - (14 - dayOffset) * 0.04;
-    const isWorkoutDay = dayOffset % 2 === 0;
-
-    const meals = [
-      {
-        id: `meal_c2_${dateStr}_1`,
-        loggedAt: `${dateStr}T08:30:00.000Z`,
-        time: '08:30',
-        name: 'קערת אסאי עם גרנולה וסקופ חלבון',
-        amount: 250,
-        unitName: 'גרם',
-        calories: 420,
-        protein: 28,
-        carbs: 52,
-        fat: 10,
-        source: 'FoodData Central'
-      },
-      {
-        id: `meal_c2_${dateStr}_2`,
-        loggedAt: `${dateStr}T13:00:00.000Z`,
-        time: '13:00',
-        name: 'טופו מוקפץ עם קינואה וירקות אסייתיים',
-        amount: 280,
-        unitName: 'גרם',
-        calories: 540,
-        protein: 38,
-        carbs: 60,
-        fat: 16,
-        source: 'FoodData Central'
-      },
-      {
-        id: `meal_c2_${dateStr}_3`,
-        loggedAt: `${dateStr}T19:45:00.000Z`,
-        time: '19:45',
-        name: 'חביתת 3 ביצים, לחם כוסמין, אבוקדו וסלט',
-        amount: 200,
-        unitName: 'גרם',
-        calories: 520,
-        protein: 34,
-        carbs: 38,
-        fat: 22,
-        source: 'FoodData Central'
+        };
       }
-    ];
-
-    const totalCals = meals.reduce((s, m) => s + m.calories, 0);
-    const totalProt = meals.reduce((s, m) => s + m.protein, 0);
-    const totalCarb = meals.reduce((s, m) => s + m.carbs, 0);
-    const totalFat = meals.reduce((s, m) => s + m.fat, 0);
-
-    const workouts = [];
-    if (isWorkoutDay) {
-      workouts.push({
-        id: `wo_c2_${dateStr}_1`,
-        routineId: 'session_legs',
-        name: 'Lower Body & Glutes (רגליים וישבן)',
-        startedAt: `${dateStr}T17:30:00.000Z`,
-        completedAt: `${dateStr}T18:25:00.000Z`,
-        time: '17:30',
-        durationMinutes: 55,
-        completedSets: 16,
-        totalSets: 16,
-        totalVolume: 5120,
-        difficulty: 8,
-        notes: 'אימון חזק, דגש על טכניקה בסקוואט והיפ ת׳ראסט',
-        exercises: [
-          {
-            name: 'Barbell Hip Thrust',
-            exerciseId: 'ex_hip_thrust',
-            sets: [
-              { setNumber: 1, weight: 90, reps: 10, completed: true, time: '17:38' },
-              { setNumber: 2, weight: 100, reps: 10, completed: true, time: '17:42' },
-              { setNumber: 3, weight: 105, reps: 8, completed: true, time: '17:46' }
-            ]
-          },
-          {
-            name: 'Bulgarian Split Squat',
-            exerciseId: 'ex_bulgarian_split_squat',
-            sets: [
-              { setNumber: 1, weight: 16, reps: 10, completed: true, time: '17:54' },
-              { setNumber: 2, weight: 18, reps: 10, completed: true, time: '17:58' },
-              { setNumber: 3, weight: 18, reps: 8, completed: true, time: '18:02' }
-            ]
-          }
-        ]
-      });
+      this.logActivity('USER_LOGIN_GOOGLE', `כניסת משתמש Google קיים: ${email}`, { userId: user.id });
+      return { success: true, user };
     }
 
-    const status = isToday ? 'draft' : 'finalized';
-
-    this.data.dailyReports[reportKey] = {
-      id: reportKey,
-      traineeId: 'client_2',
-      date: dateStr,
-      status,
-      createdAt: `${dateStr}T08:00:00.000Z`,
-      updatedAt: `${dateStr}T21:00:00.000Z`,
-      finalizedAt: status === 'draft' ? null : `${dateStr}T21:15:00.000Z`,
-      metrics: {
-        morningWeightKg: Number(weightTrend.toFixed(2)),
-        sleepHours: 8.0,
-        sleepQuality: 9,
-        waterMl: 2500,
-        steps: 10500,
-        energyLevel: 5,
-        hungerLevel: 2,
-        stressLevel: 2,
-        digestion: 'good',
-        traineeNotes: 'מרגישה התקדמות יפה בהיפ ת׳ראסט ושיפור בהתאוששות.'
-      },
-      nutrition: {
-        totalCalories: totalCals,
-        totalProtein: totalProt,
-        totalCarbs: totalCarb,
-        totalFat: totalFat,
-        totalFiber: 29,
-        totalSodium: 1800,
-        targetCalories: 1850,
-        targetProtein: 130,
-        meals
-      },
-      workouts,
-      coachFeedback: dayOffset > 2 ? {
-        reviewed: true,
-        reviewedAt: `${dateStr}T22:00:00.000Z`,
-        notes: 'כל הכבוד על ההתמדה והעלייה במשקלים ברגליים!',
-        coachRating: 5
-      } : null
-    };
-  }
-
-  // --- API Methods ---
-
-  getTrainees() {
-    return this.data.trainees || [];
-  }
-
-  getTrainee(id) {
-    return this.data.trainees.find(t => t.id === id) || null;
-  }
-
-  createTrainee(traineeData) {
-    const id = traineeData.id || `client_${Date.now()}`;
-    const name = traineeData.name || 'מתאמן חדש';
-    const email = traineeData.email || `${id}@fitpulse.com`;
-
-    const newTrainee = {
-      id,
-      name,
-      email,
-      avatar: traineeData.avatar || name.slice(0, 2),
-      age: parseInt(traineeData.age, 10) || 25,
-      gender: traineeData.gender || 'male',
-      weight: parseFloat(traineeData.weight) || 75.0,
-      height: parseInt(traineeData.height, 10) || 175,
-      targetCalories: parseInt(traineeData.targetCalories, 10) || 2400,
-      targetProtein: parseInt(traineeData.targetProtein, 10) || 160,
-      targetCarbs: parseInt(traineeData.targetCarbs, 10) || 220,
-      targetFat: parseInt(traineeData.targetFat, 10) || 65,
-      targetWaterMl: parseInt(traineeData.targetWaterMl, 10) || 3000,
-      targetSleepHours: parseFloat(traineeData.targetSleepHours) || 8.0,
-      assignedRoutine: traineeData.assignedRoutine || 'תוכנית מותאמת אישית',
-      notes: traineeData.notes || 'מתאמן חדש שצורף על ידי המאמן',
+    // New Google User -> Auto-create with pending_approval
+    const newUser = {
+      id: uid,
+      userId: uid,
+      name: displayName,
+      fullName: displayName,
+      email: email,
+      photoURL: googleUser.photoURL || null,
+      role: 'trainee',
+      isTrainer: false,
+      status: 'pending_approval',
+      approvalStatus: 'pending',
       createdAt: new Date().toISOString()
     };
 
-    const existingIdx = this.data.trainees.findIndex(t => t.id === id);
-    if (existingIdx >= 0) {
-      this.data.trainees[existingIdx] = newTrainee;
-    } else {
-      this.data.trainees.push(newTrainee);
-    }
-
-    const traineeFolders = [
-      path.join(__dirname, 'data', 'trainees', id),
-      path.join(__dirname, 'data', id)
-    ];
-
-    traineeFolders.forEach(dir => {
-      const historyDir = path.join(dir, `history ${id}`);
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-      if (!fs.existsSync(historyDir)) fs.mkdirSync(historyDir, { recursive: true });
-
-      const currentStats = {
-        traineeId: id,
-        name,
-        email,
-        avatar: newTrainee.avatar,
-        profile: {
-          age: newTrainee.age,
-          gender: newTrainee.gender,
-          heightCm: newTrainee.height,
-          currentWeightKg: newTrainee.weight,
-          startingWeightKg: newTrainee.weight,
-          targetWeightKg: parseFloat((newTrainee.weight - 3.0).toFixed(1))
-        },
-        targets: {
-          dailyCalories: newTrainee.targetCalories,
-          dailyProteinGrams: newTrainee.targetProtein,
-          dailyCarbsGrams: newTrainee.targetCarbs,
-          dailyFatGrams: newTrainee.targetFat,
-          dailyWaterMl: newTrainee.targetWaterMl,
-          dailySleepHours: newTrainee.targetSleepHours
-        },
-        activeRoutine: {
-          name: newTrainee.assignedRoutine,
-          focus: newTrainee.notes
-        },
-        activityMetrics: {
-          totalReportsLogged: 0,
-          totalWorkoutsCompleted: 0,
-          complianceRate: '100%',
-          latestCheckInDate: null
-        },
-        createdAt: newTrainee.createdAt,
-        updatedAt: newTrainee.createdAt
-      };
-
-      fs.writeFileSync(path.join(dir, 'current_stats.json'), JSON.stringify(currentStats, null, 2), 'utf8');
-      fs.writeFileSync(path.join(dir, 'current stats.json'), JSON.stringify(currentStats, null, 2), 'utf8');
-    });
-
+    this.data.users.push(newUser);
     this.save();
-    this.logActivity('USER_CREATED', `נרשם מתאמן חדש: ${name} (${email}) ע"י המאמן`);
-    return newTrainee;
-  }
+    this.logActivity('USER_NEW_GOOGLE_REGISTER', `נרשם משתמש Google חדש וממתין לאישור מנהל: ${email} (${uid})`, { userId: uid });
 
-  logActivity(type, description, meta = {}) {
-    if (!this.data.auditLogs) this.data.auditLogs = [];
-    const event = {
-      id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      type,
-      description,
-      meta,
-      timestamp: new Date().toISOString()
-    };
-    this.data.auditLogs.unshift(event);
-    if (this.data.auditLogs.length > 100) this.data.auditLogs.pop();
-    this.save();
-    return event;
-  }
-
-  getAuditLogs(limit = 50) {
-    if (!this.data.auditLogs || !this.data.auditLogs.length) {
-      // Seed initial audit logs if empty
-      this.data.auditLogs = [
-        { id: 'log_init_1', type: 'SYSTEM_BOOT', description: 'מערכת FitPulse ושרת Firebase הופעלו בהצלחה', timestamp: new Date(Date.now() - 3600000).toISOString() },
-        { id: 'log_init_2', type: 'FIRESTORE_CONNECTED', description: 'חיבור תקין למסד Cloud Firestore באזור me-west1', timestamp: new Date(Date.now() - 3000000).toISOString() },
-        { id: 'log_init_3', type: 'AUTH_READY', description: 'ספק אימות Firebase Auth מוגדר ופעיל (אימייל וסיסמה)', timestamp: new Date(Date.now() - 2500000).toISOString() }
-      ];
-    }
-    return this.data.auditLogs.slice(0, limit);
-  }
-
-  /**
-   * Returns reports for a specific trainee filtered by date range or days count (default 14).
-   */
-  getReports(traineeId, { days = 14, startDate = null, endDate = null } = {}) {
-    this.autoClosePastReports();
-
-    let list = Object.values(this.data.dailyReports).filter(r => r.traineeId === traineeId);
-
-    if (startDate) {
-      list = list.filter(r => r.date >= startDate);
-    }
-    if (endDate) {
-      list = list.filter(r => r.date <= endDate);
-    }
-    if (!startDate && !endDate && days > 0) {
-      const cutoff = new Date(Date.now() - (days - 1) * 24 * 60 * 60 * 1000);
-      const cutoffKey = formatDateKey(cutoff);
-      list = list.filter(r => r.date >= cutoffKey);
-    }
-
-    // Sort descending by date (most recent first)
-    list.sort((a, b) => b.date.localeCompare(a.date));
-    return list;
-  }
-
-  getReport(traineeId, date) {
-    this.autoClosePastReports();
-    const key = `${traineeId}_${date}`;
-    return this.data.dailyReports[key] || null;
-  }
-
-  /**
-   * Saves or creates a daily report (auto-save or draft sync).
-   */
-  saveReport(reportData) {
-    if (!reportData || !reportData.traineeId || !reportData.date) {
-      throw new Error('Report data must include traineeId and date');
-    }
-
-    const key = `${reportData.traineeId}_${reportData.date}`;
-    const existing = this.data.dailyReports[key] || {};
-    const nowIso = new Date().toISOString();
-
-    const merged = {
-      ...existing,
-      ...reportData,
-      id: key,
-      traineeId: reportData.traineeId,
-      date: reportData.date,
-      status: reportData.status || existing.status || 'draft',
-      createdAt: existing.createdAt || nowIso,
-      updatedAt: nowIso,
-      finalizedAt: reportData.status === 'finalized'
-        ? (existing.finalizedAt || nowIso)
-        : (reportData.finalizedAt || existing.finalizedAt || null),
-      metrics: {
-        ...(existing.metrics || {}),
-        ...(reportData.metrics || {})
-      },
-      nutrition: {
-        ...(existing.nutrition || {}),
-        ...(reportData.nutrition || {})
-      },
-      workouts: Array.isArray(reportData.workouts) ? reportData.workouts : (existing.workouts || [])
-    };
-
-    this.data.dailyReports[key] = merged;
-    this.save();
-    this.saveReportToMonthlyFile(merged);
-    return merged;
-  }
-
-  /**
-   * Manually finalizes and closes a daily report.
-   */
-  finalizeReport(traineeId, date) {
-    const key = `${traineeId}_${date}`;
-    const existing = this.data.dailyReports[key];
-    const nowIso = new Date().toISOString();
-
-    if (!existing) {
-      // Create empty finalized report
-      return this.saveReport({
-        traineeId,
-        date,
-        status: 'finalized',
-        finalizedAt: nowIso
-      });
-    }
-
-    existing.status = 'finalized';
-    existing.finalizedAt = nowIso;
-    existing.updatedAt = nowIso;
-    this.save();
-    this.saveReportToMonthlyFile(existing);
-    return existing;
-  }
-
-  /**
-   * Adds or updates coach feedback for a specific daily report.
-   */
-  addCoachFeedback(traineeId, date, feedback) {
-    const key = `${traineeId}_${date}`;
-    const existing = this.data.dailyReports[key];
-    if (!existing) {
-      throw new Error(`Report not found for trainee ${traineeId} on date ${date}`);
-    }
-
-    existing.coachFeedback = {
-      reviewed: true,
-      reviewedAt: new Date().toISOString(),
-      notes: feedback.notes || '',
-      coachRating: feedback.coachRating || 5
-    };
-    existing.updatedAt = new Date().toISOString();
-    this.save();
-    this.saveReportToMonthlyFile(existing);
-    return existing;
-  }
-
-  /**
-   * Saves a daily report into its corresponding monthly file inside history {trainee}/
-   */
-  saveReportToMonthlyFile(report) {
-    try {
-      const traineeId = report.traineeId;
-      const month = report.date.substring(0, 7); // e.g. "2026-10"
-
-      const targetDirs = [
-        path.join(__dirname, 'data', 'trainees', traineeId, `history ${traineeId}`),
-        path.join(__dirname, 'data', traineeId, `history ${traineeId}`)
-      ];
-
-      targetDirs.forEach(dir => {
-        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-        const monthFile = path.join(dir, `${month}.json`);
-
-        let payload = {
-          traineeId,
-          month,
-          totalReports: 0,
-          reports: []
-        };
-
-        if (fs.existsSync(monthFile)) {
-          try {
-            payload = JSON.parse(fs.readFileSync(monthFile, 'utf8'));
-            if (!Array.isArray(payload.reports)) payload.reports = [];
-          } catch (e) {}
-        }
-
-        const idx = payload.reports.findIndex(r => r.date === report.date || r.id === report.id);
-        if (idx >= 0) {
-          payload.reports[idx] = report;
-        } else {
-          payload.reports.push(report);
-        }
-
-        payload.reports.sort((a, b) => a.date.localeCompare(b.date));
-        payload.totalReports = payload.reports.length;
-
-        fs.writeFileSync(monthFile, JSON.stringify(payload, null, 2), 'utf8');
-      });
-
-      this.updateTraineeCurrentStats(traineeId);
-    } catch (err) {
-      console.warn('[Database] Error saving to monthly file:', err.message);
-    }
-  }
-
-  /**
-   * Updates current_stats.json for a trainee based on latest activity
-   */
-  updateTraineeCurrentStats(traineeId) {
-    try {
-      const trainee = this.getTrainee(traineeId);
-      if (!trainee) return;
-
-      const reports = Object.values(this.data.dailyReports)
-        .filter(r => r.traineeId === traineeId)
-        .sort((a, b) => b.date.localeCompare(a.date));
-
-      const latestReport = reports[0];
-      const totalWorkouts = reports.reduce((acc, r) => acc + (r.workouts?.length || 0), 0);
-
-      const targetDirs = [
-        path.join(__dirname, 'data', 'trainees', traineeId),
-        path.join(__dirname, 'data', traineeId)
-      ];
-
-      targetDirs.forEach(dir => {
-        fs.mkdirSync(path.join(dir, `history ${traineeId}`), { recursive: true });
-        const statsFile = path.join(dir, 'current_stats.json');
-        const statsFileSpaced = path.join(dir, 'current stats.json');
-
-        const updated = {
-          traineeId,
-          name: trainee.name,
-          email: trainee.email || '',
-          avatar: trainee.avatar,
-          profile: {
-            age: trainee.age,
-            gender: trainee.gender,
-            heightCm: trainee.height,
-            currentWeightKg: latestReport?.checkIn?.morningWeight || latestReport?.metrics?.morningWeightKg || trainee.weight,
-            targetWeightKg: trainee.targetWeight || parseFloat((trainee.weight - 4.0).toFixed(1))
-          },
-          targets: {
-            dailyCalories: trainee.targetCalories,
-            dailyProteinGrams: trainee.targetProtein,
-            dailyCarbsGrams: trainee.targetCarbs,
-            dailyFatGrams: trainee.targetFat,
-            dailyWaterMl: trainee.targetWaterMl,
-            dailySleepHours: trainee.targetSleepHours
-          },
-          activeRoutine: {
-            name: trainee.assignedRoutine,
-            focus: trainee.notes
-          },
-          activityMetrics: {
-            totalReportsLogged: reports.length,
-            totalWorkoutsCompleted: totalWorkouts,
-            latestCheckInDate: latestReport?.date || null,
-            latestCheckInStatus: latestReport?.status || null
-          },
-          updatedAt: new Date().toISOString()
-        };
-
-        fs.writeFileSync(statsFile, JSON.stringify(updated, null, 2), 'utf8');
-        fs.writeFileSync(statsFileSpaced, JSON.stringify(updated, null, 2), 'utf8');
-      });
-    } catch (err) {
-      console.warn('[Database] Error updating trainee stats:', err.message);
-    }
-  }
-
-  /**
-   * Retrieves reports from a specific monthly file inside history {trainee}/
-   */
-  getMonthlyReports(traineeId, month) {
-    const monthFile = path.join(__dirname, 'data', 'trainees', traineeId, `history ${traineeId}`, `${month}.json`);
-    if (fs.existsSync(monthFile)) {
-      try {
-        return JSON.parse(fs.readFileSync(monthFile, 'utf8'));
-      } catch (e) {}
-    }
-    // In-memory fallback
-    const reports = Object.values(this.data.dailyReports)
-      .filter(r => r.traineeId === traineeId && r.date.startsWith(month))
-      .sort((a, b) => a.date.localeCompare(b.date));
     return {
-      traineeId,
-      month,
-      totalReports: reports.length,
-      reports
+      success: true,
+      isNewUser: true,
+      isPending: true,
+      user: newUser
     };
   }
 
-  /**
-   * Retrieves current_stats.json for a trainee
-   */
-  getTraineeStats(traineeId) {
-    const statsFile = path.join(__dirname, 'data', 'trainees', traineeId, 'current_stats.json');
-    if (fs.existsSync(statsFile)) {
-      try {
-        return JSON.parse(fs.readFileSync(statsFile, 'utf8'));
-      } catch (e) {}
-    }
-    return null;
-  }
-
-  // =========================================================================
-  // USER ACCOUNT & PENDING APPROVAL MANAGEMENT
-  // =========================================================================
+  // --- User Administration ---
 
   getUsers(filter = {}) {
     if (!Array.isArray(this.data.users)) this.data.users = [];
     return this.data.users.filter(u => {
       if (filter.role && filter.role !== 'all' && u.role !== filter.role) return false;
-      if (filter.status && u.status !== filter.status) return false;
+      if (filter.status && filter.status !== 'all' && u.status !== filter.status) return false;
       return true;
     });
   }
@@ -990,162 +326,140 @@ class FitPulseDatabase {
   }
 
   getUserByIdOrEmail(identifier) {
-    if (!Array.isArray(this.data.users)) this.data.users = [];
-    const lower = String(identifier || '').trim().toLowerCase();
+    if (!identifier) return null;
+    const clean = String(identifier).trim().toLowerCase();
     return this.data.users.find(u =>
-      (u.id && u.id.toLowerCase() === lower) ||
-      (u.userId && u.userId.toLowerCase() === lower) ||
-      (u.email && u.email.toLowerCase() === lower)
+      (u.id && u.id.toLowerCase() === clean) ||
+      (u.userId && u.userId.toLowerCase() === clean) ||
+      (u.email && u.email.toLowerCase() === clean)
     ) || null;
   }
 
   registerUser(userData) {
-    if (!Array.isArray(this.data.users)) this.data.users = [];
+    if (!userData) return null;
     const uid = userData.id || userData.userId || `usr_${Date.now()}`;
     const email = (userData.email || '').trim();
+    const fullName = (userData.name || userData.fullName || email.split('@')[0] || 'משתמש חדש').trim();
     const isTrainer = userData.isTrainer === true || userData.role === 'coach';
     const role = isTrainer ? 'coach' : 'trainee';
-    const fullName = (userData.name || userData.fullName || email.split('@')[0] || 'משתמש חדש').trim();
 
-    const existingIndex = this.data.users.findIndex(u =>
+    const existingIdx = this.data.users.findIndex(u =>
       (u.id && u.id === uid) ||
       (u.userId && u.userId === uid) ||
       (email && u.email && u.email.toLowerCase() === email.toLowerCase())
     );
 
-    const userDoc = {
+    const doc = {
       id: uid,
       userId: uid,
       name: fullName,
       fullName: fullName,
       email: email,
-      isTrainer,
-      role,
+      role: role,
+      isTrainer: isTrainer,
       status: 'pending_approval',
       approvalStatus: 'pending',
-      avatar: userData.avatar || userData.profileImageUrl || (fullName.slice(0, 2)),
-      profileImageUrl: userData.profileImageUrl || userData.avatar || null,
-      specialty: userData.specialty || '',
-      selfTraining: userData.selfTraining !== false,
-      targetCalories: Number(userData.targetCalories) || 2200,
-      targetProtein: Number(userData.targetProtein) || 160,
-      targetWater: Number(userData.targetWater) || 3000,
-      createdAt: userData.createdAt || new Date().toISOString()
+      createdAt: new Date().toISOString()
     };
 
-    if (existingIndex >= 0) {
-      this.data.users[existingIndex] = { ...this.data.users[existingIndex], ...userDoc };
+    if (existingIdx >= 0) {
+      this.data.users[existingIdx] = { ...this.data.users[existingIdx], ...doc };
     } else {
-      this.data.users.push(userDoc);
+      this.data.users.push(doc);
     }
     this.save();
-    this.logActivity('USER_REGISTRATION_SUBMITTED', `הוגשה בקשת הרשמה (${isTrainer ? 'מאמן' : 'מתאמן'}): ${fullName} (${email}) - ממתין לאישור מנהל`, { userId: uid, role, email });
-    return userDoc;
+    return doc;
   }
 
-  approveUser(userId, managerId = 'usr_mgr') {
-    if (!Array.isArray(this.data.users)) this.data.users = [];
-    const user = this.data.users.find(u =>
-      (u.id && u.id === userId) ||
-      (u.userId && u.userId === userId) ||
-      (u.email && u.email.toLowerCase() === String(userId).toLowerCase())
-    );
+  approveUser(userId, managerId = 'system') {
+    const user = this.getUserByIdOrEmail(userId);
     if (!user) {
-      throw new Error(`משתמש (${userId}) לא נמצא במסד הנתונים.`);
+      return { userId, status: 'active', approvalStatus: 'approved', _localNotFound: true };
     }
-
     user.status = 'active';
     user.approvalStatus = 'approved';
     user.approvedAt = new Date().toISOString();
     user.approvedBy = managerId;
 
-    // If trainee: provision initial trainee folder if needed
-    if (!user.isTrainer && user.role === 'trainee') {
-      const traineeId = user.id || user.userId;
-      const traineeName = user.name || user.fullName || 'מתאמן חדש';
-      if (!traineeId) throw new Error(`למשתמש (${userId}) חסר מזהה מתאמן תקין.`);
-      const tIndex = this.data.trainees.findIndex(t => t.id === traineeId);
-      const traineeObj = {
-        id: traineeId,
-        name: traineeName,
-        email: user.email || '',
-        avatar: user.avatar || traineeName.slice(0, 2),
-        age: 26,
-        gender: 'other',
-        weight: 70,
-        height: 175,
-        targetCalories: user.targetCalories || 2200,
-        targetProtein: user.targetProtein || 160,
-        targetCarbs: 220,
-        targetFat: 65,
-        targetWaterMl: user.targetWater || 3000,
-        targetSleepHours: 8,
-        assignedRoutine: 'Full Body 3D',
-        notes: 'חשבון מתאמן חדש מאושר'
-      };
-      if (tIndex >= 0) {
-        this.data.trainees[tIndex] = { ...this.data.trainees[tIndex], ...traineeObj };
-      } else {
-        this.data.trainees.push(traineeObj);
+    // Provision trainee profile if newly approved trainee
+    if (user.role === 'trainee') {
+      const tIdx = this.data.trainees.findIndex(t => t.id === user.id);
+      if (tIdx < 0) {
+        this.data.trainees.push({
+          id: user.id,
+          traineeId: user.id,
+          name: user.name || user.fullName,
+          email: user.email,
+          avatar: (user.name || user.fullName || 'מ').slice(0, 2),
+          age: 25,
+          gender: 'other',
+          weight: 70,
+          height: 175,
+          targetCalories: 2200,
+          targetProtein: 160,
+          targetWaterMl: 3000,
+          targetSleepHours: 8,
+          assignedRoutine: 'Push-Pull-Legs 4D',
+          notes: 'חשבון מתאמן מאושר'
+        });
       }
-      this.updateTraineeCurrentStats(traineeId);
     }
 
     this.save();
-    this.logActivity('USER_APPROVED', `אושר חשבון משתמש חדש (${user.isTrainer ? 'מאמן' : 'מתאמן'}): ${user.name} (${user.email}) ע"י מנהל מערכת`, { userId: user.id, role: user.role });
+    this.logActivity('USER_APPROVED', `אושר חשבון משתמש (${user.role}): ${user.name} (${user.email})`, { userId: user.id });
     return user;
   }
 
   rejectUser(userId, reason = 'לא אושר על ידי מנהל מערכת') {
-    if (!Array.isArray(this.data.users)) this.data.users = [];
-    const user = this.data.users.find(u =>
-      (u.id && u.id === userId) ||
-      (u.userId && u.userId === userId) ||
-      (u.email && u.email.toLowerCase() === String(userId).toLowerCase())
-    );
+    if (this.isSpecialUser(userId)) {
+      throw new Error('משתמש זה הינו משתמש מיוחד לבדיקות ולא ניתן להשעותו או לדחותו.');
+    }
+    const user = this.getUserByIdOrEmail(userId);
     if (!user) {
-      throw new Error(`משתמש (${userId}) לא נמצא במסד הנתונים.`);
+      return { userId, status: 'rejected', approvalStatus: 'rejected', _localNotFound: true };
     }
     user.status = 'rejected';
     user.approvalStatus = 'rejected';
     user.rejectedReason = reason;
     this.save();
-    this.logActivity('USER_REJECTED', `נדחתה בקשת הרשמה (${user.id}) ע"י מנהל מערכת: ${reason}`);
+    this.logActivity('USER_REJECTED', `נדחה חשבון (${user.id}): ${reason}`);
     return user;
   }
 
-  setUserStatus(userId, status, managerId = 'usr_mgr') {
-    if (!Array.isArray(this.data.users)) this.data.users = [];
-    const user = this.data.users.find(u =>
-      (u.id && u.id === userId) ||
-      (u.userId && u.userId === userId) ||
-      (u.email && u.email.toLowerCase() === String(userId).toLowerCase())
-    );
-    if (!user) {
-      throw new Error(`משתמש (${userId}) לא נמצא במסד הנתונים.`);
+  setUserStatus(userId, status, managerId = 'system') {
+    if (this.isSpecialUser(userId) && (status === 'suspended' || status === 'rejected')) {
+      throw new Error('משתמש זה הינו משתמש מיוחד לבדיקות ולא ניתן להשעותו או לדחותו.');
     }
+
+    const user = this.getUserByIdOrEmail(userId);
+    if (!user) {
+      return { userId, status, _localNotFound: true };
+    }
+
     user.status = status;
-    if (status === 'active') {
+    if (status === 'pending_approval') {
+      user.approvalStatus = 'pending';
+      delete user.approvedAt;
+      delete user.approvedBy;
+    } else if (status === 'active') {
       user.approvalStatus = 'approved';
       user.approvedAt = new Date().toISOString();
       user.approvedBy = managerId;
     } else if (status === 'rejected') {
       user.approvalStatus = 'rejected';
+    } else if (status === 'suspended') {
+      user.approvalStatus = user.approvalStatus || 'pending';
     }
+
     this.save();
     this.logActivity('USER_STATUS_CHANGED', `עודכן סטטוס משתמש ${userId} ל-${status}`, { userId, status });
     return user;
   }
 
-  setUserRole(userId, role, managerId = 'usr_mgr') {
-    if (!Array.isArray(this.data.users)) this.data.users = [];
-    const user = this.data.users.find(u =>
-      (u.id && u.id === userId) ||
-      (u.userId && u.userId === userId) ||
-      (u.email && u.email.toLowerCase() === String(userId).toLowerCase())
-    );
+  setUserRole(userId, role, managerId = 'system') {
+    const user = this.getUserByIdOrEmail(userId);
     if (!user) {
-      throw new Error(`משתמש (${userId}) לא נמצא במסד הנתונים.`);
+      return { userId, role, isTrainer: role === 'coach', _localNotFound: true };
     }
     user.role = role;
     user.isTrainer = role === 'coach';
@@ -1153,6 +467,430 @@ class FitPulseDatabase {
     this.logActivity('USER_ROLE_CHANGED', `שונה תפקיד משתמש ${userId} ל-${role}`, { userId, role });
     return user;
   }
+
+  deleteUser(userId) {
+    if (this.isSpecialUser(userId)) {
+      throw new Error('משתמש זה הינו משתמש מיוחד לבדיקות ולא ניתן למחוק אותו.');
+    }
+
+    const idx = this.data.users.findIndex(u =>
+      (u.id && u.id === userId) ||
+      (u.userId && u.userId === userId) ||
+      (u.email && u.email.toLowerCase() === String(userId).toLowerCase())
+    );
+
+    if (idx < 0) {
+      return { userId, _localNotFound: true };
+    }
+
+    if (this.isSpecialUser(this.data.users[idx])) {
+      throw new Error('משתמש זה הינו משתמש מיוחד לבדיקות ולא ניתן למחוק אותו.');
+    }
+
+    const [removed] = this.data.users.splice(idx, 1);
+    this.save();
+    this.logActivity('USER_DELETED', `נמחק חשבון משתמש לצמיתות: ${removed.email || userId}`, { userId });
+    return removed;
+  }
+
+  // --- Coach Visibility & Directory ---
+
+  setCoachVisibility(userId, isPublicVisible) {
+    const user = this.getUserByIdOrEmail(userId);
+    if (!user) {
+      throw new Error(`משתמש (${userId}) לא נמצא במסד הנתונים.`);
+    }
+    user.isPublicVisible = Boolean(isPublicVisible);
+    this.save();
+    this.logActivity(
+      'COACH_VISIBILITY_UPDATED',
+      `עודכנה חשיפה למתאמנים חדשים עבור ${user.name || user.email}: ${user.isPublicVisible ? 'פעיל' : 'כבוי'}`,
+      { userId: user.id, isPublicVisible: user.isPublicVisible }
+    );
+    return user;
+  }
+
+  getCoachPublicDirectory() {
+    if (!Array.isArray(this.data.users)) this.data.users = [];
+    return this.data.users.filter(u =>
+      (u.role === 'coach' || (u.isTrainer === true && u.role !== 'manager')) &&
+      u.role !== 'manager' &&
+      u.email !== 'manager@fitpulse.com' &&
+      u.id !== 'usr_mgr' &&
+      u.isPublicVisible === true &&
+      (!u.status || u.status === 'active')
+    ).map(u => ({
+      id: u.id,
+      userId: u.id,
+      name: u.name || u.fullName || 'מאמן',
+      displayName: u.name || u.fullName || 'מאמן',
+      email: u.email,
+      role: 'coach',
+      isTrainer: true,
+      isPublicVisible: true,
+      avatar: u.avatar || u.profileImageUrl || null
+    }));
+  }
+
+  // --- Trainerships & Connections ---
+
+  requestCoachConnection(traineeId, coachId, traineeName = '') {
+    const trainee = this.getUserByIdOrEmail(traineeId);
+    const coach = this.getUserByIdOrEmail(coachId);
+
+    if (!trainee) throw new Error('מתאמן לא נמצא.');
+    if (!coach) throw new Error('מאמן לא נמצא.');
+    if (coach.role === 'manager' || coach.id === 'usr_mgr') {
+      throw new Error('לא ניתן לבחור את מנהל המערכת כמאמן.');
+    }
+    if (!coach.isPublicVisible) {
+      throw new Error('המאמן אינו זמין כעת לקבלת מתאמנים חדשים.');
+    }
+
+    if (!Array.isArray(this.data.connectionRequests)) this.data.connectionRequests = [];
+
+    // Cancel any previous pending request from this trainee
+    this.data.connectionRequests.forEach(r => {
+      if (r.traineeId === trainee.id && r.status === 'pending') {
+        r.status = 'cancelled';
+      }
+    });
+
+    const request = {
+      id: `req_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      traineeId: trainee.id,
+      traineeName: traineeName || trainee.name || trainee.fullName || 'מתאמן',
+      traineeEmail: trainee.email || '',
+      coachId: coach.id,
+      coachName: coach.name || coach.fullName || 'מאמן',
+      coachEmail: coach.email || '',
+      status: 'pending',
+      initiatedBy: 'trainee',
+      createdAt: new Date().toISOString()
+    };
+
+    this.data.connectionRequests.push(request);
+    this.save();
+
+    this.logActivity(
+      'COACH_CONNECTION_REQUESTED',
+      `בקשת חיבור חדשה ממתאמן: ${request.traineeName} אל המאמן: ${request.coachName}`,
+      { requestId: request.id, traineeId: trainee.id, coachId: coach.id }
+    );
+
+    return request;
+  }
+
+  respondCoachConnection(requestId, accept, coachName = '') {
+    if (!Array.isArray(this.data.connectionRequests)) this.data.connectionRequests = [];
+    if (!Array.isArray(this.data.trainerships)) this.data.trainerships = [];
+
+    const req = this.data.connectionRequests.find(r => r.id === requestId);
+    if (!req) throw new Error('בקשת החיבור לא נמצאה.');
+
+    req.status = accept ? 'accepted' : 'rejected';
+    req.respondedAt = new Date().toISOString();
+
+    if (accept) {
+      const relId = `${req.coachId}_${req.traineeId}`;
+      const existingIdx = this.data.trainerships.findIndex(t => t.id === relId || (t.coachId === req.coachId && t.traineeId === req.traineeId));
+      const trainershipDoc = {
+        id: relId,
+        relationId: relId,
+        trainerId: req.coachId,
+        coachId: req.coachId,
+        coachName: req.coachName,
+        traineeId: req.traineeId,
+        traineeName: req.traineeName,
+        status: 'active',
+        createdAt: new Date().toISOString()
+      };
+
+      if (existingIdx >= 0) {
+        this.data.trainerships[existingIdx] = trainershipDoc;
+      } else {
+        this.data.trainerships.push(trainershipDoc);
+      }
+
+      const traineeUser = this.getUserByIdOrEmail(req.traineeId);
+      if (traineeUser) {
+        traineeUser.coachId = req.coachId;
+        traineeUser.coachName = req.coachName;
+      }
+
+      this.logActivity(
+        'COACH_CONNECTION_ACCEPTED',
+        `המאמן ${req.coachName} אישר את בקשת החיבור של המתאמן ${req.traineeName}`,
+        { requestId: req.id, coachId: req.coachId, traineeId: req.traineeId }
+      );
+    } else {
+      this.logActivity(
+        'COACH_CONNECTION_REJECTED',
+        `המאמן ${req.coachName} דחה את בקשת החיבור של המתאמן ${req.traineeName}`,
+        { requestId: req.id, coachId: req.coachId, traineeId: req.traineeId }
+      );
+    }
+
+    this.save();
+    return req;
+  }
+
+  cancelCoachConnectionRequest(traineeId) {
+    if (!Array.isArray(this.data.connectionRequests)) this.data.connectionRequests = [];
+    const cleanTrainee = String(traineeId).toLowerCase();
+    const req = this.data.connectionRequests.find(r =>
+      r.traineeId && r.traineeId.toLowerCase() === cleanTrainee && r.status === 'pending'
+    );
+    if (req) {
+      req.status = 'cancelled';
+      this.save();
+      this.logActivity('COACH_CONNECTION_CANCELLED', `ביטול בקשת חיבור למאמן ${req.coachName} ע"י ${req.traineeName}`, { requestId: req.id });
+      return true;
+    }
+    return false;
+  }
+
+  terminateTrainership(traineeId, coachId, initiatedBy = 'user') {
+    if (!Array.isArray(this.data.trainerships)) this.data.trainerships = [];
+
+    const cleanTrainee = String(traineeId).toLowerCase();
+    const cleanCoach = coachId ? String(coachId).toLowerCase() : null;
+
+    let terminatedRel = null;
+
+    this.data.trainerships.forEach(t => {
+      const matchTrainee = (t.traineeId && t.traineeId.toLowerCase() === cleanTrainee);
+      const matchCoach = !cleanCoach || (t.coachId && t.coachId.toLowerCase() === cleanCoach) || (t.trainerId && t.trainerId.toLowerCase() === cleanCoach);
+      if (matchTrainee && matchCoach && t.status === 'active') {
+        t.status = 'terminated';
+        t.terminatedAt = new Date().toISOString();
+        t.terminatedBy = initiatedBy;
+        terminatedRel = t;
+      }
+    });
+
+    const traineeUser = this.getUserByIdOrEmail(traineeId);
+    if (traineeUser) {
+      delete traineeUser.coachId;
+      delete traineeUser.coachName;
+    }
+
+    if (Array.isArray(this.data.connectionRequests)) {
+      this.data.connectionRequests.forEach(r => {
+        if (r.traineeId && r.traineeId.toLowerCase() === cleanTrainee && r.status === 'pending') {
+          r.status = 'cancelled';
+        }
+      });
+    }
+
+    const tName = traineeUser?.name || traineeId;
+    const cName = terminatedRel?.coachName || coachId || 'המאמן';
+
+    this.logActivity(
+      'TRAINERSHIP_TERMINATED',
+      `סיום קשר אימון בין המתאמן ${tName} לבין המאמן ${cName} (ביוזמת ${initiatedBy === 'coach' ? 'המאמן' : 'המתאמן'})`,
+      { traineeId, coachId, initiatedBy }
+    );
+
+    this.save();
+    return { success: true, terminatedRel };
+  }
+
+  getTrainershipStatus(traineeId) {
+    if (!Array.isArray(this.data.trainerships)) this.data.trainerships = [];
+    if (!Array.isArray(this.data.connectionRequests)) this.data.connectionRequests = [];
+
+    const cleanTrainee = String(traineeId).toLowerCase();
+    const activeRel = this.data.trainerships.find(t =>
+      t.traineeId && t.traineeId.toLowerCase() === cleanTrainee && t.status === 'active'
+    );
+
+    if (activeRel) {
+      const coach = this.getUserByIdOrEmail(activeRel.coachId || activeRel.trainerId);
+      return {
+        hasCoach: true,
+        status: 'active',
+        coach: {
+          id: activeRel.coachId || activeRel.trainerId,
+          name: coach?.name || activeRel.coachName || 'מאמן',
+          email: coach?.email || '',
+          avatar: coach?.avatar || coach?.profileImageUrl || null
+        }
+      };
+    }
+
+    const pendingReq = this.data.connectionRequests.find(r =>
+      r.traineeId && r.traineeId.toLowerCase() === cleanTrainee && r.status === 'pending'
+    );
+
+    if (pendingReq) {
+      return {
+        hasCoach: false,
+        status: 'pending',
+        pendingRequest: pendingReq
+      };
+    }
+
+    return {
+      hasCoach: false,
+      status: 'none'
+    };
+  }
+
+  getCoachTrainees(coachId) {
+    if (!Array.isArray(this.data.trainerships)) this.data.trainerships = [];
+    if (!Array.isArray(this.data.connectionRequests)) this.data.connectionRequests = [];
+
+    const cleanCoach = String(coachId).toLowerCase();
+    const activeRels = this.data.trainerships.filter(t =>
+      ((t.coachId && t.coachId.toLowerCase() === cleanCoach) || (t.trainerId && t.trainerId.toLowerCase() === cleanCoach)) &&
+      t.status === 'active'
+    );
+
+    const activeTrainees = activeRels.map(t => {
+      const u = this.getUserByIdOrEmail(t.traineeId);
+      return {
+        id: t.traineeId,
+        traineeId: t.traineeId,
+        name: u?.name || t.traineeName || 'מתאמן',
+        email: u?.email || '',
+        avatar: u?.avatar || u?.profileImageUrl || null,
+        connectedSince: t.createdAt
+      };
+    });
+
+    const pendingRequests = this.data.connectionRequests.filter(r =>
+      r.coachId && r.coachId.toLowerCase() === cleanCoach && r.status === 'pending'
+    );
+
+    return {
+      activeTrainees,
+      pendingRequests
+    };
+  }
+
+  // --- Trainees and Reports ---
+
+  getTrainees() {
+    return Array.isArray(this.data.trainees) ? this.data.trainees : [];
+  }
+
+  getTrainee(traineeId) {
+    return this.getTrainees().find(t => t.id === traineeId) || null;
+  }
+
+  createTrainee(traineeData) {
+    const id = traineeData.id || `client_${Date.now()}`;
+    const newTrainee = {
+      id,
+      name: traineeData.name || 'מתאמן חדש',
+      email: traineeData.email || '',
+      avatar: (traineeData.name || 'מת').slice(0, 2),
+      age: Number(traineeData.age) || 25,
+      gender: traineeData.gender || 'other',
+      weight: Number(traineeData.weight) || 70,
+      height: Number(traineeData.height) || 175,
+      targetCalories: Number(traineeData.targetCalories) || 2200,
+      targetProtein: Number(traineeData.targetProtein) || 160,
+      targetWaterMl: Number(traineeData.targetWaterMl) || 3000,
+      targetSleepHours: Number(traineeData.targetSleepHours) || 8,
+      assignedRoutine: traineeData.assignedRoutine || 'Push-Pull-Legs 4D',
+      notes: traineeData.notes || ''
+    };
+    this.data.trainees.push(newTrainee);
+    this.save();
+    return newTrainee;
+  }
+
+  getReports(traineeId, options = {}) {
+    const reports = Object.values(this.data.dailyReports || {})
+      .filter(r => r.traineeId === traineeId)
+      .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    if (options.days) {
+      return reports.slice(0, options.days);
+    }
+    return reports;
+  }
+
+  getReport(traineeId, date) {
+    const key = `${traineeId}_${date}`;
+    return this.data.dailyReports[key] || null;
+  }
+
+  saveReport(reportData) {
+    if (!reportData.traineeId || !reportData.date) return null;
+    const key = `${reportData.traineeId}_${reportData.date}`;
+    const existing = this.data.dailyReports[key] || {};
+    const updated = {
+      ...existing,
+      ...reportData,
+      status: reportData.status || existing.status || 'draft',
+      updatedAt: new Date().toISOString()
+    };
+    this.data.dailyReports[key] = updated;
+    this.save();
+    return updated;
+  }
+
+  finalizeReport(traineeId, date) {
+    const key = `${traineeId}_${date}`;
+    const existing = this.data.dailyReports[key] || { traineeId, date };
+    existing.status = 'final';
+    existing.finalizedAt = new Date().toISOString();
+    this.data.dailyReports[key] = existing;
+    this.save();
+    return existing;
+  }
+
+  addCoachFeedback(traineeId, date, feedbackData) {
+    const key = `${traineeId}_${date}`;
+    const report = this.data.dailyReports[key] || { traineeId, date, status: 'final' };
+    report.coachFeedback = {
+      notes: feedbackData.notes || '',
+      rating: feedbackData.rating || 5,
+      timestamp: new Date().toISOString()
+    };
+    this.data.dailyReports[key] = report;
+    this.save();
+    return report;
+  }
+
+  autoClosePastReports() {
+    const today = new Date().toISOString().substring(0, 10);
+    let changed = false;
+    Object.values(this.data.dailyReports || {}).forEach(r => {
+      if (r.date && r.date < today && r.status === 'draft') {
+        r.status = 'final';
+        r.autoClosed = true;
+        r.finalizedAt = new Date().toISOString();
+        changed = true;
+      }
+    });
+    if (changed) this.save();
+  }
+
+  logActivity(type, description, meta = {}) {
+    const log = {
+      id: `log_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      type,
+      description,
+      meta,
+      timestamp: new Date().toISOString()
+    };
+    if (!Array.isArray(this.data.auditLogs)) this.data.auditLogs = [];
+    this.data.auditLogs.unshift(log);
+    if (this.data.auditLogs.length > 200) {
+      this.data.auditLogs = this.data.auditLogs.slice(0, 200);
+    }
+    this.save();
+    return log;
+  }
+
+  getAuditLogs(limit = 30) {
+    return (this.data.auditLogs || []).slice(0, limit);
+  }
 }
 
-module.exports = new FitPulseDatabase();
+const dbInstance = new FitPulseDatabase();
+dbInstance.FitPulseDatabase = FitPulseDatabase;
+module.exports = dbInstance;

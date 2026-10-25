@@ -102,25 +102,22 @@ const FitPulseFirebase = {
       // 1. Check if user already exists in 'users' collection by Auth UID
       let profile = await this.getLoginProfile(user);
 
-      // 2. Fallback check by email in 'users'
-      if (!profile && user.email) {
-        try {
-          const snapshot = await this.db.collection('users')
-            .where('email', '==', user.email)
-            .limit(1)
-            .get();
-          if (!snapshot.empty) {
-            profile = snapshot.docs[0].data();
-          }
-        } catch (e) {
-          console.warn("[FitPulse Firebase] Email lookup notice:", e.message);
-        }
-      }
+      // Note: No email-based fallback query here — Firestore list rules
+      // do not permit unauthenticated/pending users to query by email.
+      // Server-side lookup is done via /api/auth/google instead.
 
-      // If user DOES NOT exist in the database, do NOT create placeholder data!
-      // Return isNewUser: true so the frontend routes to the Onboarding / Account-Type page.
+      // If user DOES NOT exist in the database, auto-create a pending profile and queue for admin approval
       if (!profile) {
-        return { user, profile: null, isNewUser: true, isPendingApproval: false };
+        try {
+          await this.completeUserRegistration(user, {
+            role: 'trainee', // default; user can update via onboarding if needed
+            fullName: user.displayName || user.email.split('@')[0] || 'משתמש חדש'
+          });
+        } catch (regErr) {
+          console.warn('[FitPulse Firebase] Auto-registration notice:', regErr.message);
+        }
+        this.logAudit('USER_NEW_GOOGLE', `משתמש Google חדש נרשם ומחכה לאישור: ${user.email} (${user.uid})`);
+        return { user, profile: null, isNewUser: true, isPendingApproval: true };
       }
 
       // Strict Auth Guard: Immediately reject or suspend user and terminate session
@@ -153,10 +150,17 @@ const FitPulseFirebase = {
   },
 
   async getLoginProfile(user) {
+    // 1. Try Firestore get by UID (get is allowed for own document via isUserIdentity rule)
     if (this.db) {
-      const snapshot = await this.db.collection('users').doc(user.uid).get();
-      if (snapshot.exists) return snapshot.data();
+      try {
+        const snapshot = await this.db.collection('users').doc(user.uid).get();
+        if (snapshot.exists) return snapshot.data();
+      } catch (e) {
+        // Firestore not reachable or permission error — fall through to server API
+        console.warn('[FitPulse Firebase] Firestore profile get notice:', e.message);
+      }
     }
+    // 2. Authoritative fallback: server backend
     return this.getUserProfile(user.uid);
   },
 
@@ -587,9 +591,23 @@ const FitPulseFirebase = {
     return updatedUser || { userId, role, isTrainer: role === 'coach' };
   },
 
+  isSpecialUser(userOrId) {
+    if (!userOrId) return false;
+    const val = typeof userOrId === 'string'
+      ? userOrId.toLowerCase().trim()
+      : (((userOrId.email || userOrId.id || userOrId.userId || '') + '')).toLowerCase().trim();
+    const specialEmails = ['manager@fitpulse.com', 'coach.real@fitpulse.com', 'trainee.real@fitpulse.com'];
+    const specialIds = ['usr_mgr', 'usr_coach_real', 'usr_trainee_real', 'coach_real', 'trainee_real'];
+    return specialEmails.includes(val) || specialIds.includes(val);
+  },
+
   async setUserStatus(userId, status) {
-    if (!userId || !['active', 'suspended', 'rejected'].includes(status)) {
+    if (!userId || !['active', 'pending_approval', 'suspended', 'rejected'].includes(status)) {
       throw new Error('סטטוס המשתמש אינו תקין.');
+    }
+
+    if (this.isSpecialUser(userId) && (status === 'suspended' || status === 'rejected')) {
+      throw new Error('משתמש זה הינו משתמש מיוחד לבדיקות ולא ניתן להשעותו או לדחותו.');
     }
 
     const canManageUsers = await this.verifyManagerPermission();
@@ -618,10 +636,20 @@ const FitPulseFirebase = {
         const profileRef = this.db.collection('users').doc(userId);
         const profile = await profileRef.get();
         if (profile.exists) {
-          const updates = {
-            status,
-            ...(status === 'active' ? { approvalStatus: 'approved' } : (status === 'rejected' ? { approvalStatus: 'rejected' } : {}))
-          };
+          // Map the requested status to Firestore fields.
+          // "pending_approval" resets a rejected/suspended user back to the approval queue.
+          let updates;
+          if (status === 'pending_approval') {
+            updates = { status: 'pending_approval', approvalStatus: 'pending' };
+          } else if (status === 'active') {
+            updates = { status: 'active', approvalStatus: 'approved' };
+          } else if (status === 'rejected') {
+            updates = { status: 'rejected', approvalStatus: 'rejected' };
+          } else if (status === 'suspended') {
+            updates = { status: 'suspended' };
+          } else {
+            updates = { status };
+          }
           await profileRef.update(updates);
           if (!updatedUser) updatedUser = { ...profile.data(), ...updates };
         }
@@ -633,15 +661,18 @@ const FitPulseFirebase = {
     // 3. Update localStorage pending
     try {
       const localPending = JSON.parse(localStorage.getItem('fitpulse_pending_users') || '[]');
-      const updated = localPending.map(u => (u.userId === userId || u.id === userId)
-        ? { ...u, status, ...(status === 'active' ? { approvalStatus: 'approved' } : (status === 'rejected' ? { approvalStatus: 'rejected' } : {})) }
-        : u
-      );
+      const updated = localPending.map(u => {
+        if (u.userId !== userId && u.id !== userId) return u;
+        if (status === 'pending_approval') return { ...u, status: 'pending_approval', approvalStatus: 'pending' };
+        if (status === 'active') return { ...u, status: 'active', approvalStatus: 'approved' };
+        if (status === 'rejected') return { ...u, status: 'rejected', approvalStatus: 'rejected' };
+        return { ...u, status };
+      });
       localStorage.setItem('fitpulse_pending_users', JSON.stringify(updated));
     } catch (e) {}
 
     this.logAudit('USER_STATUS_CHANGED', `עודכן סטטוס משתמש ${userId} ל-${status}`, { userId, status });
-    return updatedUser || { userId, status, ...(status === 'active' ? { approvalStatus: 'approved' } : {}) };
+    return updatedUser || { userId, status, approvalStatus: status === 'active' ? 'approved' : status === 'rejected' ? 'rejected' : 'pending' };
   },
 
   async listManagedUsers() {
@@ -666,6 +697,41 @@ const FitPulseFirebase = {
     return [];
   },
 
+  // Manager: Permanently delete a user account (rejected accounts only)
+  async deleteUserAccount(userId) {
+    if (this.isSpecialUser(userId)) {
+      throw new Error('משתמש זה הינו משתמש מיוחד לבדיקות ולא ניתן למחוק אותו.');
+    }
+    const canManage = await this.verifyManagerPermission();
+    if (!canManage) throw new Error('רק מנהל מערכת פעיל יכול למחוק חשבונות משתמשים.');
+
+    // 1. Delete from Firestore
+    if (this.isConfigured && this.db) {
+      try {
+        await this.db.collection('users').doc(userId).delete();
+      } catch (fbErr) {
+        console.warn('[FitPulse Firebase] Firestore user delete notice:', fbErr.message);
+      }
+    }
+
+    // 2. Delete from server backend
+    try {
+      await fetch(`/api/users/${encodeURIComponent(userId)}`, { method: 'DELETE' });
+    } catch (sErr) {
+      console.warn('[FitPulse Firebase] Server user delete notice:', sErr.message);
+    }
+
+    // 3. Remove from localStorage
+    try {
+      const localPending = JSON.parse(localStorage.getItem('fitpulse_pending_users') || '[]');
+      localStorage.setItem('fitpulse_pending_users',
+        JSON.stringify(localPending.filter(u => u.userId !== userId && u.id !== userId)));
+    } catch (e) {}
+
+    this.logAudit('USER_DELETED', `נמחק חשבון משתמש לצמיתות: ${userId}`, { userId });
+    return true;
+  },
+
   async getUserProfile(uid) {
     let profile = null;
 
@@ -681,26 +747,33 @@ const FitPulseFirebase = {
       }
     }
 
-    // 2. Server status check
-    if (!profile || profile.status === 'pending_approval') {
-      try {
-        const res = await fetch(`/api/users/status?userId=${encodeURIComponent(uid)}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success && data.user) {
-            profile = { ...profile, ...data.user };
-          }
+    // 2. Server status check (always check server for most authoritative status & role)
+    try {
+      const res = await fetch(`/api/users/status?userId=${encodeURIComponent(uid)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.user) {
+          profile = { ...profile, ...data.user };
         }
-      } catch (sErr) {}
+      }
+    } catch (sErr) {}
+
+    // If user is active, remove from local pending cache
+    if (profile && (profile.status === 'active' || profile.approvalStatus === 'approved')) {
+      try {
+        const localPending = JSON.parse(localStorage.getItem('fitpulse_pending_users') || '[]');
+        const filtered = localPending.filter(u => u.userId !== uid && u.id !== uid);
+        localStorage.setItem('fitpulse_pending_users', JSON.stringify(filtered));
+      } catch (e) {}
     }
 
-    // 3. LocalStorage check
-    if (!profile || profile.status === 'pending_approval') {
+    // 3. LocalStorage fallback ONLY if profile not found at all
+    if (!profile) {
       try {
         const localPending = JSON.parse(localStorage.getItem('fitpulse_pending_users') || '[]');
         const found = localPending.find(u => u.userId === uid || u.id === uid);
         if (found) {
-          profile = { ...profile, ...found };
+          profile = { ...found };
         }
       } catch (lErr) {}
     }
@@ -897,129 +970,26 @@ const FitPulseFirebase = {
   subscribeToTrainees(onUpdate) {
     if (!this.isConfigured || !this.db) return null;
 
-    const unsub = this.db.collection('trainees').onSnapshot(async snapshot => {
-      if (snapshot.empty) {
-        console.log("[FitPulse Firebase] Trainees collection empty. Seeding initial roster...");
-        await this.seedInitialTrainees();
-        return;
-      }
-      const trainees = [];
-      snapshot.forEach(doc => {
-        trainees.push(doc.data());
+    const unsub = this.db.collection('users')
+      .where('role', '==', 'trainee')
+      .onSnapshot(snapshot => {
+        const trainees = [];
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          trainees.push({ id: doc.id, ...data });
+        });
+        onUpdate(trainees);
+      }, err => {
+        console.warn('[FitPulse Firebase] Users roster subscription notice:', err.message);
       });
-      onUpdate(trainees);
-    }, err => {
-      console.error("[FitPulse Firebase] Trainees subscription error:", err);
-    });
 
     this.unsubscribers.push(unsub);
     return unsub;
   },
 
-  // Check and seed initial trainees & 14 days of reports if Firestore is clean
+  // Check and seed initial data (No-op to maintain clean database)
   async checkAndSeedInitialData() {
-    if (!this.isConfigured || !this.db) return;
-    try {
-      const snap = await this.db.collection('trainees').limit(1).get();
-      if (snap.empty) {
-        await this.seedInitialTrainees();
-        await this.seedHistoricalReports();
-      }
-    } catch (err) {
-      console.warn("[FitPulse Firebase] Check initial data notice:", err.message);
-    }
-  },
-
-  async seedInitialTrainees() {
-    const trainees = [
-      { id: "client_1", name: "דניאל כהן", age: 28, weight: 78.4, targetCalories: 2400, targetProtein: 160, targetWaterMl: 3000, activeWorkout: "Push A - חזה וכתפיים", hasWorkedOutToday: true },
-      { id: "client_2", name: "שירה לוי", age: 25, weight: 61.2, targetCalories: 1850, targetProtein: 125, targetWaterMl: 2500, activeWorkout: "Lower Body Focus", hasWorkedOutToday: true },
-      { id: "client_3", name: "יונתן ברק", age: 34, weight: 84.0, targetCalories: 2650, targetProtein: 180, targetWaterMl: 3200, activeWorkout: "Upper Power", hasWorkedOutToday: false },
-      { id: "client_4", name: "מאיה אברהם", age: 30, weight: 57.8, targetCalories: 1950, targetProtein: 130, targetWaterMl: 2400, activeWorkout: "Glutes & Core", hasWorkedOutToday: true },
-      { id: "client_5", name: "איתי גולדשטיין", age: 22, weight: 72.5, targetCalories: 2800, targetProtein: 190, targetWaterMl: 3500, activeWorkout: "Push Heavy", hasWorkedOutToday: false }
-    ];
-
-    const batch = this.db.batch();
-    for (const t of trainees) {
-      const ref = this.db.collection('trainees').doc(t.id);
-      batch.set(ref, t);
-    }
-    await batch.commit();
-    console.log("[FitPulse Firebase] Initial trainees seeded to Firestore.");
-  },
-
-  async seedHistoricalReports() {
-    const batch = this.db.batch();
-    const now = new Date();
-
-    for (let dayOffset = 0; dayOffset < 14; dayOffset++) {
-      const d = new Date(now.getTime() - dayOffset * 24 * 60 * 60 * 1000);
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      const dateStr = `${year}-${month}-${day}`;
-
-      const isToday = dayOffset === 0;
-      const status = isToday ? 'draft' : 'finalized';
-      const weight = (78.4 + (dayOffset * 0.08) - (dayOffset % 2 === 0 ? 0.15 : 0)).toFixed(1);
-      const docId = `client_1_${dateStr}`;
-
-      const report = {
-        id: docId,
-        traineeId: "client_1",
-        date: dateStr,
-        status: status,
-        createdAt: `${dateStr}T07:15:00.000Z`,
-        finalizedAt: isToday ? null : `${dateStr}T21:45:00.000Z`,
-        checkIn: {
-          morningWeight: parseFloat(weight),
-          waterLiters: isToday ? 2.2 : (2.5 + (dayOffset % 3) * 0.3),
-          sleepHours: isToday ? 7.5 : (6.5 + (dayOffset % 4) * 0.5),
-          sleepQuality: 4,
-          steps: 9000 + (dayOffset * 450) % 3500,
-          digestion: 5,
-          hungerLevel: 3,
-          energyLevel: 4,
-          stressLevel: 2,
-          notes: isToday ? 'מרגיש מצוין ורענן לקראת האימון.' : 'היה יום עמוס בעבודה אך עמדתי בכל יעדי התזונה.'
-        },
-        nutrition: {
-          totalCalories: 2350,
-          targetCalories: 2400,
-          totalProtein: 165,
-          targetProtein: 160,
-          meals: [
-            { id: `m1_${dayOffset}`, name: "חביתת 3 ביצים, לחם כפרי וטחינה", calories: 520, protein: 32, time: "08:15", loggedAt: `${dateStr}T08:15:00.000Z` },
-            { id: `m2_${dayOffset}`, name: "חזה עוף מוקפץ עם אורז בסמטי ושעועית ירוקה", calories: 740, protein: 55, time: "13:20", loggedAt: `${dateStr}T13:20:00.000Z` },
-            { id: `m3_${dayOffset}`, name: "יוגורט פרו 20 גרם חלבון עם בננה ואגוזי מלך", calories: 340, protein: 24, time: "17:10", loggedAt: `${dateStr}T17:10:00.000Z` },
-            { id: `m4_${dayOffset}`, name: "פילה סלמון בתנור, בטטה קלויה וסלט קצוץ", calories: 750, protein: 54, time: "20:30", loggedAt: `${dateStr}T20:30:00.000Z` }
-          ]
-        },
-        workouts: dayOffset % 2 === 0 ? [{
-          planName: "Push A - חזה וכתפיים",
-          durationMinutes: 52,
-          startedAt: `${dateStr}T18:00:00.000Z`,
-          completedAt: `${dateStr}T18:52:00.000Z`,
-          time: "18:00",
-          exercises: [
-            { name: "לחיצת חזה במוט (Bench Press)", sets: [{ weight: 80, reps: 8, completed: true }, { weight: 80, reps: 8, completed: true }, { weight: 82.5, reps: 6, completed: true }] },
-            { name: "לחיצת כתפיים בדאמבלים בישיבה", sets: [{ weight: 24, reps: 10, completed: true }, { weight: 24, reps: 9, completed: true }, { weight: 26, reps: 8, completed: true }] }
-          ]
-        }] : [],
-        coachFeedback: dayOffset > 1 ? {
-          reviewed: true,
-          reviewedAt: `${dateStr}T22:30:00.000Z`,
-          notes: "עבודה מעולה על הדחיפה! שים לב לשמור על קצב ירידה מבוקר בסט השלישי של הבנץ'.",
-          coachRating: 5
-        } : null
-      };
-
-      const ref = this.db.collection('dailyReports').doc(docId);
-      batch.set(ref, report);
-    }
-
-    await batch.commit();
-    console.log("[FitPulse Firebase] Initial 14-day history seeded to Firestore.");
+    return;
   },
 
   // -------------------------------------------------------------------------
@@ -1273,115 +1243,173 @@ const FitPulseFirebase = {
   },
 
   async listCoaches(searchText = '') {
-    if (!this.isConfigured || !this.db || !this.currentUid()) throw new Error('יש להתחבר כדי לטעון את מדריך המאמנים.');
     const search = String(searchText || '').trim().toLocaleLowerCase();
     const uniqueCoaches = new Map();
 
+    // 1. Always load from server backend API first
     try {
-      // 1. Correct query: Query users collection for active coach accounts where isTrainer == true (or role == 'coach') and isPublicVisible == true
-      const [byTrainer, byRole] = await Promise.all([
-        this.db.collection('users')
-          .where('isTrainer', '==', true)
-          .where('isPublicVisible', '==', true)
-          .limit(100)
-          .get()
-          .catch(e => {
-            console.warn("[FitPulse Firebase] users isTrainer listCoaches query notice:", e.message);
-            return { docs: [] };
-          }),
-        this.db.collection('users')
+      const res = await fetch('/api/coaches');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.coaches)) {
+          data.coaches.forEach(c => {
+            if (c.role !== 'manager' && c.id !== 'usr_mgr' && c.email !== 'manager@fitpulse.com' && c.isPublicVisible === true) {
+              uniqueCoaches.set(c.id, c);
+            }
+          });
+        }
+      }
+    } catch (e) {}
+
+    // 2. Query Firestore if configured
+    if (this.isConfigured && this.db && this.currentUid()) {
+      try {
+        const snap = await this.db.collection('users')
           .where('role', '==', 'coach')
           .where('isPublicVisible', '==', true)
           .limit(100)
           .get()
-          .catch(e => {
-            console.warn("[FitPulse Firebase] users role coach listCoaches query notice:", e.message);
-            return { docs: [] };
-          })
-      ]);
+          .catch(() => ({ docs: [] }));
 
-      [...byTrainer.docs, ...byRole.docs].forEach(doc => {
-        const data = doc.data() || {};
-        // Skip inactive/rejected/suspended accounts
-        if (data.status === 'rejected' || data.approvalStatus === 'rejected' || data.status === 'suspended') return;
-        const name = String(data.fullName || data.name || data.displayName || 'מאמן');
-        uniqueCoaches.set(doc.id, {
-          id: doc.id,
-          userId: doc.id,
-          name,
-          displayName: name,
-          email: data.email || '',
-          specialty: data.specialty || '',
-          isTrainer: true,
-          isPublicVisible: true
-        });
-      });
-    } catch (err) {
-      console.warn("[FitPulse Firebase] Error querying users for coaches:", err.message);
-    }
-
-    // 2. Also check coachDirectory for any existing discoverable listings
-    try {
-      const directory = this.db.collection('coachDirectory');
-      const [discoverable, legacyVisible] = await Promise.all([
-        directory.where('isDiscoverable', '==', true).limit(100).get().catch(() => ({ docs: [] })),
-        directory.where('isPublicVisible', '==', true).limit(100).get().catch(() => ({ docs: [] }))
-      ]);
-      [...discoverable.docs, ...legacyVisible.docs].forEach(doc => {
-        if (!uniqueCoaches.has(doc.id)) {
+        snap.docs.forEach(doc => {
           const data = doc.data() || {};
+          if (data.status === 'rejected' || data.status === 'suspended') return;
+          if (data.role === 'manager' || data.email === 'manager@fitpulse.com' || doc.id === 'usr_mgr') return;
+          const name = String(data.fullName || data.name || data.displayName || 'מאמן');
           uniqueCoaches.set(doc.id, {
             id: doc.id,
             userId: doc.id,
-            name: String(data.displayName || 'מאמן'),
+            name,
+            displayName: name,
+            email: data.email || '',
+            role: 'coach',
             isTrainer: true,
-            isPublicVisible: true
+            isPublicVisible: true,
+            avatar: data.profileImageUrl || data.avatar || null
           });
-        }
-      });
-    } catch (e) {}
+        });
+      } catch (err) {}
+    }
 
     return [...uniqueCoaches.values()]
-      .filter(coach => !search || coach.name.toLocaleLowerCase().includes(search));
+      .filter(coach =>
+        coach.role !== 'manager' &&
+        coach.email !== 'manager@fitpulse.com' &&
+        coach.id !== 'usr_mgr' &&
+        coach.isPublicVisible === true &&
+        (!search || coach.name.toLocaleLowerCase().includes(search))
+      );
   },
 
   async setCoachDirectoryListing(isDiscoverable, displayName) {
-    if (!this.isConfigured || !this.db) throw new Error('יש להתחבר כמאמן כדי לעדכן את פרטי המדריך.');
-    const user = await this.getAuthenticatedUser();
-    const uid = user.uid;
     const isVisible = Boolean(isDiscoverable);
+    const uid = this.currentUid() || (typeof state !== 'undefined' && state?.currentUser?.id) || 'usr_coach_real';
 
-    // 1. Update own profile document's isPublicVisible field in users collection
+    // 1. Sync to backend API (ensures persistence in database)
     try {
-      await this.db.collection('users').doc(uid).update({
-        isPublicVisible: isVisible
+      await fetch('/api/coach/visibility', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: uid, isPublicVisible: isVisible })
       });
-    } catch (userErr) {
-      console.warn("[FitPulse Firebase] User doc isPublicVisible update notice, writing with merge:", userErr.message);
-      await this.db.collection('users').doc(uid).set({
-        userId: uid,
-        fullName: String(displayName || user.displayName || user.email?.split('@')[0] || 'מאמן').slice(0, 100),
-        email: user.email || '',
-        isTrainer: true,
-        role: 'coach',
-        status: 'active',
-        approvalStatus: 'approved',
-        isPublicVisible: isVisible,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true });
+    } catch (sErr) {
+      console.warn('[FitPulse Firebase] Backend coach visibility notice:', sErr.message);
     }
 
-    // 2. Also update coachDirectory for backwards compatibility
+    if (!this.isConfigured || !this.db || !this.currentUid()) {
+      return { success: true, isPublicVisible: isVisible };
+    }
+
+    const user = this.auth?.currentUser;
+    if (user && user.uid) {
+      // Update only isPublicVisible on the existing users/{uid} document.
+      // We only use .update() so we never try to create a partial doc that
+      // would fail isValidUser() validation in Firestore Security Rules.
+      // If the doc doesn't yet exist in Firestore the backend API above
+      // already persisted the value, so we silently skip the Firestore write.
+      try {
+        await this.db.collection('users').doc(user.uid).update({
+          isPublicVisible: isVisible
+        });
+      } catch (userErr) {
+        // Document may not exist in Firestore — backend API is the source of truth.
+        console.warn('[FitPulse Firebase] Coach visibility Firestore update notice:', userErr.message);
+      }
+
+      try {
+        await this.db.collection('coachDirectory').doc(user.uid).set({
+          coachId: user.uid,
+          displayName: String(displayName || user.displayName || 'מאמן').trim().slice(0, 100),
+          isDiscoverable: isVisible,
+          isPublicVisible: isVisible,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+      } catch (cdErr) {}
+    }
+
+    return { success: true, isPublicVisible: isVisible };
+  },
+
+  async requestCoachConnection(traineeId, coachId, traineeDisplayName = '') {
+    // 1. Sync to backend API
+    let apiResult = null;
     try {
-      await this.db.collection('coachDirectory').doc(uid).set({
-        coachId: uid,
-        displayName: String(displayName || user.displayName || 'מאמן').trim().slice(0, 100),
-        isDiscoverable: isVisible,
-        isPublicVisible: isVisible,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true });
-    } catch (cdErr) {
-      console.warn("[FitPulse Firebase] coachDirectory update notice:", cdErr.message);
+      const res = await fetch('/api/coach/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ traineeId, coachId, traineeName: traineeDisplayName })
+      });
+      if (res.ok) apiResult = await res.json();
+    } catch (e) {}
+
+    // 2. Firestore sync
+    if (this.isConfigured && this.db) {
+      try {
+        const requestId = `${traineeId}_${coachId}`;
+        await this.db.collection('coachingRequests').doc(requestId).set({
+          coachId,
+          traineeId,
+          traineeDisplayName: traineeDisplayName || 'מתאמן',
+          initiatedBy: 'trainee',
+          status: 'pending',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+      } catch (e) {}
+    }
+    return apiResult;
+  },
+
+  async cancelCoachConnectionRequest(traineeId) {
+    try {
+      await fetch('/api/coach/cancel-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ traineeId })
+      });
+    } catch (e) {}
+  },
+
+  async terminateTrainership(traineeId, coachId, initiatedBy = 'user') {
+    // 1. Sync to backend API
+    try {
+      await fetch('/api/coach/terminate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ traineeId, coachId, initiatedBy })
+      });
+    } catch (e) {}
+
+    // 2. Firestore sync
+    if (this.isConfigured && this.db) {
+      try {
+        const relId = `${coachId}_${traineeId}`;
+        await this.db.collection('trainerships').doc(relId).update({
+          status: 'terminated',
+          terminatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          terminatedBy: initiatedBy
+        }).catch(() => {});
+      } catch (e) {}
     }
   },
 
@@ -1392,7 +1420,7 @@ const FitPulseFirebase = {
 
   async getOwnCoachDirectoryListing() {
     const uid = this.currentUid();
-    if (!this.isConfigured || !this.db || !uid) throw new Error('יש להתחבר כדי לטעון את פרטי המדריך.');
+    if (!this.isConfigured || !this.db || !uid) return { isDiscoverable: true, isPublicVisible: true };
     try {
       const userSnap = await this.db.collection('users').doc(uid).get();
       if (userSnap.exists && userSnap.data()?.isPublicVisible !== undefined) {

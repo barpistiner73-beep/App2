@@ -143,12 +143,48 @@
     coachDailyReportAccess: false,
     currentUser: readSession('fitpulse_auth_session', null),
     systemUsers: [
-      { id: 'usr_mgr', name: 'מנהל מערכת ראשי', email: 'manager@fitpulse.com', role: 'manager', status: 'active', createdAt: '2026-09-01' },
-      { id: 'usr_coach', name: 'מאמן ראשי', email: 'coach@fitpulse.com', role: 'coach', status: 'active', createdAt: '2026-09-01' },
-      { id: 'usr_c1', name: 'דניאל כהן', email: 'daniel@fitpulse.com', role: 'trainee', traineeId: 'client_1', routine: 'Push-Pull-Legs 4D', status: 'active', createdAt: '2026-09-01' },
-      { id: 'usr_c2', name: 'שירה לוי', email: 'shira@fitpulse.com', role: 'trainee', traineeId: 'client_2', routine: 'Upper / Lower 4D', status: 'active', createdAt: '2026-09-05' },
-      { id: 'usr_c3', name: 'רון אברהם', email: 'ron@fitpulse.com', role: 'trainee', traineeId: 'client_3', routine: 'Full Body 3D', status: 'active', createdAt: '2026-09-10' },
-      { id: 'usr_c4', name: 'יעל שטרן', email: 'yael@fitpulse.com', role: 'trainee', traineeId: 'client_4', routine: 'Glutes & Legs Focus', status: 'active', createdAt: '2026-09-12' }
+      {
+        id: 'usr_mgr',
+        userId: 'usr_mgr',
+        name: 'מנהל מערכת',
+        fullName: 'מנהל מערכת',
+        email: 'manager@fitpulse.com',
+        role: 'manager',
+        isTrainer: true,
+        status: 'active',
+        approvalStatus: 'approved',
+        isSpecial: true,
+        createdAt: '2026-01-01'
+      },
+      {
+        id: 'usr_coach_real',
+        userId: 'usr_coach_real',
+        name: 'מאמן (חשבון אמת)',
+        fullName: 'מאמן (חשבון אמת)',
+        email: 'coach.real@fitpulse.com',
+        role: 'coach',
+        isTrainer: true,
+        isPublicVisible: true,
+        status: 'active',
+        approvalStatus: 'approved',
+        isSpecial: true,
+        createdAt: '2026-01-01'
+      },
+      {
+        id: 'usr_trainee_real',
+        userId: 'usr_trainee_real',
+        name: 'מתאמן (חשבון אמת)',
+        fullName: 'מתאמן (חשבון אמת)',
+        email: 'trainee.real@fitpulse.com',
+        role: 'trainee',
+        isTrainer: false,
+        traineeId: 'usr_trainee_real',
+        routine: 'Push-Pull-Legs 4D',
+        status: 'active',
+        approvalStatus: 'approved',
+        isSpecial: true,
+        createdAt: '2026-01-01'
+      }
     ],
     managerRoleFilter: 'all',
     managerUserSearch: '',
@@ -2774,13 +2810,23 @@
       (state.currentUser.id && state.currentUser.id.startsWith('usr_')) ||
       (state.currentUser.email && (state.currentUser.email === 'coach@fitpulse.com' || state.currentUser.email === 'manager@fitpulse.com')));
     let trainees = FIT_DATA.coachTrainees || [];
+    try {
+      const cRes = await fetch(`/api/coach/trainees?coachId=${encodeURIComponent(state.currentUser?.id || 'usr_coach_real')}`);
+      if (cRes.ok) {
+        const cData = await cRes.json();
+        if (cData.success && Array.isArray(cData.activeTrainees) && cData.activeTrainees.length) {
+          trainees = cData.activeTrainees;
+        }
+      }
+    } catch (e) {}
+
     if (isDemoCoach) {
       try {
         const res = await fetch('/api/trainees');
         if (res.ok) {
           const data = await res.json();
           if (data.success && Array.isArray(data.trainees)) {
-            trainees = data.trainees;
+            if (!trainees.length) trainees = data.trainees;
             FIT_DATA.coachTrainees = trainees;
           }
         }
@@ -3048,6 +3094,27 @@
           window.scrollTo({ top: 0, behavior: 'smooth' });
         });
         card.append(selectBtn);
+
+        const terminateBtn = createElement('button', 'btn-action-ghost', '❌ סיום הקשר');
+        terminateBtn.style.marginTop = '6px';
+        terminateBtn.style.color = 'var(--danger, #ef4444)';
+        terminateBtn.style.fontSize = '0.78rem';
+        terminateBtn.type = 'button';
+        terminateBtn.addEventListener('click', async () => {
+          if (!confirm(`האם אתה בטוח שברצונך לסיים את הקשר עם המתאמן ${trainee.name}?`)) return;
+          terminateBtn.disabled = true;
+          try {
+            if (window.FitPulseFirebase?.terminateTrainership) {
+              await window.FitPulseFirebase.terminateTrainership(trainee.id, state.currentUser?.id, 'coach');
+            }
+            alert(`קשר האימון עם ${trainee.name} הסתיים בהצלחה.`);
+            renderCoach();
+          } catch (e) {
+            alert(`שגיאה בסיום הקשר: ${e.message}`);
+            terminateBtn.disabled = false;
+          }
+        });
+        card.append(terminateBtn);
 
         grid.append(card);
       });
@@ -3405,110 +3472,153 @@
     const isTrainee = isTraineeModeActive();
     card.hidden = !isTrainee || !state.currentUser;
     if (card.hidden) return;
+
     const statusEl = byId('traineeCoachLinkStatus');
+    const noCoachBox = byId('traineeNoCoachBox');
     const form = byId('traineeCoachLinkForm');
+    const btnOpen = byId('btnOpenAssignCoach');
+    const pendingBox = byId('traineePendingCoachBox');
+    const pendingDesc = byId('traineePendingCoachDesc');
     const activeBox = byId('traineeCoachActiveBox');
-    if (!window.FitPulseFirebase?.isConfigured) {
-      if (statusEl) statusEl.textContent = 'חיבור למאמן זמין אחרי התחברות לענן.';
-      if (form) form.hidden = true;
-      if (activeBox) activeBox.hidden = true;
-      return;
-    }
-    if (statusEl) statusEl.textContent = 'טוען חיבור למאמן…';
+    const select = byId('traineeCoachSelect');
+    const headerBadge = byId('traineeCoachHeaderBadge');
+
+    const uid = getAuthUserId() || state.currentUser?.id;
+
+    // Reset visibility of boxes
+    if (noCoachBox) noCoachBox.hidden = true;
+    if (pendingBox) pendingBox.hidden = true;
+    if (activeBox) activeBox.hidden = true;
+    if (form) form.hidden = true;
+
     try {
-      const uid = getAuthUserId();
-      const [linksResult, coachesResult, requestsResult] = await Promise.allSettled([
-        window.FitPulseFirebase.listMyTrainerships(),
-        window.FitPulseFirebase.listCoaches(byId('traineeCoachSearchInput')?.value || ''),
-        window.FitPulseFirebase.getTraineeConnectionRequests()
-      ]);
-      if (coachesResult.status === 'rejected') throw coachesResult.reason;
-      const coaches = coachesResult.value;
-      const links = linksResult.status === 'fulfilled' ? linksResult.value : [];
-      const requests = requestsResult.status === 'fulfilled' ? requestsResult.value : [];
-      const connectionStateUnavailable = linksResult.status === 'rejected' || requestsResult.status === 'rejected';
-      if (linksResult.status === 'rejected') console.error('[Trainee] Could not load connection state.', linksResult.reason);
-      if (requestsResult.status === 'rejected') console.error('[Trainee] Could not load connection requests.', requestsResult.reason);
-      const mine = (links || []).filter(link => link.traineeId === uid && link.trainerId !== uid);
-      const active = mine.find(link => link.status === 'active');
-      const pending = (requests || []).find(request => request.status === 'pending' && request.initiatedBy !== 'coach');
-      const incoming = (requests || []).filter(request => request.status === 'pending' && request.initiatedBy === 'coach');
-      const incomingEl = byId('traineeConnectionRequests');
-      if (incomingEl) {
-        incomingEl.replaceChildren();
-        incoming.forEach(request => {
-          const row = createElement('div', 'coach-pending-row');
-          row.append(createElement('strong', '', `${request.coachDisplayName || 'מאמן'} מבקש להתחבר`));
-          const actions = createElement('div', 'coach-pending-actions');
-          [[true, 'אישור'], [false, 'דחייה']].forEach(([accept, label]) => {
-            const button = createElement('button', accept ? 'btn-action-primary' : 'btn-action-secondary', label);
-            button.type = 'button';
-            button.addEventListener('click', async () => {
-              button.disabled = true;
-              try {
-                await window.FitPulseFirebase.respondToCoachConnection(
-                  request.id, request.coachId, uid, accept, state.currentUser?.name || 'מתאמן'
-                );
-                await renderTraineeCoachLinkCard();
-              } catch (error) {
-                console.error('[Trainee] Could not respond to coach connection request.', error);
-                button.disabled = false;
-                if (statusEl) statusEl.textContent = `לא ניתן לעדכן את בקשת החיבור: ${error.message || error}`;
-              }
-            });
-            actions.append(button);
+      // 1. Fetch trainership status from backend API
+      let trainershipData = null;
+      try {
+        const res = await fetch(`/api/coach/status?traineeId=${encodeURIComponent(uid)}`);
+        if (res.ok) {
+          trainershipData = await res.json();
+        }
+      } catch (e) {}
+
+      // 2. Fetch public coaches list (strictly excludes managers and require isPublicVisible == true)
+      const availableCoaches = (await window.FitPulseFirebase?.listCoaches?.() || []).filter(coach =>
+        coach.id !== uid &&
+        coach.role !== 'manager' &&
+        coach.id !== 'usr_mgr' &&
+        coach.email !== 'manager@fitpulse.com' &&
+        coach.isPublicVisible === true
+      );
+
+      // Populate coach dropdown
+      if (select) {
+        select.replaceChildren();
+        if (availableCoaches.length) {
+          availableCoaches.forEach(coach => {
+            const opt = document.createElement('option');
+            opt.value = coach.id;
+            opt.textContent = `${coach.name} (${coach.email || 'מאמן מוסמך'})`;
+            select.append(opt);
           });
-          row.append(actions);
-          incomingEl.append(row);
-        });
+        } else {
+          const opt = document.createElement('option');
+          opt.value = '';
+          opt.textContent = 'אין כרגע מאמנים שחשופים לקבלת מתאמנים חדשים';
+          select.append(opt);
+        }
       }
-      const coachName = (id) => coaches.find(coach => coach.id === id || coach.userId === id)?.name || 'מאמן';
-      if (active) {
-        if (statusEl) statusEl.textContent = `מחובר למאמן ${coachName(active.trainerId)}. בקשות והרשאות מופיעות כאן.`;
+
+      // Check STATE 3: Active Coach Connected
+      if (trainershipData?.hasCoach && trainershipData.coach) {
+        const coach = trainershipData.coach;
+        if (statusEl) statusEl.textContent = 'מחובר למאמן אישי.';
+        if (headerBadge) {
+          headerBadge.hidden = false;
+          headerBadge.textContent = 'מאמן פעיל';
+        }
         if (activeBox) {
           activeBox.hidden = false;
-          activeBox.replaceChildren(createElement('strong', '', coachName(active.trainerId)),
-            createElement('span', '', `סטטוס: ${trainershipStatusLabel(active.status)}`));
-        }
-        if (form) form.hidden = true;
-      } else {
-        if (activeBox) activeBox.hidden = true;
-        if (form) form.hidden = Boolean(pending) || connectionStateUnavailable;
-        const select = byId('traineeCoachSelect');
-        if (select) {
-          const available = coaches.filter(coach => coach.id !== uid);
-          select.replaceChildren();
-          available.forEach(coach => {
-            const option = document.createElement('option');
-            option.value = coach.id;
-            option.textContent = coach.name;
-            select.append(option);
-          });
-          if (!available.length) {
-            const option = document.createElement('option');
-            option.value = '';
-            option.textContent = 'לא נמצאו מאמנים במדריך הציבורי';
-            select.append(option);
+          if (byId('activeCoachName')) byId('activeCoachName').textContent = coach.name || 'מאמן אישי';
+          if (byId('activeCoachEmail')) byId('activeCoachEmail').textContent = coach.email || '';
+          const avatarEl = byId('activeCoachAvatar');
+          if (avatarEl) avatarEl.textContent = coach.name ? coach.name.slice(0, 2) : '👑';
+
+          const btnTerminate = byId('btnTerminateCoachRelationship');
+          if (btnTerminate) {
+            btnTerminate.onclick = async () => {
+              if (!confirm(`האם אתה בטוח שברצונך לסיים את הקשר עם המאמן ${coach.name}?`)) return;
+              btnTerminate.disabled = true;
+              try {
+                if (window.FitPulseFirebase?.terminateTrainership) {
+                  await window.FitPulseFirebase.terminateTrainership(uid, coach.id, 'trainee');
+                }
+                alert(`הקשר עם המאמן ${coach.name} הסתיים.`);
+                await renderTraineeCoachLinkCard();
+              } catch (err) {
+                alert(`שגיאה בסיום הקשר: ${err.message}`);
+                btnTerminate.disabled = false;
+              }
+            };
           }
         }
-        if (statusEl) {
-          statusEl.textContent = pending
-            ? `נשלחה בקשה אל ${pending.coachDisplayName || 'המאמן'} וממתינה לאישור.`
-            : 'בחרו מאמן מהמדריך הציבורי כדי לשלוח בקשת חיבור.';
+        return;
+      }
+
+      if (headerBadge) headerBadge.hidden = true;
+
+      // Check STATE 2: Pending request awaiting coach approval
+      if (trainershipData?.status === 'pending' && trainershipData.pendingRequest) {
+        const req = trainershipData.pendingRequest;
+        if (statusEl) statusEl.textContent = 'בקשת החיבור שלך ממתינה לתשובת המאמן.';
+        if (pendingBox) {
+          pendingBox.hidden = false;
+          if (pendingDesc) {
+            const dateStr = req.createdAt ? new Date(req.createdAt).toLocaleDateString('he-IL') : '';
+            pendingDesc.textContent = `נשלחה בקשת חיבור אל ${req.coachName || 'המאמן'} ${dateStr ? `(${dateStr})` : ''}, וממתינה לאישורו.`;
+          }
+          const btnCancel = byId('btnCancelPendingCoachRequest');
+          if (btnCancel) {
+            btnCancel.onclick = async () => {
+              if (!confirm('האם לבטל את בקשת החיבור שנשלחה למאמן?')) return;
+              btnCancel.disabled = true;
+              try {
+                if (window.FitPulseFirebase?.cancelCoachConnectionRequest) {
+                  await window.FitPulseFirebase.cancelCoachConnectionRequest(uid);
+                }
+                await renderTraineeCoachLinkCard();
+              } catch (err) {
+                alert(`שגיאה בביטול הבקשה: ${err.message}`);
+                btnCancel.disabled = false;
+              }
+            };
+          }
+        }
+        return;
+      }
+
+      // Check STATE 1: No Coach -> Show "קבע מאמן אישי"
+      if (statusEl) statusEl.textContent = 'עדיין לא הוגדר מאמן אישי לחשבון זה.';
+      if (noCoachBox) {
+        noCoachBox.hidden = false;
+        if (btnOpen) {
+          btnOpen.hidden = false;
+          btnOpen.onclick = () => {
+            btnOpen.hidden = true;
+            if (form) form.hidden = false;
+          };
+        }
+        const btnCancelAssign = byId('btnCancelAssignCoach');
+        if (btnCancelAssign) {
+          btnCancelAssign.onclick = () => {
+            if (form) form.hidden = true;
+            if (btnOpen) btnOpen.hidden = false;
+          };
         }
       }
-      if (connectionStateUnavailable && statusEl) {
-        statusEl.textContent += ' מצב בקשות החיבור אינו זמין כרגע; ניתן לצפות במדריך אך לא לשלוח בקשה.';
-      }
-      try {
-        await renderTraineePermissionControls(uid);
-      } catch (error) {
-        console.error('[Trainee] Could not load requested data permissions.', error);
-        if (statusEl) statusEl.textContent += ' בקשות גישה לנתונים אינן זמינות כרגע.';
-      }
-    } catch (error) {
-      if (statusEl) statusEl.textContent = `לא ניתן לטעון את רשימת המאמנים כרגע: ${error.message || error}`;
-      console.error('[Trainee] Could not load public coach directory.', error);
+
+    } catch (err) {
+      console.error('[TraineeCoachCard] Error rendering coach link card:', err);
+      if (statusEl) statusEl.textContent = 'לא ניתן לטעון את פרטי המאמן כרגע.';
     }
   }
 
@@ -3608,18 +3718,50 @@
   async function renderCoachPendingLinks() {
     const list = byId('coachPendingLinksList');
     if (!list || !isCoachModeActive()) return;
-    if (!window.FitPulseFirebase?.isConfigured) {
-      list.textContent = 'חיבור מתאמנים זמין אחרי התחברות לענן.';
-      return;
-    }
+
     try {
-      const uid = getAuthUserId();
-      const [requests, links, listing, permissionRequests] = await Promise.all([
-        window.FitPulseFirebase.getCoachConnectionRequests(),
-        window.FitPulseFirebase.listMyTrainerships(),
-        window.FitPulseFirebase.getOwnCoachDirectoryListing(),
-        window.FitPulseFirebase.getCoachPermissionRequests()
-      ]);
+      const uid = getAuthUserId() || state.currentUser?.id;
+      let serverPending = [];
+      try {
+        const sRes = await fetch(`/api/coach/trainees?coachId=${encodeURIComponent(uid)}`);
+        if (sRes.ok) {
+          const sData = await sRes.json();
+          if (sData.success && Array.isArray(sData.pendingRequests)) {
+            serverPending = sData.pendingRequests.map(r => ({
+              id: r.id,
+              coachId: r.coachId,
+              traineeId: r.traineeId,
+              traineeDisplayName: r.traineeName || 'מתאמן',
+              status: 'pending',
+              initiatedBy: r.initiatedBy || 'trainee'
+            }));
+          }
+        }
+      } catch (e) {}
+
+      let requests = [...serverPending];
+      let links = [];
+      let listing = null;
+      let permissionRequests = [];
+
+      if (window.FitPulseFirebase?.isConfigured && window.FitPulseFirebase?.getCoachConnectionRequests) {
+        try {
+          const [fbRequests, fbLinks, fbListing, fbPerms] = await Promise.all([
+            window.FitPulseFirebase.getCoachConnectionRequests().catch(() => []),
+            window.FitPulseFirebase.listMyTrainerships().catch(() => []),
+            window.FitPulseFirebase.getOwnCoachDirectoryListing().catch(() => null),
+            window.FitPulseFirebase.getCoachPermissionRequests().catch(() => [])
+          ]);
+          fbRequests.forEach(fr => {
+            if (!requests.some(r => r.id === fr.id || (r.traineeId === fr.traineeId && r.coachId === fr.coachId))) {
+              requests.push(fr);
+            }
+          });
+          links = fbLinks || [];
+          listing = fbListing;
+          permissionRequests = fbPerms || [];
+        } catch (e) {}
+      }
       const optIn = byId('coachDirectoryOptIn');
       if (optIn) {
         optIn.checked = listing?.isPublicVisible === true || listing?.isDiscoverable === true || state.currentUser?.isPublicVisible === true;
@@ -3662,22 +3804,47 @@
         const accept = createElement('button', 'btn-action-primary', 'אישור חיבור');
         accept.type = 'button';
         accept.addEventListener('click', async () => {
+          accept.disabled = true;
           try {
-            await window.FitPulseFirebase.respondToCoachConnection(link.id, link.coachId, link.traineeId, true);
-            renderCoachPendingLinks();
+            try {
+              await fetch('/api/coach/respond', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ requestId: link.id, accept: true, coachName: state.currentUser?.name })
+              });
+            } catch (be) {}
+            if (window.FitPulseFirebase?.respondToCoachConnection) {
+              await window.FitPulseFirebase.respondToCoachConnection(link.id, link.coachId, link.traineeId, true);
+            }
+            alert('✓ בקשת החיבור אושרה בהצלחה! המתאמן נוסף לרשימת המתאמנים שלך.');
+            renderCoach();
             renderTraineeCoachLinkCard();
           } catch (err) {
             alert(err.message || 'אישור החיבור נכשל.');
+            accept.disabled = false;
           }
         });
         const reject = createElement('button', 'btn-action-secondary', 'דחייה');
         reject.type = 'button';
         reject.addEventListener('click', async () => {
+          if (!confirm('האם לדחות את בקשת החיבור?')) return;
+          reject.disabled = true;
           try {
-            await window.FitPulseFirebase.respondToCoachConnection(link.id, link.coachId, link.traineeId, false);
-            renderCoachPendingLinks();
+            try {
+              await fetch('/api/coach/respond', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ requestId: link.id, accept: false, coachName: state.currentUser?.name })
+              });
+            } catch (be) {}
+            if (window.FitPulseFirebase?.respondToCoachConnection) {
+              await window.FitPulseFirebase.respondToCoachConnection(link.id, link.coachId, link.traineeId, false);
+            }
+            renderCoach();
+            renderTraineeCoachLinkCard();
           } catch (err) {
             alert(err.message || 'דחיית החיבור נכשלה.');
+            reject.disabled = false;
           }
         });
         actions.append(accept, reject);
@@ -5324,7 +5491,18 @@
     }
   }
 
+  function isSpecialUser(userOrId) {
+    if (!userOrId) return false;
+    const val = typeof userOrId === 'string'
+      ? userOrId.toLowerCase().trim()
+      : (((userOrId.email || userOrId.id || userOrId.userId || '') + '')).toLowerCase().trim();
+    const specialEmails = ['manager@fitpulse.com', 'coach.real@fitpulse.com', 'trainee.real@fitpulse.com'];
+    const specialIds = ['usr_mgr', 'usr_coach_real', 'usr_trainee_real', 'coach_real', 'trainee_real'];
+    return specialEmails.includes(val) || specialIds.includes(val);
+  }
+
   function accountAccessMessage(profile) {
+    if (!profile) return '';
     if (profile?.status === 'rejected' || profile?.approvalStatus === 'rejected') {
       return 'בקשת הגישה שלך נדחתה על ידי מנהל המערכת. לא ניתן להתחבר.';
     }
@@ -5339,6 +5517,21 @@
 
   function loginUser(user) {
     if (!user) return;
+    const accessError = accountAccessMessage(user);
+    if (accessError) {
+      console.warn('[AuthGuard] Blocked login for restricted user:', user.email || user.id, accessError);
+      const errorBox = byId('authErrorMessage');
+      if (errorBox) {
+        errorBox.textContent = accessError;
+        errorBox.hidden = false;
+      }
+      if (window.FitPulseFirebase?.signOut) {
+        window.FitPulseFirebase.signOut().catch(() => {});
+      }
+      logoutUser();
+      showAuthView('login');
+      return;
+    }
     if (typeof profileListenerUnsubscribe === 'function') profileListenerUnsubscribe();
     profileListenerUnsubscribe = null;
     state.currentUser = user;
@@ -5457,39 +5650,64 @@
     });
 
     document.querySelectorAll('.auth-demo-pill').forEach(pill => {
-      pill.addEventListener('click', () => {
+      pill.addEventListener('click', async () => {
         const email = pill.getAttribute('data-demo-email') || '';
         const pass = pill.getAttribute('data-demo-pass') || '';
-        const isReal = pill.getAttribute('data-real-account') === 'true';
+        const role = pill.getAttribute('data-demo-role') || 'trainee';
+        const name = pill.getAttribute('data-demo-name') || '';
 
         const emailInput = byId('authEmailInput');
         const passInput = byId('authPasswordInput');
         if (emailInput) emailInput.value = email;
         if (passInput) passInput.value = pass || '123456';
 
-        if (isReal && pass) {
-          byId('authLoginForm')?.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
-          return;
+        const errorBox = byId('authErrorMessage');
+        if (errorBox) { errorBox.hidden = true; errorBox.textContent = ''; }
+
+        // Attempt server API login first
+        try {
+          const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ identifier: email, password: pass })
+          });
+          const data = await res.json();
+          if (res.ok && data.success && data.user) {
+            loginUser(data.user);
+            return;
+          }
+          if (data.error) {
+            if (errorBox) {
+              errorBox.textContent = data.error;
+              errorBox.hidden = false;
+            }
+            return;
+          }
+        } catch (e) {
+          console.warn('[Auth] Server login fetch error, using local fallback:', e.message);
         }
 
-        const role = pill.getAttribute('data-demo-role') || 'trainee';
-        const name = pill.getAttribute('data-demo-name') || '';
-        const found = state.systemUsers.find(u => u.email === email) || {
-          id: 'usr_' + role,
+        const found = state.systemUsers.find(u => u.email.toLowerCase() === email.toLowerCase()) || {
+          id: role === 'manager' ? 'usr_mgr' : (role === 'coach' ? 'usr_coach_real' : 'usr_trainee_real'),
           name,
           email,
           role,
-          traineeId: role === 'trainee' ? 'client_1' : undefined
+          isTrainer: role !== 'trainee',
+          traineeId: role === 'trainee' ? 'usr_trainee_real' : undefined,
+          status: 'active',
+          approvalStatus: 'approved',
+          isSpecial: true
         };
+
         const restrictedMessage = accountAccessMessage(found);
         if (restrictedMessage) {
-          const errorBox = byId('authErrorMessage');
           if (errorBox) {
             errorBox.textContent = restrictedMessage;
             errorBox.hidden = false;
           }
           return;
         }
+
         loginUser(found);
       });
     });
@@ -5509,6 +5727,30 @@
         return;
       }
 
+      // 1. Try server API login
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier: emailInput, password: passwordInput })
+        });
+        const data = await res.json();
+        if (res.ok && data.success && data.user) {
+          loginUser(data.user);
+          return;
+        }
+        if (res.status === 403 || (data.status && ['rejected', 'suspended', 'pending_approval'].includes(data.status))) {
+          if (errorBox) {
+            errorBox.textContent = data.error || 'הגישה למערכת חסומה עבור חשבון זה.';
+            errorBox.hidden = false;
+          }
+          return;
+        }
+      } catch (err) {
+        console.warn('[Auth] Server login unreachable, falling back to client auth:', err.message);
+      }
+
+      // 2. Firebase live auth if available
       let authenticatedUser = null;
       if (window.FitPulseFirebase?.signIn && emailInput.includes('@')) {
         try {
@@ -5526,21 +5768,17 @@
               email: user.email || emailInput,
               name: profile?.fullName || user.displayName || emailInput.split('@')[0],
               role,
+              status: profile?.status || 'active',
+              approvalStatus: profile?.approvalStatus || 'approved',
               traineeId: role === 'trainee' ? (profile?.userId || user.uid) : undefined
             };
           }
         } catch (fbErr) {
-          console.warn('Firebase Auth error, checking local/demo users:', fbErr.message);
-          if (window.FitPulseFirebase?.isConfigured) {
-            if (errorBox) {
-              errorBox.textContent = fbErr.message || 'לא ניתן לאמת את החשבון כרגע.';
-              errorBox.hidden = false;
-            }
-            return;
-          }
+          console.warn('[Auth] Firebase Auth sign-in error:', fbErr.message);
         }
       }
 
+      // 3. Fallback to special users
       if (!authenticatedUser) {
         const lowered = emailInput.toLowerCase();
         authenticatedUser = state.systemUsers.find(u =>
@@ -5554,9 +5792,11 @@
           if (lowered === 'manager' || lowered === 'admin') {
             authenticatedUser = state.systemUsers.find(u => u.role === 'manager');
           } else if (lowered === 'coach' || lowered === 'trainer') {
-            authenticatedUser = state.systemUsers.find(u => u.role === 'coach');
-          } else if (lowered === 'daniel' || lowered === 'trainee') {
-            authenticatedUser = state.systemUsers.find(u => u.traineeId === 'client_1');
+            authenticatedUser = state.systemUsers.find(u => u.email === 'coach.real@fitpulse.com') ||
+                                state.systemUsers.find(u => u.role === 'coach');
+          } else if (lowered === 'trainee') {
+            authenticatedUser = state.systemUsers.find(u => u.email === 'trainee.real@fitpulse.com') ||
+                                state.systemUsers.find(u => u.role === 'trainee');
           }
         }
       }
@@ -5580,7 +5820,7 @@
       }
     });
 
-    // Google Sign-In / Sign-Up Event Handler
+    // Google Sign-In Handler
     byId('authGoogleSignInBtn')?.addEventListener('click', async () => {
       const errorBox = byId('authErrorMessage');
       const googleBtn = byId('authGoogleSignInBtn');
@@ -5603,73 +5843,63 @@
 
         const { user, profile, isNewUser, isPendingApproval, isRejected, isSuspended } = await window.FitPulseFirebase.signInWithGoogle();
 
-        // 1. If user DOES NOT exist in database -> Transition to Onboarding / Registration view
-        if (isNewUser || !profile) {
-          state.pendingGoogleUser = user;
-
-          const nameInput = byId('onboardingFullName');
-          const emailInput = byId('onboardingEmail');
-          const avatarImg = byId('onboardingAvatarImg');
-          const avatarFallback = byId('onboardingAvatarFallback');
-
-          if (nameInput) nameInput.value = user.displayName || user.email.split('@')[0] || '';
-          if (emailInput) emailInput.value = user.email || '';
-
-          if (user.photoURL && avatarImg) {
-            avatarImg.src = user.photoURL;
-            avatarImg.hidden = false;
-            if (avatarFallback) avatarFallback.hidden = true;
-          } else {
-            if (avatarImg) avatarImg.hidden = true;
-            if (avatarFallback) avatarFallback.hidden = false;
-          }
-
-          // Reset role card selection to trainee by default
-          const cardTrainee = byId('roleCardTrainee');
-          const cardCoach = byId('roleCardCoach');
-          if (cardTrainee) {
-            cardTrainee.classList.add('active');
-            const radio = cardTrainee.querySelector('input');
-            if (radio) radio.checked = true;
-          }
-          if (cardCoach) {
-            cardCoach.classList.remove('active');
-            const radio = cardCoach.querySelector('input');
-            if (radio) radio.checked = false;
-          }
-          if (byId('onboardingTraineeSection')) byId('onboardingTraineeSection').hidden = false;
-          if (byId('onboardingCoachSection')) byId('onboardingCoachSection').hidden = true;
-
-          showAuthView('onboarding');
-          return;
+        if (!user || !user.uid) {
+          throw new Error('לא התקבלו נתוני משתמש מ-Google.');
         }
 
-        // 2. If user exists but is awaiting manager approval
-        if (!isRejected && profile.status !== 'rejected' && profile.approvalStatus !== 'rejected' &&
-            !isSuspended && profile.status !== 'suspended' && profile.status !== 'disabled' &&
-            (isPendingApproval || profile.status === 'pending_approval' || profile.approvalStatus === 'pending')) {
-          state.pendingGoogleUser = user;
-          const isTrainer = profile.isTrainer === true || profile.role === 'coach';
-          if (byId('pendingUserName')) byId('pendingUserName').textContent = profile.fullName || user.displayName || user.email.split('@')[0];
-          if (byId('pendingUserEmail')) byId('pendingUserEmail').textContent = user.email || profile.email;
-          if (byId('pendingUserRoleBadge')) {
-            byId('pendingUserRoleBadge').textContent = isTrainer ? 'מאמן (ממתין לאישור מנהל)' : 'מתאמן (ממתין לאישור מנהל)';
+        // Post to backend /api/auth/google
+        let backendResult = null;
+        try {
+          const res = await fetch('/api/auth/google', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              uid: user.uid,
+              email: user.email,
+              displayName: user.displayName || profile?.fullName || '',
+              photoURL: user.photoURL || ''
+            })
+          });
+          backendResult = await res.json();
+          if (res.status === 403 || backendResult.status === 'rejected' || backendResult.status === 'suspended') {
+            if (errorBox) {
+              errorBox.textContent = backendResult.error || 'הגישה למערכת חסומה עבור משתמש זה.';
+              errorBox.hidden = false;
+            }
+            if (window.FitPulseFirebase?.signOut) {
+              try { await window.FitPulseFirebase.signOut(); } catch (e) {}
+            }
+            return;
           }
-          const img = byId('pendingUserAvatarImg');
-          const fallback = byId('pendingUserAvatarFallback');
-          if (user.photoURL && img) {
-            img.src = user.photoURL;
-            img.hidden = false;
-            if (fallback) fallback.hidden = true;
-          } else {
-            if (img) img.hidden = true;
-            if (fallback) fallback.hidden = false;
+          if (backendResult.isPending || backendResult.user?.status === 'pending_approval') {
+            state.pendingGoogleUser = user;
+            const p = backendResult.user || user;
+            if (byId('pendingUserName')) byId('pendingUserName').textContent = p.name || p.displayName || user.displayName || user.email.split('@')[0];
+            if (byId('pendingUserEmail')) byId('pendingUserEmail').textContent = p.email || user.email || '';
+            if (byId('pendingUserRoleBadge')) byId('pendingUserRoleBadge').textContent = 'ממתין לאישור מנהל';
+            const img = byId('pendingUserAvatarImg');
+            const fallback = byId('pendingUserAvatarFallback');
+            if ((p.photoURL || user.photoURL) && img) {
+              img.src = p.photoURL || user.photoURL;
+              img.hidden = false;
+              if (fallback) fallback.hidden = true;
+            } else {
+              if (img) img.hidden = true;
+              if (fallback) fallback.hidden = false;
+            }
+            showAuthView('pending');
+            return;
           }
-          showAuthView('pending');
-          return;
+          if (res.ok && backendResult.success && backendResult.user) {
+            loginUser(backendResult.user);
+            return;
+          }
+        } catch (beErr) {
+          console.warn('[Auth] Backend /api/auth/google notice:', beErr.message);
         }
 
-        if (isRejected || profile.status === 'rejected' || profile.approvalStatus === 'rejected') {
+        // Fallback to client profile
+        if (isRejected || profile?.status === 'rejected' || profile?.approvalStatus === 'rejected') {
           if (errorBox) {
             errorBox.textContent = 'חשבונך נדחה על ידי מנהל המערכת. אנא פנה למנהל האפליקציה.';
             errorBox.hidden = false;
@@ -5680,7 +5910,7 @@
           return;
         }
 
-        if (isSuspended || profile.status === 'suspended' || profile.status === 'disabled') {
+        if (isSuspended || profile?.status === 'suspended' || profile?.status === 'disabled') {
           if (errorBox) {
             errorBox.textContent = 'חשבונך הושעה על ידי מנהל המערכת. אנא פנה למנהל האפליקציה.';
             errorBox.hidden = false;
@@ -5691,7 +5921,15 @@
           return;
         }
 
-        // 3. Existing APPROVED user -> Direct Login!
+        if (isNewUser || isPendingApproval || profile?.status === 'pending_approval' || profile?.approvalStatus === 'pending') {
+          state.pendingGoogleUser = user;
+          if (byId('pendingUserName')) byId('pendingUserName').textContent = user.displayName || user.email.split('@')[0];
+          if (byId('pendingUserEmail')) byId('pendingUserEmail').textContent = user.email || '';
+          if (byId('pendingUserRoleBadge')) byId('pendingUserRoleBadge').textContent = 'ממתין לאישור מנהל';
+          showAuthView('pending');
+          return;
+        }
+
         const role = ['manager', 'admin'].includes(profile?.role) ? 'manager' :
           (profile?.role === 'coach' || profile?.isTrainer === true ? 'coach' : 'trainee');
         const appUser = {
@@ -5711,7 +5949,7 @@
           if (err.code === 'auth/popup-closed-by-user') {
             errorBox.textContent = 'חלון ההתחברות של Google נסגר לפני סיום הפעולה.';
           } else if (err.code === 'auth/unauthorized-domain') {
-            errorBox.textContent = 'הדומיין המקומי טרם אושר ב-Firebase Console (יש לוודא ש-localhost מופיע ב-Authorized Domains).';
+            errorBox.textContent = 'הדומיין המקומי טרם אושר ב-Firebase Console.';
           } else if (err.code === 'auth/popup-blocked') {
             errorBox.textContent = 'חלון ההתחברות נחסם ע"י הדפדפן. יש לאשר חלונות קופצים (Popups) עבור אתר זה.';
           } else {
@@ -5729,7 +5967,7 @@
       }
     });
 
-    // Onboarding Role Switcher Handlers & State
+        // Onboarding Role Switcher Handlers & State
     function setOnboardingRole(role) {
       state.onboardingRole = role;
       const isCoach = role === 'coach';
@@ -5895,9 +6133,30 @@
       try {
         if (btn) {
           btn.disabled = true;
-          btn.textContent = 'בודק סטטוס מול הענן...';
+          btn.textContent = 'בודק סטטוס מול השרת...';
         }
-        const profile = await window.FitPulseFirebase?.getUserProfile(user.uid);
+
+        let profile = null;
+
+        // 1. Check Server API directly
+        try {
+          const sRes = await fetch(`/api/users/status?userId=${encodeURIComponent(user.uid)}&email=${encodeURIComponent(user.email || '')}`);
+          if (sRes.ok) {
+            const sData = await sRes.json();
+            if (sData.success && sData.user) {
+              profile = sData.user;
+            }
+          }
+        } catch (e) {}
+
+        // 2. Check Firestore profile
+        if (!profile || profile.status === 'pending_approval') {
+          try {
+            const fbProfile = await window.FitPulseFirebase?.getUserProfile(user.uid);
+            if (fbProfile) profile = { ...profile, ...fbProfile };
+          } catch (e) {}
+        }
+
         const restrictedMessage = accountAccessMessage(profile);
         if (restrictedMessage) {
           if (notice) {
@@ -5908,17 +6167,27 @@
           if (window.FitPulseFirebase?.signOut) await window.FitPulseFirebase.signOut();
           return;
         }
+
         if (profile && (profile.status === 'active' || profile.approvalStatus === 'approved')) {
+          // Clean stale pending cache in localStorage
+          try {
+            const localPending = JSON.parse(localStorage.getItem('fitpulse_pending_users') || '[]');
+            const filtered = localPending.filter(u => u.userId !== user.uid && u.id !== user.uid && u.email !== user.email);
+            localStorage.setItem('fitpulse_pending_users', JSON.stringify(filtered));
+          } catch (e) {}
+
           const role = ['manager', 'admin'].includes(profile.role) ? 'manager' :
             (profile.role === 'coach' || profile.isTrainer === true ? 'coach' : 'trainee');
           const appUser = {
             id: user.uid,
-            name: profile.fullName || user.displayName || user.email.split('@')[0],
+            name: profile.fullName || profile.name || user.displayName || user.email.split('@')[0],
             email: user.email,
             role,
             isTrainer: role !== 'trainee',
             avatar: profile.profileImageUrl || user.photoURL || null,
-            traineeId: role === 'trainee' ? (profile.userId || user.uid) : undefined
+            traineeId: role === 'trainee' ? (profile.userId || user.uid) : undefined,
+            status: 'active',
+            approvalStatus: 'approved'
           };
           state.pendingGoogleUser = null;
           loginUser(appUser);
@@ -5926,7 +6195,7 @@
           return;
         }
 
-        if (profile && profile.status === 'rejected') {
+        if (profile && (profile.status === 'rejected' || profile.approvalStatus === 'rejected')) {
           if (notice) {
             notice.textContent = '✕ לצערנו, בקשת ההרשמה נדחתה על ידי מנהל המערכת.';
             notice.hidden = false;
@@ -5981,6 +6250,59 @@
       sessionStorage.removeItem('fitpulse_auth_session');
     }
 
+    // Active session status watcher: immediately kicks out suspended users and updates roles
+    async function checkActiveSessionStatus() {
+      if (!state.currentUser || isSpecialUser(state.currentUser)) return;
+      const uid = state.currentUser.id || state.currentUser.uid;
+      if (!uid) return;
+
+      try {
+        const res = await fetch(`/api/users/status?userId=${encodeURIComponent(uid)}&email=${encodeURIComponent(state.currentUser.email || '')}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.success || !data.user) return;
+        const userDoc = data.user;
+
+        // 1. Kickout suspended or rejected user immediately
+        const restriction = accountAccessMessage(userDoc);
+        if (restriction) {
+          console.warn('[SessionGuard] Active user account was restricted:', restriction);
+          logoutUser();
+          const errorBox = byId('authErrorMessage');
+          if (errorBox) {
+            errorBox.textContent = restriction;
+            errorBox.hidden = false;
+          }
+          showAuthView('login');
+          return;
+        }
+
+        // 2. Synchronize role change (e.g. upgraded to coach or trainee)
+        if (userDoc.role && userDoc.role !== state.currentUser.role) {
+          console.log(`[SessionGuard] Role updated: ${state.currentUser.role} -> ${userDoc.role}`);
+          const newRole = userDoc.role;
+          state.currentUser.role = newRole;
+          state.currentUser.isTrainer = (newRole === 'coach');
+          writeSession('fitpulse_auth_session', state.currentUser);
+          applyRoleAuthority(newRole);
+          updateHeaderUserChip();
+          if (newRole === 'coach' && state.activeTab === 'tab-dashboard') {
+            setTab('tab-coach');
+          } else if (newRole === 'trainee' && state.activeTab === 'tab-coach') {
+            setTab('tab-dashboard');
+          }
+          renderAll();
+        }
+      } catch (e) {}
+    }
+
+    // Check status immediately on load, on focus, and every 3 seconds
+    if (state.currentUser && !isSpecialUser(state.currentUser)) {
+      checkActiveSessionStatus();
+    }
+    setInterval(checkActiveSessionStatus, 3000);
+    window.addEventListener('focus', checkActiveSessionStatus);
+
     // Strict Auth Guard on startup session
     if (state.currentUser) {
       const startupRestriction = accountAccessMessage(state.currentUser);
@@ -6014,32 +6336,29 @@
     if (window.FitPulseFirebase?.isConfigured && window.FitPulseFirebase?.onAuthStateChanged) {
       window.FitPulseFirebase.onAuthStateChanged(async authUser => {
         if (!authUser) return;
-        try {
-          const profile = await window.FitPulseFirebase.getLoginProfile(authUser) ||
-                          await window.FitPulseFirebase.getUserProfile(authUser.uid);
-          const restrictedMessage = accountAccessMessage(profile);
-          if (restrictedMessage) {
-            if (window.FitPulseFirebase?.signOut) {
-              try { await window.FitPulseFirebase.signOut(); } catch (e) {}
+        // CRITICAL GUARD: Never touch or kick out special user sessions
+        if (state.currentUser && isSpecialUser(state.currentUser)) return;
+
+        if (state.currentUser && state.currentUser.id === authUser.uid) {
+          try {
+            const profile = await window.FitPulseFirebase.getLoginProfile(authUser) ||
+                            await window.FitPulseFirebase.getUserProfile(authUser.uid);
+            const restrictedMessage = accountAccessMessage(profile);
+            if (restrictedMessage) {
+              if (window.FitPulseFirebase?.signOut) {
+                try { await window.FitPulseFirebase.signOut(); } catch (e) {}
+              }
+              logoutUser();
+              const errorBox = byId('authErrorMessage');
+              if (errorBox) {
+                errorBox.textContent = restrictedMessage;
+                errorBox.hidden = false;
+              }
+              showAuthView('login');
+              return;
             }
-            logoutUser();
-            const errorBox = byId('authErrorMessage');
-            if (errorBox) {
-              errorBox.textContent = restrictedMessage;
-              errorBox.hidden = false;
-            }
-            showAuthView('login');
-            return;
-          }
-        } catch (error) {
-          console.error('[Auth] Could not verify account status.', error);
-          if (state.currentUser?.id === authUser.uid) {
-            logoutUser();
-            const errorBox = byId('authErrorMessage');
-            if (errorBox) {
-              errorBox.textContent = 'לא ניתן לאמת את סטטוס החשבון. נסו להתחבר שוב לאחר בדיקת החיבור.';
-              errorBox.hidden = false;
-            }
+          } catch (error) {
+            console.error('[Auth] Could not verify account status.', error);
           }
         }
       });
@@ -6349,6 +6668,13 @@
         approveBtn.disabled = true;
         approveBtn.textContent = 'מאשר...';
         try {
+          try {
+            await fetch('/api/users/approve', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId: pUser.id })
+            });
+          } catch (be) {}
           if (window.FitPulseFirebase?.approveUser) {
             await window.FitPulseFirebase.approveUser(pUser.id);
           }
@@ -6371,6 +6697,13 @@
         if (!confirm(`האם אתה בטוח שברצונך לדחות את בקשת ההרשמה של ${pUser.name}?`)) return;
         rejectBtn.disabled = true;
         try {
+          try {
+            await fetch('/api/users/reject', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId: pUser.id })
+            });
+          } catch (be) {}
           if (window.FitPulseFirebase?.rejectUser) {
             await window.FitPulseFirebase.rejectUser(pUser.id);
           }
@@ -6465,6 +6798,13 @@
         approveQuickBtn.addEventListener('click', async () => {
           approveQuickBtn.disabled = true;
           try {
+            try {
+              await fetch('/api/users/approve', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: user.id })
+              });
+            } catch (be) {}
             if (window.FitPulseFirebase?.approveUser) {
               await window.FitPulseFirebase.approveUser(user.id);
             }
@@ -6478,78 +6818,171 @@
         });
         tdActions.append(approveQuickBtn);
       } else {
-        if (user.status === 'suspended') {
-          const reactivateBtn = createElement('button', 'btn-action-primary', 'הפעל מחדש');
-          reactivateBtn.type = 'button';
-          reactivateBtn.style.marginInlineEnd = '6px';
-          reactivateBtn.addEventListener('click', async () => {
-            reactivateBtn.disabled = true;
-            try {
-              if (!window.FitPulseFirebase?.setUserStatus) throw new Error('שירות עדכון סטטוס אינו זמין.');
-              await window.FitPulseFirebase.setUserStatus(user.id, 'active');
-              user.status = 'active';
-              user.approvalStatus = 'approved';
-              renderManagerUsersTable();
-            } catch (error) {
-              console.error('[AppManager] Could not reactivate user.', error);
-              alert(`לא ניתן להפעיל מחדש את חשבון המשתמש: ${error.message || error}`);
-              reactivateBtn.disabled = false;
-            }
-          });
-          tdActions.append(reactivateBtn);
-        }
         const isUserRejected = user.status === 'rejected' || user.approvalStatus === 'rejected';
-        if (isUserRejected) {
-          const cancelRejectionBtn = createElement('button', 'btn-action-primary', 'ביטול דחייה');
-          cancelRejectionBtn.type = 'button';
-          cancelRejectionBtn.style.marginInlineEnd = '6px';
-          cancelRejectionBtn.addEventListener('click', async () => {
-            cancelRejectionBtn.disabled = true;
-            try {
-              if (!window.FitPulseFirebase?.setUserStatus) throw new Error('שירות עדכון סטטוס אינו זמין.');
-              await window.FitPulseFirebase.setUserStatus(user.id, 'active');
-              user.status = 'active';
-              user.approvalStatus = 'approved';
-              renderManagerUsersTable();
-            } catch (error) {
-              console.error('[AppManager] Could not cancel user rejection.', error);
-              alert(`לא ניתן לבטל את דחיית המשתמש: ${error.message || error}`);
-              cancelRejectionBtn.disabled = false;
-            }
-          });
-          tdActions.append(cancelRejectionBtn);
-        }
+        const isUserSuspended = user.status === 'suspended';
+        const isProtectedSpecial = isSpecialUser(user);
 
-        // Hide "Upgrade to Coach" and role toggles for rejected users
-        if (!isUserRejected && user.role !== 'manager') {
-          const toggleRoleBtn = createElement('button', 'btn-action-ghost', user.role === 'trainee' ? 'שדרוג למאמן' : 'שינוי למתאמן');
-          toggleRoleBtn.style.padding = '3px 8px';
-          toggleRoleBtn.style.fontSize = '0.72rem';
-
-          toggleRoleBtn.addEventListener('click', async () => {
-            const nextRole = user.role === 'trainee' ? 'coach' : 'trainee';
-            toggleRoleBtn.disabled = true;
-            try {
-              if (window.FitPulseFirebase?.setUserRole) {
-                await window.FitPulseFirebase.setUserRole(user.id, nextRole);
-              }
-              user.role = nextRole;
-              user.isTrainer = nextRole === 'coach';
-              renderManagerUsersTable();
-              if (state.currentUser?.id === user.id) {
-                state.currentUser = { ...state.currentUser, role: nextRole, isTrainer: user.isTrainer };
-                writeSession('fitpulse_auth_session', state.currentUser);
-                applyRoleAuthority(nextRole);
-                updateHeaderUserChip();
-                setTab(nextRole === 'coach' ? 'tab-coach' : 'tab-dashboard');
-              }
-            } catch (error) {
-              console.error('[AppManager] Could not persist user role change.', error);
-              alert(`לא ניתן לשנות את תפקיד המשתמש: ${error.message || error}`);
-              toggleRoleBtn.disabled = false;
+        if (isProtectedSpecial) {
+          const specialTag = createElement('span', 'manager-special-badge', '⭐ משתמש מוגן לבדיקות');
+          specialTag.style.cssText = 'font-size: 0.72rem; color: #38bdf8; font-weight: 600; padding: 2px 8px; border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 4px; background: rgba(56, 189, 248, 0.08);';
+          tdActions.append(specialTag);
+        } else {
+          // Suspend / Unsuspend toggle (shown for non-rejected, non-manager users)
+          if (!isUserRejected && user.role !== 'manager') {
+            if (isUserSuspended) {
+              // "Unsuspend" → resets to pending_approval for review, not instant active
+              const unsuspendBtn = createElement('button', 'btn-action-primary', 'בטל השעיה');
+              unsuspendBtn.type = 'button';
+              unsuspendBtn.style.marginInlineEnd = '6px';
+              unsuspendBtn.addEventListener('click', async () => {
+                unsuspendBtn.disabled = true;
+                try {
+                  try {
+                    await fetch('/api/users/status', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ userId: user.id, status: 'pending_approval', approvalStatus: 'pending' })
+                    });
+                  } catch (be) {}
+                  if (window.FitPulseFirebase?.setUserStatus) {
+                    await window.FitPulseFirebase.setUserStatus(user.id, 'pending_approval');
+                  }
+                  user.status = 'pending_approval';
+                  user.approvalStatus = 'pending';
+                  renderManagerUsersTable();
+                } catch (error) {
+                  console.error('[AppManager] Could not unsuspend user.', error);
+                  alert(`לא ניתן לבטל את ההשעיה: ${error.message || error}`);
+                  unsuspendBtn.disabled = false;
+                }
+              });
+              tdActions.append(unsuspendBtn);
+            } else {
+              // Suspend active user
+              const suspendBtn = createElement('button', 'btn-action-ghost', 'השעה');
+              suspendBtn.type = 'button';
+              suspendBtn.style.marginInlineEnd = '6px';
+              suspendBtn.style.color = 'var(--danger, #e53935)';
+              suspendBtn.addEventListener('click', async () => {
+                if (!confirm(`להשעות את החשבון של ${user.name}?`)) return;
+                suspendBtn.disabled = true;
+                try {
+                  try {
+                    await fetch('/api/users/status', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ userId: user.id, status: 'suspended' })
+                    });
+                  } catch (be) {}
+                  if (window.FitPulseFirebase?.setUserStatus) {
+                    await window.FitPulseFirebase.setUserStatus(user.id, 'suspended');
+                  }
+                  user.status = 'suspended';
+                  renderManagerUsersTable();
+                } catch (error) {
+                  console.error('[AppManager] Could not suspend user.', error);
+                  alert(`לא ניתן להשעות את המשתמש: ${error.message || error}`);
+                  suspendBtn.disabled = false;
+                }
+              });
+              tdActions.append(suspendBtn);
             }
-          });
-          tdActions.append(toggleRoleBtn);
+          }
+
+          // "Cancel Rejection" → resets to pending_approval for re-review (NOT instant active)
+          if (isUserRejected) {
+            const cancelRejectionBtn = createElement('button', 'btn-action-primary', 'ביטול דחייה');
+            cancelRejectionBtn.type = 'button';
+            cancelRejectionBtn.style.marginInlineEnd = '6px';
+            cancelRejectionBtn.addEventListener('click', async () => {
+              cancelRejectionBtn.disabled = true;
+              try {
+                try {
+                  await fetch('/api/users/status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: user.id, status: 'pending_approval', approvalStatus: 'pending' })
+                  });
+                } catch (be) {}
+                if (window.FitPulseFirebase?.setUserStatus) {
+                  await window.FitPulseFirebase.setUserStatus(user.id, 'pending_approval');
+                }
+                user.status = 'pending_approval';
+                user.approvalStatus = 'pending';
+                renderManagerUsersTable();
+              } catch (error) {
+                console.error('[AppManager] Could not cancel user rejection.', error);
+                alert(`לא ניתן לבטל את דחיית המשתמש: ${error.message || error}`);
+                cancelRejectionBtn.disabled = false;
+              }
+            });
+            tdActions.append(cancelRejectionBtn);
+
+            // Permanent Delete (only shown for rejected users)
+            const deleteBtn = createElement('button', 'btn-action-ghost', '🗑 מחק לצמיתות');
+            deleteBtn.type = 'button';
+            deleteBtn.style.color = 'var(--danger, #e53935)';
+            deleteBtn.style.fontSize = '0.72rem';
+            deleteBtn.addEventListener('click', async () => {
+              if (!confirm(`למחוק לצמיתות את החשבון של ${user.name || user.email}? פעולה זו אינה הפיכה!`)) return;
+              deleteBtn.disabled = true;
+              try {
+                try {
+                  await fetch(`/api/users/${encodeURIComponent(user.id)}`, { method: 'DELETE' });
+                } catch (be) {}
+                if (window.FitPulseFirebase?.deleteUserAccount) {
+                  await window.FitPulseFirebase.deleteUserAccount(user.id);
+                }
+                state.systemUsers = state.systemUsers.filter(u => u.id !== user.id);
+                renderManagerUsersTable();
+                alert(`✓ החשבון של ${user.name || user.email} נמחק לצמיתות.`);
+              } catch (error) {
+                console.error('[AppManager] Could not delete user.', error);
+                alert(`לא ניתן למחוק את המשתמש: ${error.message || error}`);
+                deleteBtn.disabled = false;
+              }
+            });
+            tdActions.append(deleteBtn);
+          }
+
+          // Role toggle — hidden for rejected users and managers
+          if (!isUserRejected && !isUserSuspended && user.role !== 'manager') {
+            const toggleRoleBtn = createElement('button', 'btn-action-ghost', user.role === 'trainee' ? 'שדרוג למאמן' : 'שינוי למתאמן');
+            toggleRoleBtn.style.padding = '3px 8px';
+            toggleRoleBtn.style.fontSize = '0.72rem';
+
+            toggleRoleBtn.addEventListener('click', async () => {
+              const nextRole = user.role === 'trainee' ? 'coach' : 'trainee';
+              toggleRoleBtn.disabled = true;
+              try {
+                try {
+                  await fetch('/api/users/role', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: user.id, role: nextRole })
+                  });
+                } catch (be) {}
+                if (window.FitPulseFirebase?.setUserRole) {
+                  await window.FitPulseFirebase.setUserRole(user.id, nextRole);
+                }
+                user.role = nextRole;
+                user.isTrainer = nextRole === 'coach';
+                renderManagerUsersTable();
+                if (state.currentUser?.id === user.id) {
+                  state.currentUser = { ...state.currentUser, role: nextRole, isTrainer: user.isTrainer };
+                  writeSession('fitpulse_auth_session', state.currentUser);
+                  applyRoleAuthority(nextRole);
+                  updateHeaderUserChip();
+                  setTab(nextRole === 'coach' ? 'tab-coach' : 'tab-dashboard');
+                }
+              } catch (error) {
+                console.error('[AppManager] Could not persist user role change.', error);
+                alert(`לא ניתן לשנות את תפקיד המשתמש: ${error.message || error}`);
+                toggleRoleBtn.disabled = false;
+              }
+            });
+            tdActions.append(toggleRoleBtn);
+          }
         }
       }
 
@@ -6631,16 +7064,32 @@
     byId('closeBarcodeFoodEditorBtn')?.addEventListener('click', closeBarcodeFoodEditor);
     byId('traineeCoachLinkForm')?.addEventListener('submit', async event => {
       event.preventDefault();
+      const select = byId('traineeCoachSelect');
+      const submitBtn = byId('traineeCoachLinkBtn');
+      const coachId = select?.value;
+      if (!coachId) {
+        alert('יש לבחור מאמן מתוך הרשימה.');
+        return;
+      }
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'שולח בקשה...';
+      }
       try {
-        const select = byId('traineeCoachSelect');
-        const coach = (await window.FitPulseFirebase.listCoaches(byId('traineeCoachSearchInput')?.value || ''))
-          .find(item => item.id === select?.value);
-        if (!coach) throw new Error('בחרו מאמן שמופיע במדריך הציבורי.');
+        const traineeId = getAuthUserId() || state.currentUser?.id;
         const traineeName = state.currentUser?.name || state.profile.name || 'מתאמן';
-        await window.FitPulseFirebase.requestCoachConnection(coach.id, traineeName, coach.name);
+        if (window.FitPulseFirebase?.requestCoachConnection) {
+          await window.FitPulseFirebase.requestCoachConnection(traineeId, coachId, traineeName);
+        }
+        alert('✓ בקשת החיבור נשלחה בהצלחה למאמן וממתינה לאישורו!');
         await renderTraineeCoachLinkCard();
       } catch (error) {
         alert(error.message || 'שליחת בקשת החיבור נכשלה.');
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'שלח בקשה';
+        }
       }
     });
     byId('traineeCoachSearchInput')?.addEventListener('input', renderTraineeCoachLinkCard);
